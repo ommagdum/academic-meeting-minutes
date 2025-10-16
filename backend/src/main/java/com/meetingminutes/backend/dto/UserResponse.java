@@ -2,10 +2,7 @@ package com.meetingminutes.backend.dto;
 
 import com.meetingminutes.backend.entity.User;
 import com.meetingminutes.backend.entity.UserRole;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -14,6 +11,7 @@ import java.util.UUID;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class UserResponse {
     private UUID id;
     private String email;
@@ -25,15 +23,19 @@ public class UserResponse {
     private LocalDateTime createdAt;
 
     public static UserResponse from(User user) {
-        return new UserResponse(
-                user.getId(),
-                user.getEmail(),
-                user.getName(),
-                user.getProfilePictureUrl(),
-                user.getRole(),
-                user.getLastLogin(),
-                user.getEmailVerified(),
-                user.getCreatedAt()
-        );
+        if (user == null) {
+            return null;
+        }
+
+        return UserResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .name(user.getName())
+                .profilePictureUrl(user.getProfilePictureUrl())
+                .role(user.getRole())
+                .lastLogin(user.getLastLogin())
+                .emailVerified(user.getEmailVerified())
+                .createdAt(user.getCreatedAt())
+                .build();
     }
 }

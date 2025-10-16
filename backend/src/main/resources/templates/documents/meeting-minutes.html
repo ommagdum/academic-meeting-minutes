@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title th:text="${meeting.title}">Meeting Minutes</title>
+    <style>
+        /* Academic Professional Styling */
+        body {
+            font-family: "Times New Roman", Times, serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #2c3e50;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            margin: 0;
+            font-size: 28px;
+        }
+
+        .meeting-meta {
+            margin-top: 10px;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section h2 {
+            color: #2c3e50;
+            border-bottom: 1px solid #bdc3c7;
+            padding-bottom: 5px;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .attendee-list, .agenda-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .attendee-list li, .agenda-list li {
+            padding: 5px 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .decision-item, .action-item {
+            background: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .decision-topic {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .action-description {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .action-meta {
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+
+        .fallback-notice {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #bdc3c7;
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- HEADER SECTION -->
+    <header class="header">
+        <h1 th:text="${meeting.title}">Meeting Title</h1>
+        <div class="meeting-meta">
+            <div th:if="${meeting.scheduledTime}">
+                <strong>Date:</strong>
+                <span th:text="${#temporals.format(meeting.scheduledTime, 'MMMM dd, yyyy')}">Meeting Date</span>
+                <span th:if="${meeting.scheduledTime}" th:text="' at ' + ${#temporals.format(meeting.scheduledTime, 'hh:mm a')}">Time</span>
+            </div>
+            <div>
+                <strong>Organizer:</strong>
+                <span th:text="${meeting.createdBy.name}">Organizer Name</span>
+            </div>
+            <div th:if="${meeting.series}">
+                <strong>Series:</strong>
+                <span th:text="${meeting.series.title}">Series Title</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ATTENDEES SECTION -->
+    <section class="section">
+        <h2>Attendees</h2>
+        <ul class="attendee-list" th:if="${not #lists.isEmpty(attendees)}">
+            <li th:each="attendee : ${attendees}"
+                th:text="|${(attendee.user != null) ? attendee.user.name : 'External Participant'} - ${attendee.inviteEmail} (${attendee.status})|">
+                Attendee Name - email@example.com (Status)
+            </li>
+        </ul>
+        <p th:if="${#lists.isEmpty(attendees)}">No attendees recorded.</p>
+    </section>
+
+    <!-- AGENDA SECTION -->
+    <section class="section" th:if="${not #lists.isEmpty(meeting.agendaItems)}">
+        <h2>Meeting Agenda</h2>
+        <ol class="agenda-list">
+            <li th:each="item : ${meeting.agendaItems}">
+                <strong th:text="${item.title}">Agenda Item Title</strong>
+                <div th:if="${item.description}" th:text="' - ' + ${item.description}" style="color: #666; font-size: 14px;">
+                    Agenda item description
+                </div>
+            </li>
+        </ol>
+    </section>
+
+    <!-- DISCUSSION & DECISIONS SECTION (AI Data) -->
+    <section class="section" th:if="${hasAIExtraction and not #lists.isEmpty(extraction.extractedData.decisions)}">
+        <h2>Key Decisions</h2>
+        <div th:each="decision : ${extraction.extractedData.decisions}" class="decision-item">
+            <div class="decision-topic" th:text="${decision.topic}">Decision Topic</div>
+            <div th:text="${decision.decision}">Decision made</div>
+            <div th:if="${decision.context}" style="font-style: italic; margin-top: 5px; color: #666;"
+                 th:text="'Context: ' + ${decision.context}">Decision context</div>
+        </div>
+    </section>
+
+    <!-- TOPICS DISCUSSED SECTION (AI Data) -->
+    <section class="section" th:if="${hasAIExtraction and not #lists.isEmpty(extraction.extractedData.topicsDiscussed)}">
+        <h2>Topics Discussed</h2>
+        <div th:each="topic : ${extraction.extractedData.topicsDiscussed}" class="decision-item" style="border-left-color: #27ae60;">
+            <div class="decision-topic" th:text="${topic.agendaItem}">Topic</div>
+            <div th:text="${topic.summary}">Topic summary</div>
+        </div>
+    </section>
+
+    <!-- ACTION ITEMS SECTION -->
+    <section class="section" th:if="${not #lists.isEmpty(actionItems)}">
+        <h2>Action Items</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>Description</th>
+                <th>Assigned To</th>
+                <th>Deadline</th>
+                <th>Status</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="item : ${actionItems}">
+                <td th:text="${item.description}">Action item description</td>
+                <td th:text="${(item.assignedToUser != null) ? item.assignedToUser.name : (item.assignedToEmail != null) ? item.assignedToEmail : 'Unassigned'}">Assignee</td>
+                <td th:text="${item.deadline ? #temporals.format(item.deadline, 'MMM dd, yyyy') : 'Not set'}">Deadline</td>
+                <td th:text="${item.status}">Status</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- FALLBACK CONTENT -->
+    <section class="section" th:if="${fallbackContent}">
+        <div class="fallback-notice">
+            <h3>Note</h3>
+            <p th:text="${fallbackContent}">Fallback content explaining limited AI extraction</p>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <p>
+            Generated on <span th:text="${#temporals.format(generatedAt, 'MMMM dd, yyyy') + ' at ' + #temporals.format(generatedAt, 'hh:mm a')}">timestamp</span>
+            by Academic Meeting Minutes Extractor
+        </p>
+        <p>Meeting ID: <span th:text="${meeting.id}">meeting-id</span> | Document Version: <span th:text="${version}">1</span></p>
+    </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meeting Invitation</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: hsl(220, 13%, 96%);
+            color: hsl(224, 15%, 15%);
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: hsl(0, 0%, 100%);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px -2px hsl(224, 76%, 48%, 0.1);
+        }
+
+        .header {
+            background: linear-gradient(135deg, hsl(224, 76%, 48%) 0%, hsl(224, 76%, 35%) 100%);
+            color: hsl(0, 0%, 100%);
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .header p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 16px;
+        }
+
+        .content {
+            padding: 30px;
+            line-height: 1.6;
+        }
+
+        .meeting-details {
+            background-color: hsl(220, 13%, 96%);
+            border: 1px solid hsl(220, 13%, 91%);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .meeting-details h3 {
+            margin-top: 0;
+            color: hsl(224, 15%, 15%);
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .meeting-details p {
+            margin: 10px 0;
+            color: hsl(224, 10%, 45%);
+        }
+
+        .custom-message {
+            background-color: hsl(224, 76%, 97%);
+            border-left: 4px solid hsl(224, 76%, 48%);
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+
+        .custom-message strong {
+            color: hsl(224, 76%, 35%);
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, hsl(224, 76%, 48%) 0%, hsl(224, 76%, 35%) 100%);
+            color: hsl(0, 0%, 100%);
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 8px;
+            font-weight: 600;
+            margin: 20px 0;
+            box-shadow: 0 4px 20px -2px hsl(224, 76%, 48%, 0.2);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 30px -10px hsl(224, 76%, 48%, 0.3);
+        }
+
+        .footer {
+            background-color: hsl(220, 13%, 96%);
+            border-top: 1px solid hsl(220, 13%, 91%);
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: hsl(224, 10%, 45%);
+        }
+
+        .footer p {
+            margin: 0;
+        }
+
+        .link-fallback {
+            font-size: 12px;
+            color: hsl(224, 10%, 45%);
+            word-break: break-all;
+            margin-top: 10px;
+        }
+
+        strong {
+            color: hsl(224, 15%, 15%);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>Meeting Invitation</h1>
+        <p>You've been invited to participate</p>
+    </div>
+
+    <div class="content">
+        <p>Hello!</p>
+
+        <p><strong th:text="${organizerName}">Organizer Name</strong> has invited you to participate in a meeting:</p>
+
+        <div class="meeting-details">
+            <h3 th:text="${meetingTitle}">Meeting Title</h3>
+            <p th:text="${meetingDescription}">Meeting Description</p>
+            <p th:if="${scheduledTime != 'Not scheduled'}"><strong>Scheduled:</strong> <span th:text="${scheduledTime}">Date</span></p>
+        </div>
+
+        <div th:if="${customMessage}" class="custom-message">
+            <strong>Message from organizer:</strong>
+            <p th:text="${customMessage}">Custom message</p>
+        </div>
+
+        <p>Click the button below to join the meeting and view the generated minutes once processing is complete:</p>
+
+        <a th:href="${invitationLink}" class="cta-button">Join Meeting</a>
+
+        <div class="link-fallback">
+            <small>If the button doesn't work, copy and paste this link into your browser:<br>
+                <span th:text="${invitationLink}">Invite URL</span></small>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>© 2025 Academic Meeting Minutes Extractor. All rights reserved.</p>
+    </div>
+</div>
+</body>
+</html>

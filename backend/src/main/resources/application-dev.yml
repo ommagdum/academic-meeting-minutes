@@ -1,9 +1,17 @@
 spring:
+  main:
+    allow-bean-definition-overriding: true
   datasource:
     url: jdbc:postgresql://localhost:5432/meeting_minutes
     username: dev
     password: dev123
     driver-class-name: org.postgresql.Driver
+
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 500MB
+      enabled: true
 
   data:
     redis:
@@ -11,8 +19,22 @@ spring:
       port: 6379
     mongodb:
       uri: mongodb://localhost:27017/meeting_minutes
+      auto-index-creation: true
 
-
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${SMTP_USERNAME:your-email@gmail.com}
+    password: ${SMTP_PASSWORD:your-app-password}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
   jpa:
     hibernate:
@@ -48,5 +70,40 @@ jwt:
   expiration: ${JWT_EXPIRATION}
 
 app:
+  upload:
+    temp-directory: /tmp/uploads
+    max-file-size: 524288000
   oauth2:
     redirect-uri: http://localhost:3000/oauth2/redirect
+  email:
+    from: team.meetingminutes@gmail.com
+    base-url: http://localhost:3000
+
+springdoc:
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  info:
+    title: Academic Meeting Minutes Extractor API
+    description: REST API for automated meeting minutes generation
+    version: 1.0.0
+    contact:
+      name: Development Team
+      email: dev@academicminutes.com
+    license:
+      name: Academic License
+      url: https://academicminutes.com/license
+
+ai:
+  service:
+    base-url: http://localhost:5001
+    timeout: 300000  # 5 minutes in milliseconds
+    retry:
+      max-attempts: 3
+      backoff-delay: 5000
+

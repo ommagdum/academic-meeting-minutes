@@ -1,7 +1,6 @@
 package com.meetingminutes.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -12,7 +11,6 @@ import java.time.LocalDateTime;
 @Table(name = "users")
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
 public class User extends BaseEntity{
 
@@ -36,4 +34,9 @@ public class User extends BaseEntity{
 
     private String createdBy;
     private String updatedBy;
+
+    public User(String email, String name) {
+        this.email = email;
+        this.name = name;
+    }
 }
