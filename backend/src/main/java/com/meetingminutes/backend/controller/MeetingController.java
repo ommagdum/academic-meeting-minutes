@@ -1,9 +1,13 @@
 package com.meetingminutes.backend.controller;
 
 import com.meetingminutes.backend.document.AIExtraction;
+import com.meetingminutes.backend.document.GeneratedDocument;
 import com.meetingminutes.backend.document.Transcript;
 import com.meetingminutes.backend.dto.*;
 import com.meetingminutes.backend.entity.*;
+import com.meetingminutes.backend.exception.AccessDeniedException;
+import com.meetingminutes.backend.exception.EntityNotFoundException;
+import com.meetingminutes.backend.exception.ValidationException;
 import com.meetingminutes.backend.repository.ActionItemRepo;
 import com.meetingminutes.backend.repository.AgendaItemRepo;
 import com.meetingminutes.backend.repository.AttendeeRepo;
@@ -20,6 +24,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.gridfs.GridFsResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -27,10 +33,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -91,7 +95,7 @@ public class MeetingController {
         Optional<Transcript> transcript = transcriptRepository.findByMeetingId(meetingId);
         Optional<AIExtraction> aiExtraction = aiExtractionRepository.findByMeetingId(meetingId);
 
-        // Fetch document URL (you'll need to implement this)
+        // Fetch document URL 
         String minutesDocumentUrl = documentGenerationService.getDocumentUrl(meetingId);
 
         MeetingDetailResponse response = convertToDetailResponse(
@@ -100,6 +104,138 @@ public class MeetingController {
         );
 
         return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{meetingId}")
+    public ResponseEntity<MeetingDetailResponse> updateMeeting(
+            @PathVariable UUID meetingId,
+            @Valid @RequestBody UpdateMeetingRequest request,
+            Authentication authentication) {
+
+        String email = authentication.getName();
+        User user = userService.findByEmail(email);
+        log.info("Updating meeting: {} for user: {}", meetingId, user.getEmail());
+
+        try {
+            Meeting updatedMeeting = meetingService.updateMeeting(meetingId, request, user);
+
+            // Fetch updated related data
+            List<AgendaItem> agendaItems = agendaItemRepo.findByMeetingIdOrderByOrderIndexAsc(meetingId);
+            List<Attendee> attendees = attendeeRepo.findByMeetingId(meetingId);
+            List<ActionItem> actionItems = actionItemRepo.findByMeetingIdOrderByCreatedAtAsc(meetingId);
+
+            Optional<Transcript> transcript = transcriptRepository.findByMeetingId(meetingId);
+            Optional<AIExtraction> aiExtraction = aiExtractionRepository.findByMeetingId(meetingId);
+            String minutesDocumentUrl = documentGenerationService.getDocumentUrl(meetingId);
+
+            MeetingDetailResponse response = convertToDetailResponse(
+                    updatedMeeting, agendaItems, attendees, actionItems,
+                    transcript.orElse(null), aiExtraction.orElse(null), minutesDocumentUrl
+            );
+
+            return ResponseEntity.ok(response);
+
+        } catch (EntityNotFoundException e) {
+            log.error("Meeting not found: {}", meetingId, e);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (AccessDeniedException e) {
+            log.error("Access denied for meeting: {}", meetingId, e);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        } catch (ValidationException e) {
+            log.error("Validation failed for meeting update: {}", meetingId, e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        } catch (Exception e) {
+            log.error("Failed to update meeting: {}", meetingId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @PostMapping("/{meetingId}/agenda-items")
+    public ResponseEntity<List<AgendaItemResponse>> addAgendaItems(
+            @PathVariable UUID meetingId,
+            @Valid @RequestBody List<CreateAgendaItemRequest> agendaItems,
+            Authentication authentication) {
+
+        String email = authentication.getName();
+        User user = userService.findByEmail(email);
+        log.info("Adding agenda items to meeting: {} for user: {}", meetingId, user.getEmail());
+
+        try {
+            Meeting meeting = meetingRepository.findByIdAndCreatedBy(meetingId, user)
+                    .orElseThrow(() -> new EntityNotFoundException("Meeting not found or access denied"));
+
+            if (meeting.getStatus() == MeetingStatus.PROCESSING) {
+                throw new ValidationException("Cannot modify agenda while processing is in progress");
+            }
+
+            List<AgendaItem> savedItems = agendaItems.stream()
+                    .map(request -> {
+                        AgendaItem item = new AgendaItem();
+                        item.setMeeting(meeting);
+                        item.setTitle(request.getTitle());
+                        item.setDescription(request.getDescription());
+                        item.setOrderIndex(request.getOrderIndex());
+                        return agendaItemRepo.save(item);
+                    })
+                    .collect(Collectors.toList());
+
+            List<AgendaItemResponse> responses = savedItems.stream()
+                    .map(AgendaItemResponse::from)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(responses);
+
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (ValidationException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        } catch (Exception e) {
+            log.error("Failed to add agenda items to meeting: {}", meetingId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @DeleteMapping("/{meetingId}/agenda-items/{agendaItemId}")
+    public ResponseEntity<ApiResponse> deleteAgendaItem(
+            @PathVariable UUID meetingId,
+            @PathVariable UUID agendaItemId,
+            Authentication authentication) {
+
+        String email = authentication.getName();
+        User user = userService.findByEmail(email);
+        log.info("Deleting agenda item: {} from meeting: {} for user: {}", agendaItemId, meetingId, user.getEmail());
+
+        try {
+            // Verify the agenda item belongs to the meeting and user owns the meeting
+            AgendaItem agendaItem = agendaItemRepo.findById(agendaItemId)
+                    .orElseThrow(() -> new EntityNotFoundException("Agenda item not found"));
+
+            if (!agendaItem.getMeeting().getId().equals(meetingId) ||
+                    !agendaItem.getMeeting().getCreatedBy().getId().equals(user.getId())) {
+                throw new AccessDeniedException("Cannot delete this agenda item");
+            }
+
+            if (agendaItem.getMeeting().getStatus() == MeetingStatus.PROCESSING) {
+                throw new ValidationException("Cannot delete agenda item while processing is in progress");
+            }
+
+            agendaItemRepo.delete(agendaItem);
+
+            ApiResponse response = ApiResponse.builder()
+                    .success(true)
+                    .message("Agenda item deleted successfully")
+                    .build();
+
+            return ResponseEntity.ok(response);
+
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (AccessDeniedException | ValidationException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        } catch (Exception e) {
+            log.error("Failed to delete agenda item: {} from meeting: {}", agendaItemId, meetingId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     private MeetingDetailResponse convertToDetailResponse(
@@ -349,14 +485,42 @@ public class MeetingController {
                 meetingId, documentId, format);
 
         try {
-            // This would retrieve the document from GridFS
-            // For now, returning a placeholder response
-            return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+            // ✅ FIXED: Get the document from GridFS
+            GridFsResource document = documentGenerationService.getDocumentById(documentId);
+
+            if (document == null || !document.exists()) {
+                log.warn("Document not found: {} for meeting: {}", documentId, meetingId);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+
+            // Get document metadata for proper headers
+            Optional<GeneratedDocument> metadata = documentGenerationService.getDocumentMetadata(documentId);
+            String filename = metadata.map(GeneratedDocument::getFilename)
+                    .orElse("meeting_minutes." + format);
+
+            String contentType = metadata.map(GeneratedDocument::getContentType)
+                    .orElse(getContentTypeForFormat(format));
+
+            log.info("Serving document: {} for meeting: {}", filename, meetingId);
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"" + filename + "\"")
+                    .body(document);
 
         } catch (Exception e) {
             log.error("Failed to download document for meeting: {}", meetingId, e);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
+    }
+
+    private String getContentTypeForFormat(String format) {
+        return switch (format.toLowerCase()) {
+            case "pdf" -> "application/pdf";
+            case "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+            default -> "application/octet-stream";
+        };
     }
 
     @GetMapping("/{meetingId}/action-items")
@@ -380,6 +544,72 @@ public class MeetingController {
             log.error("Failed to fetch action items for meeting: {}", meetingId, e);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
+    }
+
+    @GetMapping("/{meetingId}/documents")
+    public ResponseEntity<List<GeneratedDocument>> getMeetingDocuments(
+            @PathVariable UUID meetingId,
+            Authentication authentication) {
+
+        String email = authentication.getName();
+        User user = userService.findByEmail(email);
+        log.debug("Fetching documents for meeting: {}, user: {}", meetingId, user.getEmail());
+
+        try {
+            List<GeneratedDocument> documents = documentGenerationService.getMeetingDocuments(meetingId);
+            return ResponseEntity.ok(documents);
+
+        } catch (Exception e) {
+            log.error("Failed to fetch documents for meeting: {}", meetingId, e);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+    }
+
+    @GetMapping("/{meetingId}/documents/latest/download")
+    public ResponseEntity<Resource> downloadLatestDocument(
+            @PathVariable UUID meetingId,
+            @RequestParam(defaultValue = "pdf") String format,
+            Authentication authentication) {
+
+        String email = authentication.getName();
+        User user = userService.findByEmail(email);
+        log.info("Downloading latest document for meeting: {}, format: {}", meetingId, format);
+
+        try {
+            // Get all documents for the meeting
+            List<GeneratedDocument> documents = documentGenerationService.getMeetingDocuments(meetingId);
+
+            if (documents.isEmpty()) {
+                log.warn("No documents found for meeting: {}", meetingId);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+
+            // Find the latest document of the requested format
+            Optional<GeneratedDocument> latestDoc = documents.stream()
+                    .filter(doc -> matchesFormat(doc, format))
+                    .max(Comparator.comparing(GeneratedDocument::getGeneratedAt)
+                            .thenComparing(GeneratedDocument::getVersion));
+
+            if (latestDoc.isEmpty()) {
+                log.warn("No {} document found for meeting: {}", format, meetingId);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+
+            // Download the document
+            return downloadDocument(meetingId, latestDoc.get().getId(), format, authentication);
+
+        } catch (Exception e) {
+            log.error("Failed to download latest document for meeting: {}", meetingId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    private boolean matchesFormat(GeneratedDocument doc, String format) {
+        return switch (format.toLowerCase()) {
+            case "pdf" -> doc.getDocumentType() == GeneratedDocument.DocumentType.MINUTES_PDF;
+            case "docx" -> doc.getDocumentType() == GeneratedDocument.DocumentType.MINUTES_DOCX;
+            default -> false;
+        };
     }
 
     @DeleteMapping("/{meetingId}")
@@ -410,6 +640,78 @@ public class MeetingController {
                     .build();
 
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+    }
+
+    @PatchMapping("/{meetingId}")
+    public ResponseEntity<MeetingDetailResponse> partialUpdateMeeting(
+            @PathVariable UUID meetingId,
+            @RequestBody Map<String, Object> updates,
+            Authentication authentication) {
+
+        String email = authentication.getName();
+        User user = userService.findByEmail(email);
+        log.info("Partial update for meeting: {} for user: {}", meetingId, user.getEmail());
+
+        try {
+            Meeting meeting = meetingRepository.findByIdAndCreatedBy(meetingId, user)
+                    .orElseThrow(() -> new EntityNotFoundException("Meeting not found or access denied"));
+
+            // Validate that meeting can be updated
+            if (meeting.getStatus() == MeetingStatus.PROCESSING) {
+                throw new ValidationException("Cannot update meeting while processing is in progress");
+            }
+
+            // Apply partial updates
+            updates.forEach((key, value) -> {
+                switch (key) {
+                    case "title":
+                        meeting.setTitle((String) value);
+                        break;
+                    case "description":
+                        meeting.setDescription((String) value);
+                        break;
+                    case "agendaText":
+                        meeting.setAgendaText((String) value);
+                        break;
+                    case "usePreviousContext":
+                        meeting.setUsePreviousContext((Boolean) value);
+                        break;
+                    case "scheduledTime":
+                        if (value instanceof String) {
+                            meeting.setScheduledTime(LocalDateTime.parse((String) value));
+                        }
+                        break;
+                    default:
+                        log.warn("Unknown field in partial update: {}", key);
+                }
+            });
+
+            Meeting updatedMeeting = meetingRepository.save(meeting);
+
+            // Return updated meeting details
+            List<AgendaItem> agendaItems = agendaItemRepo.findByMeetingIdOrderByOrderIndexAsc(meetingId);
+            List<Attendee> attendees = attendeeRepo.findByMeetingId(meetingId);
+            List<ActionItem> actionItems = actionItemRepo.findByMeetingIdOrderByCreatedAtAsc(meetingId);
+
+            Optional<Transcript> transcript = transcriptRepository.findByMeetingId(meetingId);
+            Optional<AIExtraction> aiExtraction = aiExtractionRepository.findByMeetingId(meetingId);
+            String minutesDocumentUrl = documentGenerationService.getDocumentUrl(meetingId);
+
+            MeetingDetailResponse response = convertToDetailResponse(
+                    updatedMeeting, agendaItems, attendees, actionItems,
+                    transcript.orElse(null), aiExtraction.orElse(null), minutesDocumentUrl
+            );
+
+            return ResponseEntity.ok(response);
+
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (ValidationException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        } catch (Exception e) {
+            log.error("Failed to partially update meeting: {}", meetingId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 

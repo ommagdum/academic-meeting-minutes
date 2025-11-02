@@ -121,7 +121,7 @@ public class FileUploadService {
     public String getFileSizeReadable(long size) {
         if (size < 1024) return size + " B";
         int exp = (int) (Math.log(size) / Math.log(1024));
-        String pre = "KMGTPE".charAt(exp-2) + "B";
+        String pre = "KMGTPE".charAt(exp-1) + "B";
         return String.format("%.1f %s", size / Math.pow(1024, exp), pre);
     }
 }

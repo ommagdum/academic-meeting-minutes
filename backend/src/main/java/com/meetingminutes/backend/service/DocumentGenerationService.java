@@ -306,9 +306,26 @@ public class DocumentGenerationService {
     }
 
     public String getDocumentUrl(UUID meetingId) {
-        // Implement logic to get the document URL from GridFS or file storage
-        // For now, return a placeholder or implement based on your storage
-        return "/api/v1/meetings/" + meetingId + "/documents/minutes.pdf";
+        try {
+            List<GeneratedDocument> documents = getMeetingDocuments(meetingId);
+            if (documents.isEmpty()) {
+                return null;
+            }
+
+            // Return URL for the latest PDF document
+            Optional<GeneratedDocument> latestPdf = documents.stream()
+                    .filter(doc -> doc.getDocumentType() == GeneratedDocument.DocumentType.MINUTES_PDF)
+                    .max(Comparator.comparing(GeneratedDocument::getGeneratedAt)
+                            .thenComparing(GeneratedDocument::getVersion));
+
+            return latestPdf.map(doc ->
+                    "/api/v1/meetings/" + meetingId + "/documents/" + doc.getId() + "/download"
+            ).orElse(null);
+
+        } catch (Exception e) {
+            log.warn("Failed to generate document URL for meeting: {}", meetingId, e);
+            return null;
+        }
     }
 
     // ============ HELPER METHODS ============

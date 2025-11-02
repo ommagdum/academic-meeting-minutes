@@ -64,4 +64,9 @@ public class AIExtraction {
         this.processingTime = processingTime;
         this.modelVersion = modelVersion;
     }
+
+    public boolean isSuccess() {
+        return Boolean.TRUE.equals(success);
+    }
+
 }

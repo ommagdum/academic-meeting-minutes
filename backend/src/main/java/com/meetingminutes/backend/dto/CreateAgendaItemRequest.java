@@ -11,6 +11,7 @@ public class CreateAgendaItemRequest {
     private String title;
     private String description;
     private Integer estimatedDuration;
+    private Integer orderIndex;
 
     public CreateAgendaItemRequest(String title, String description, Integer estimatedDuration) {
         this.title = title;

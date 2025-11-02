@@ -2,9 +2,14 @@ package com.meetingminutes.backend.service;
 
 import com.meetingminutes.backend.dto.CreateAgendaItemRequest;
 import com.meetingminutes.backend.dto.CreateMeetingRequest;
+import com.meetingminutes.backend.dto.UpdateMeetingRequest;
 import com.meetingminutes.backend.entity.*;
+import com.meetingminutes.backend.exception.AccessDeniedException;
+import com.meetingminutes.backend.exception.EntityNotFoundException;
+import com.meetingminutes.backend.exception.ValidationException;
 import com.meetingminutes.backend.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,7 +17,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -119,6 +126,92 @@ public class MeetingService {
 
         meeting.setAudioFilePath(audioFilePath);
         return meetingRepository.save(meeting);
+    }
+
+    public Meeting updateMeeting(UUID meetingId, UpdateMeetingRequest request, User user) {
+        log.info("Updating meeting: {} for user: {}", meetingId, user.getEmail());
+
+        Meeting meeting = meetingRepository.findByIdAndCreatedBy(meetingId, user)
+                .orElseThrow(() -> new EntityNotFoundException("Meeting not found or access denied"));
+
+        // Validate that meeting can be updated (not in processing state)
+        if (meeting.getStatus() == MeetingStatus.PROCESSING) {
+            throw new ValidationException("Cannot update meeting while processing is in progress");
+        }
+
+        // Update basic fields
+        if (request.getTitle() != null) {
+            meeting.setTitle(request.getTitle());
+        }
+        if (request.getDescription() != null) {
+            meeting.setDescription(request.getDescription());
+        }
+        if (request.getAgendaText() != null) {
+            meeting.setAgendaText(request.getAgendaText());
+        }
+        if (request.getUsePreviousContext() != null) {
+            meeting.setUsePreviousContext(request.getUsePreviousContext());
+        }
+        if (request.getScheduledTime() != null) {
+            meeting.setScheduledTime(request.getScheduledTime());
+        }
+
+        // Handle series update
+        if (request.getSeriesId() != null || request.getNewSeriesTitle() != null) {
+            updateMeetingSeries(meeting, request, user);
+        }
+
+        // Handle agenda items if provided
+        if (request.getAgendaItems() != null) {
+            updateAgendaItems(meeting, request.getAgendaItems());
+        }
+
+        Meeting updatedMeeting = meetingRepository.save(meeting);
+        log.info("Meeting updated successfully: {}", meetingId);
+
+        return updatedMeeting;
+    }
+
+    private void updateMeetingSeries(Meeting meeting, UpdateMeetingRequest request, User user) {
+        MeetingSeries series = null;
+
+        if (request.getSeriesId() != null) {
+            // Use existing series
+            series = meetingSeriesRepo.findById(request.getSeriesId())
+                    .orElseThrow(() -> new EntityNotFoundException("Meeting series not found"));
+
+            // Verify user has access to the series
+            if (!series.getCreatedBy().getId().equals(user.getId())) {
+                throw new AccessDeniedException("Cannot assign meeting to this series");
+            }
+        } else if (request.getNewSeriesTitle() != null) {
+            // Create new series
+            series = createMeetingSeries(request.getNewSeriesTitle(), user);
+        }
+
+        meeting.setSeries(series);
+    }
+
+    private void updateAgendaItems(Meeting meeting, List<CreateAgendaItemRequest> agendaItemRequests) {
+        // Delete existing agenda items
+        agendaItemRepo.deleteByMeetingId(meeting.getId());
+
+        // Create new agenda items
+        if (!agendaItemRequests.isEmpty()) {
+            List<AgendaItem> agendaItems = agendaItemRequests.stream()
+                    .map(request -> {
+                        AgendaItem item = new AgendaItem();
+                        item.setMeeting(meeting);
+                        item.setTitle(request.getTitle());
+                        item.setDescription(request.getDescription());
+                        item.setOrderIndex(request.getOrderIndex());
+                        return item;
+                    })
+                    .collect(Collectors.toList());
+
+            agendaItemRepo.saveAll(agendaItems);
+            meeting.setAgendaItems(agendaItems);
+        }
     }
 
     private void createAgendaItems(Meeting meeting, List<CreateAgendaItemRequest> agendaItemRequests) {
