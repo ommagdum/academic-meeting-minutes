@@ -40,6 +40,7 @@ public class MeetingProcessingService {
     private final AIServiceClient aiServiceClient; // Added AI service client
     private final UserRepo userRepo;
     private final ActionItemRepo actionItemRepo;
+    private final WebSocketEventPublisher webSocketEventPublisher;
 
     @Async
     public CompletableFuture<Void> processMeeting(UUID meetingId, User user) {
@@ -59,34 +60,48 @@ public class MeetingProcessingService {
 
             updateMeetingStatus(meetingId, MeetingStatus.PROCESSING, user);
 
+            webSocketEventPublisher.sendProcessingUpdate(meetingId, MeetingStatus.PROCESSING,
+                    10, "PREPARING", "Starting audio processing pipeline");
+
             if (!fileUploadService.isValidFilePath(audioFilePath)) {
                 throw new ProcessingException("Audio file not found: " + audioFilePath);
             }
 
             // Step 1: Transcription
             log.info("Starting transcription for meeting: {}", meetingId);
+            webSocketEventPublisher.sendProcessingUpdate(meetingId, MeetingStatus.PROCESSING,
+                    25, "TRANSCRIBING", "Converting audio to text using AI");
             Transcript transcript = transcribeAudio(meetingId, audioFilePath);
             validateProcessingStep("transcription", transcript);
             log.info("Transcription completed for meeting: {}", meetingId);
 
             // Step 2: AI Extraction
             log.info("Starting AI extraction for meeting: {}", meetingId);
+            webSocketEventPublisher.sendProcessingUpdate(meetingId, MeetingStatus.PROCESSING,
+                    50, "EXTRACTING", "Analyzing content and extracting key information");
             AIExtraction extraction = extractInformation(meetingId, transcript.getRawText());
             validateProcessingStep("extraction", extraction);
             log.info("AI extraction completed for meeting: {}", meetingId);
 
             // Step 3: Create Action Items
             log.info("Creating action items for meeting: {}", meetingId);
+            webSocketEventPublisher.sendProcessingUpdate(meetingId, MeetingStatus.PROCESSING,
+                    75, "CREATING_TASKS", "Generating action items and assignments");
             createActionItemsFromExtraction(meeting, extraction);
             log.info("Action items created for meeting: {}", meetingId);
 
             // Step 4: Document Generation
             log.info("Starting document generation for meeting: {}", meetingId);
+            webSocketEventPublisher.sendProcessingUpdate(meetingId, MeetingStatus.PROCESSING,
+                    90, "GENERATING_DOCUMENTS", "Creating PDF and DOCX minutes");
             generateMeetingMinutes(meeting, extraction, user);
             log.info("Document generation completed for meeting: {}", meetingId);
 
             // Finalize processing
             updateMeetingStatus(meetingId, MeetingStatus.PROCESSED, user);
+            String documentUrl = documentGenerationService.getDocumentUrl(meetingId);
+            int actionItemCount = actionItemRepo.findByMeetingId(meetingId).size();
+            webSocketEventPublisher.sendProcessingComplete(meetingId, documentUrl, actionItemCount);
             emailService.sendProcessingCompleteNotification(user, meeting);
             fileUploadService.cleanupTempFile(audioFilePath);
 
@@ -96,12 +111,11 @@ public class MeetingProcessingService {
         } catch (Exception e) {
             log.error("AI processing pipeline failed for meeting: {}", meetingId, e);
 
-            // Update meeting status to FAILED
-            try {
-                updateMeetingStatus(meetingId, MeetingStatus.FAILED, user);
-            } catch (Exception statusEx) {
-                log.warn("Failed to update meeting status to FAILED", statusEx);
+            if (meetingId != null) {
+                webSocketEventPublisher.sendProcessingError(meetingId, "Processing failed: " + e.getMessage());
             }
+
+            updateMeetingStatus(meetingId, MeetingStatus.FAILED, user);
 
             // Cleanup on failure - use the audioFilePath variable
             if (audioFilePath != null) {
