@@ -3,6 +3,9 @@ package com.meetingminutes.backend.service;
 import com.meetingminutes.backend.dto.ai.ExtractionRequest;
 import com.meetingminutes.backend.dto.ai.ExtractionResponse;
 import com.meetingminutes.backend.dto.ai.TranscriptionResponse;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,9 +29,9 @@ public class AIServiceClient {
     @Value("${ai.service.base-url:http://localhost:5001}")
     private String aiServiceBaseUrl;
 
-    @Value("${ai.service.timeout:300000}") // 5 minutes
-    private int timeout;
-
+    @CircuitBreaker(name = "aiService", fallbackMethod = "fallbackTranscribe")
+    @Retry(name = "aiService", fallbackMethod = "fallbackTranscribe")
+    @RateLimiter(name = "aiProcessing")
     public TranscriptionResponse transcribeAudio(String audioFilePath, UUID meetingId) {
         log.info("Sending transcription request for meetingId: {}", meetingId);
 
@@ -79,6 +82,9 @@ public class AIServiceClient {
         }
     }
 
+    @CircuitBreaker(name = "aiService", fallbackMethod = "fallbackExtract")
+    @Retry(name = "aiService", fallbackMethod = "fallbackExtract")
+    @RateLimiter(name = "aiProcessing")
     public ExtractionResponse extractInformation(ExtractionRequest extractionRequest) {
         log.info("Sending extraction request to AI service for meeting: {}",
                 extractionRequest.getMeetingId());
@@ -86,9 +92,6 @@ public class AIServiceClient {
         log.info("📝 Extraction Request - transcript length: {}",
                 extractionRequest.getTranscriptText() != null ?
                         extractionRequest.getTranscriptText().length() : 0);
-        log.info("📝 Extraction Request - transcript preview: {}",
-                extractionRequest.getTranscriptText() != null ?
-                        extractionRequest.getTranscriptText().substring(0, Math.min(100, extractionRequest.getTranscriptText().length())) : "NULL");
 
         try {
             // Set headers
@@ -129,6 +132,19 @@ public class AIServiceClient {
         }
     }
 
+    // Fallback methods
+    private TranscriptionResponse fallbackTranscribe(String audioFilePath, UUID meetingId, Exception ex) {
+        log.warn("Using fallback for transcription service for meeting: {}", meetingId);
+        // Return a basic response or throw a specific exception
+        throw new RuntimeException("Transcription service temporarily unavailable. Please try again later.");
+    }
+
+    private ExtractionResponse fallbackExtract(ExtractionRequest extractionRequest, Exception ex) {
+        log.warn("Using fallback for extraction service for meeting: {}", extractionRequest.getMeetingId());
+        // Return a basic response or throw a specific exception
+        throw new RuntimeException("Extraction service temporarily unavailable. Please try again later.");
+    }
+
     public boolean isServiceHealthy() {
         try {
             String url = aiServiceBaseUrl + "/ai/health";
@@ -138,15 +154,5 @@ public class AIServiceClient {
             log.warn("AI service health check failed", e);
             return false;
         }
-    }
-
-    public Object processFullMeeting(String audioFilePath, UUID meetingId,
-                                     Object additionalContext) {
-        // This is a convenience method to use the combined endpoint
-        log.info("Using full processing pipeline for meeting: {}", meetingId);
-
-        // For now, we'll use separate calls as per our current design
-        // This can be implemented later if needed
-        throw new UnsupportedOperationException("Full pipeline processing not yet implemented");
     }
 }

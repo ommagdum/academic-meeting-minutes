@@ -15,6 +15,7 @@ import com.meetingminutes.backend.repository.MeetingRepository;
 import com.meetingminutes.backend.repository.mongo.AIExtractionRepository;
 import com.meetingminutes.backend.repository.mongo.TranscriptRepository;
 import com.meetingminutes.backend.service.*;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -321,6 +322,7 @@ public class MeetingController {
     }
 
     @PostMapping(value = "/{meetingId}/upload-audio", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @RateLimiter(name = "fileUpload")
     public ResponseEntity<AudioUploadResponse> uploadAudio(
             @PathVariable UUID meetingId,
             @RequestParam("file") MultipartFile file,
@@ -372,6 +374,7 @@ public class MeetingController {
     }
 
     @PostMapping("/{meetingId}/process")
+    @RateLimiter(name = "aiProcessing")
     public ResponseEntity<ProcessingResponse> startProcessing(
             @PathVariable UUID meetingId,
             Authentication authentication) {
