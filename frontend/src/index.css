@@ -1,0 +1,243 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Academic Meeting Minutes Extractor Design System
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Core Academic Theme */
+    --background: 0 0% 100%;
+    --foreground: 224 15% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 224 15% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 15% 15%;
+
+    /* Professional Academic Blue Palette */
+    --primary: 224 76% 48%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 224 76% 65%;
+    --primary-deep: 224 76% 35%;
+
+    /* Warm Academic Accent */
+    --secondary: 43 74% 66%;
+    --secondary-foreground: 224 15% 15%;
+    --secondary-glow: 43 74% 75%;
+
+    /* Neutral Academic Grays */
+    --muted: 220 13% 96%;
+    --muted-foreground: 224 10% 45%;
+
+    --accent: 220 13% 96%;
+    --accent-foreground: 224 15% 15%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 224 76% 48%;
+
+    /* Academic Gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-deep)) 100%);
+    --gradient-subtle: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(var(--secondary)) 0%, hsl(var(--secondary-glow)) 100%);
+
+    /* Professional Shadows */
+    --shadow-elegant: 0 10px 30px -10px hsl(var(--primary) / 0.15);
+    --shadow-card: 0 4px 20px -2px hsl(var(--primary) / 0.1);
+    --shadow-glow: 0 0 40px hsl(var(--primary-glow) / 0.3);
+
+    /* Smooth Transitions */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* Dark Academic Theme */
+    --background: 224 15% 8%;
+    --foreground: 220 13% 95%;
+
+    --card: 224 15% 10%;
+    --card-foreground: 220 13% 95%;
+
+    --popover: 224 15% 10%;
+    --popover-foreground: 220 13% 95%;
+
+    /* Dark Primary Adjustments */
+    --primary: 224 76% 58%;
+    --primary-foreground: 224 15% 8%;
+    --primary-glow: 224 76% 75%;
+    --primary-deep: 224 76% 45%;
+
+    /* Dark Accent Adjustments */
+    --secondary: 43 74% 76%;  
+    --secondary-foreground: 224 15% 10%;
+    --secondary-glow: 43 74% 85%;
+
+    --muted: 224 15% 15%;
+    --muted-foreground: 220 10% 65%;
+
+    --accent: 224 15% 15%;
+    --accent-foreground: 220 13% 95%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 220 13% 95%;
+
+    --border: 224 15% 20%;
+    --input: 224 15% 20%;
+    --ring: 224 76% 58%;
+
+    /* Dark Mode Gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-deep)) 100%);
+    --gradient-subtle: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(var(--secondary)) 0%, hsl(var(--secondary-glow)) 100%);
+
+    /* Dark Shadows */
+    --shadow-elegant: 0 10px 30px -10px hsl(var(--primary) / 0.25);
+    --shadow-card: 0 4px 20px -2px hsl(var(--primary) / 0.2);
+    --shadow-glow: 0 0 40px hsl(var(--primary-glow) / 0.4);
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Academic Typography */
+  .text-hero {
+    @apply text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight;
+    background: var(--gradient-hero);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-section-title {
+    @apply text-2xl md:text-3xl font-semibold text-foreground;
+  }
+
+  .text-feature-title {
+    @apply text-xl font-semibold text-foreground;
+  }
+
+  /* Academic Cards */
+  .card-academic {
+    @apply bg-card border border-border rounded-lg p-6;
+    background: var(--gradient-card);
+    box-shadow: var(--shadow-card);
+    transition: var(--transition-smooth);
+  }
+
+  .card-academic:hover {
+    box-shadow: var(--shadow-elegant);
+    transform: translateY(-2px);
+  }
+
+  /* Professional Buttons */
+  .btn-academic {
+    @apply px-6 py-3 rounded-lg font-medium;
+    transition: var(--transition-smooth);
+  }
+
+  .btn-primary {
+    @apply btn-academic bg-primary text-primary-foreground;
+    box-shadow: var(--shadow-card);
+  }
+
+  .btn-primary:hover {
+    @apply bg-primary-deep;
+    box-shadow: var(--shadow-elegant);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    @apply btn-academic bg-secondary text-secondary-foreground;
+  }
+
+  .btn-secondary:hover {
+    @apply bg-secondary-glow;
+    transform: translateY(-1px);
+  }
+
+  /* Academic Animations */
+  .animate-fade-up {
+    animation: fade-up 0.6s ease-out;
+  }
+
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes glow {
+    from {
+      box-shadow: var(--shadow-card);
+    }
+    to {
+      box-shadow: var(--shadow-glow);
+    }
+  }
+
+  /* Professional Gradients */
+  .bg-hero-gradient {
+    background: var(--gradient-hero);
+  }
+
+  .bg-subtle-gradient {
+    background: var(--gradient-subtle);
+  }
+
+  .bg-accent-gradient {
+    background: var(--gradient-accent);
+  }
+}
