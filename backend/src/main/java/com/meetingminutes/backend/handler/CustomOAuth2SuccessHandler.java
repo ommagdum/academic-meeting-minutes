@@ -3,10 +3,12 @@ package com.meetingminutes.backend.handler;
 import com.meetingminutes.backend.entity.User;
 import com.meetingminutes.backend.entity.UserRole;
 import com.meetingminutes.backend.repository.UserRepo;
+import com.meetingminutes.backend.service.AttendeeService;
 import com.meetingminutes.backend.service.JwtService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -19,16 +21,19 @@ import java.time.LocalDateTime;
 import java.util.Map;
 
 @Component
+@Slf4j
 public class CustomOAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
     private final JwtService jwtService;
     private final UserRepo userRepo;
+    private final AttendeeService attendeeService;
 
     @Value("${app.oauth2.redirect-uri}")
     private String redirectUri;
 
-    public CustomOAuth2SuccessHandler(JwtService jwtService, UserRepo userRepo) {
+    public CustomOAuth2SuccessHandler(JwtService jwtService, UserRepo userRepo, AttendeeService attendeeService) {
         this.jwtService = jwtService;
         this.userRepo = userRepo;
+        this.attendeeService = attendeeService;
     }
 
     @Override
@@ -45,6 +50,8 @@ public class CustomOAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHa
         String googleId = (String) attributes.get("sub");
         Boolean emailVerified = (Boolean) attributes.get("email_verified");
 
+        log.info("OAuth2 login successful for user: {}", email);
+
         User user = userRepo.findByEmail(email)
                 .orElseGet(() -> {
                     User newUser = new User();
@@ -59,7 +66,18 @@ public class CustomOAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHa
         user.setEmailVerified(Boolean.TRUE.equals(emailVerified));
         user.setLastLogin(LocalDateTime.now());
 
-        userRepo.save(user);
+        User savedUser = userRepo.save(user);
+        log.info("User saved/updated: {}", savedUser.getEmail());
+
+        // 🔥 CRITICAL FIX: Link any pending attendee records
+        try {
+            log.info("Attempting to link attendee records for email: {}", email);
+            attendeeService.linkAttendeeToUser(email, savedUser);
+            log.info("Successfully linked attendee records for user: {}", email);
+        } catch (Exception e) {
+            log.error("Failed to link attendee records for user: {}", email, e);
+            // Don't throw exception - we still want the login to succeed
+        }
 
         String token = jwtService.generateToken(user);
 
@@ -67,6 +85,8 @@ public class CustomOAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHa
                 .queryParam("token", token)
                 .build().toUriString();
 
+        log.info("Redirecting user to: {}", redirectUrl);
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
     }
+
 }

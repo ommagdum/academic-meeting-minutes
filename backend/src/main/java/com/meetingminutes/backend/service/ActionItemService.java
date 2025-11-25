@@ -25,6 +25,7 @@ public class ActionItemService {
     private final MeetingRepository meetingRepository;
     private final UserRepo userRepo;
     private final EmailService emailService;
+    private final MeetingAccessService meetingAccessService;
 
     public List<ActionItem> getMeetingActionItems(UUID meetingId, User user) {
         Meeting meeting = meetingRepository.findById(meetingId)
@@ -162,12 +163,6 @@ public class ActionItemService {
     }
 
     private boolean hasAccessToMeeting(Meeting meeting, User user) {
-        if (meeting.getCreatedBy().getId().equals(user.getId())) {
-            return true;
-        }
-
-        return actionItemRepo.findByMeetingId(meeting.getId()).stream()
-                .anyMatch(task -> task.getAssignedToUser() != null &&
-                        task.getAssignedToUser().getId().equals(user.getId()));
+        return meetingAccessService.hasAccessToMeeting(meeting, user);
     }
 }

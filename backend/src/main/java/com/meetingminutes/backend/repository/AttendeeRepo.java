@@ -38,4 +38,6 @@ public interface AttendeeRepo extends JpaRepository<Attendee, UUID> {
     Optional<Attendee> findOrganizerByMeetingId(@Param("meetingId") UUID meetingId);
 
     void deleteByMeetingId(UUID meetingId);
+
+    List<Attendee> findByInviteEmailAndUserIsNull(String inviteEmail);
 }

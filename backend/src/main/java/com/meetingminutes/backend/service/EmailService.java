@@ -37,13 +37,15 @@ public class EmailService {
     public void sendMeetingInvitation(Meeting meeting, String email, String inviteToken, String message) {
         try {
             String subject = "Meeting Invitation: " + meeting.getTitle();
+
+            // ✅ FIX: Point to frontend join page with token
             String invitationLink = baseUrl + "/join-meeting?token=" + inviteToken;
 
             Map<String, Object> variables = new HashMap<>();
             variables.put("meetingTitle", meeting.getTitle());
             variables.put("meetingDescription", meeting.getDescription());
             variables.put("organizerName", meeting.getCreatedBy().getName());
-            variables.put("invitationLink", invitationLink);
+            variables.put("invitationLink", invitationLink); // ✅ Use the correct link
             variables.put("customMessage", message);
             variables.put("scheduledTime", meeting.getScheduledTime() != null ?
                     meeting.getScheduledTime().format(DateTimeFormatter.ofPattern("MMM dd, yyyy 'at' HH:mm")) : "Not scheduled");
@@ -51,7 +53,7 @@ public class EmailService {
             String htmlContent = renderTemplate("meeting-invitation", variables);
 
             sendEmail(email, subject, htmlContent);
-            logger.info("Meeting invitation sent to: {}", email);
+            logger.info("Meeting invitation sent to: {} with token: {}", email, inviteToken);
 
         } catch (Exception e) {
             logger.error("Failed to send meeting invitation to: {}", email, e);

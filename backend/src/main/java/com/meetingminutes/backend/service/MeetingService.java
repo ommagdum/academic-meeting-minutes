@@ -10,6 +10,8 @@ import com.meetingminutes.backend.exception.ValidationException;
 import com.meetingminutes.backend.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +33,7 @@ public class MeetingService {
     private final AgendaItemRepo agendaItemRepo;
     private final AttendeeRepo attendeeRepo;
     private final AgendaService agendaService;
+    private final MeetingAccessService meetingAccessService;
 
     public Meeting createMeeting(CreateMeetingRequest request, User user) {
         // Handling series creation or assignment
@@ -75,8 +78,8 @@ public class MeetingService {
     }
 
     public List<Meeting> getUserMeetings(User user) {
-        return meetingRepository.findByCreatedByOrderByCreatedAtDesc(user,
-                org.springframework.data.domain.PageRequest.of(0, 50)).getContent();
+        return meetingRepository.findByUserOrAttendee(user,
+                PageRequest.of(0, 50, Sort.by("createdAt").descending())).getContent();
     }
 
     public List<Meeting> getMeetingInSeries(UUID seriesId, User user) {
@@ -233,11 +236,6 @@ public class MeetingService {
     }
 
     private boolean hasAccessToMeeting(Meeting meeting, User user) {
-
-        if(meeting.getCreatedBy().getId().equals(user.getId())){
-            return true;
-        }
-
-        return attendeeRepo.findByMeetingIdAndUserId(meeting.getId(), user.getId()).isPresent();
+        return meetingAccessService.hasAccessToMeeting(meeting, user);
     }
 }

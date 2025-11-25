@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -35,6 +36,11 @@ public class MeetingSummaryResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    private Boolean hasTranscript;
+    private String searchHighlight;
+    private Double relevanceScore;
+    private List<String> matchingFields;
+
     public static MeetingSummaryResponse from(Meeting meeting) {
         if (meeting == null) {
             return null;
@@ -43,22 +49,22 @@ public class MeetingSummaryResponse {
         return MeetingSummaryResponse.builder()
                 .id(meeting.getId())
                 .title(meeting.getTitle())
-                .description(meeting.getDescription()) // ✅ ADDED
+                .description(meeting.getDescription())
                 .status(meeting.getStatus())
                 .scheduledTime(meeting.getScheduledTime())
-                .actualStartTime(meeting.getActualStartTime()) // ✅ ADDED
-                .actualEndTime(meeting.getActualEndTime()) // ✅ ADDED
-                .createdBy(meeting.getCreatedBy() != null ?
-                        UserResponse.from(meeting.getCreatedBy()) : null) // ✅ ADDED
-                .seriesId(meeting.getSeries() != null ?
-                        meeting.getSeries().getId() : null) // ✅ ADDED
-                .seriesTitle(meeting.getSeries() != null ?
-                        meeting.getSeries().getTitle() : null) // ✅ ADDED
+                .actualStartTime(meeting.getActualStartTime())
+                .actualEndTime(meeting.getActualEndTime())
                 .createdAt(meeting.getCreatedAt())
-                .updatedAt(meeting.getUpdatedAt()) // ✅ ADDED
+                .updatedAt(meeting.getUpdatedAt())
                 .attendeeCount(meeting.getAttendees() != null ? meeting.getAttendees().size() : 0)
                 .agendaItemCount(meeting.getAgendaItems() != null ? meeting.getAgendaItems().size() : 0)
                 .actionItemCount(meeting.getActionItems() != null ? meeting.getActionItems().size() : 0)
+                .seriesId(meeting.getSeries() != null ? meeting.getSeries().getId() : null)
+                .seriesTitle(meeting.getSeries() != null ? meeting.getSeries().getTitle() : null)
+                .createdBy(UserResponse.from(meeting.getCreatedBy()))
+                .hasTranscript(false) // check this from transcript repository
                 .build();
     }
+
+
 }

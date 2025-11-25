@@ -56,8 +56,20 @@ public class Meeting extends BaseEntity {
     @Column(name = "audio_file_path")
     private String audioFilePath;
 
+    @Column(name = "search_vector", columnDefinition = "tsvector", insertable = false, updatable = false)
+    private String searchVector;
+
     public Meeting(String title, User createdBy) {
         this.title = title;
         this.createdBy = createdBy;
+    }
+
+    @PrePersist
+    @PreUpdate
+    private void updateSearchVector() {
+        this.searchVector = String.join(" ",
+                this.title !=null ? this.title: "",
+                this.description != null ? this.description : "",
+                this.agendaText != null ? this.agendaText : "").toLowerCase();
     }
 }

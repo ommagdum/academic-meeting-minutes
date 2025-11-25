@@ -61,6 +61,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authz -> authz
                         // Allow preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/public/meetings/join/**").permitAll()
                         // Public resources
                         .requestMatchers(
                                 "/swagger-ui.html",

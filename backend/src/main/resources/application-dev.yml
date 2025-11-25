@@ -41,6 +41,12 @@ spring:
       ddl-auto: update
     properties:
       hibernate:
+        search:
+          backend:
+            type: lucene
+            directory:
+              root: ./build/lucene
+          enable_dirty_check: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
 
@@ -82,6 +88,12 @@ app:
     auth-per-minute: 10
     upload-per-minute: 5
     ai-processing-per-minute: 3
+  search:
+    max-results: 1000
+    default-page-size: 20
+    enable-full-text: true
+    highlight-fragment-size: 200
+    highlight-max-fragments: 3
 
 springdoc:
   swagger-ui:

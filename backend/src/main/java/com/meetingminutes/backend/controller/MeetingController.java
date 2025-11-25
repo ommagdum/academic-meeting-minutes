@@ -17,6 +17,7 @@ import com.meetingminutes.backend.repository.mongo.TranscriptRepository;
 import com.meetingminutes.backend.service.*;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,6 +32,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -303,7 +305,7 @@ public class MeetingController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         // Use repository with proper pagination
-        Page<Meeting> meetingsPage = meetingRepository.findByCreatedByOrderByCreatedAtDesc(user, pageable);
+        Page<Meeting> meetingsPage = meetingRepository.findByUserOrAttendee(user, pageable);
 
         List<MeetingSummaryResponse> summaryResponses = meetingsPage.getContent().stream()
                 .map(this::convertToSummaryResponse)

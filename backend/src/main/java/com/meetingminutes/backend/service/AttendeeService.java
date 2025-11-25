@@ -1,14 +1,15 @@
 package com.meetingminutes.backend.service;
 
 import com.meetingminutes.backend.dto.InviteParticipantRequest;
-import com.meetingminutes.backend.entity.AttendanceStatus;
-import com.meetingminutes.backend.entity.Attendee;
-import com.meetingminutes.backend.entity.Meeting;
-import com.meetingminutes.backend.entity.User;
+import com.meetingminutes.backend.dto.MeetingDetailsFromToken;
+import com.meetingminutes.backend.dto.TokenValidationResponse;
+import com.meetingminutes.backend.entity.*;
+import com.meetingminutes.backend.exception.EntityNotFoundException;
 import com.meetingminutes.backend.repository.AttendeeRepo;
 import com.meetingminutes.backend.repository.MeetingRepository;
 import com.meetingminutes.backend.repository.UserRepo;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +22,7 @@ import java.util.UUID;
 @Service
 @Transactional
 @RequiredArgsConstructor
+@Slf4j
 public class AttendeeService {
 
     private final AttendeeRepo attendeeRepo;
@@ -59,6 +61,79 @@ public class AttendeeService {
         }
 
         return invitedAttendees;
+    }
+
+    public TokenValidationResponse validateInvitationToken(String token) {
+        try {
+            Attendee attendee = attendeeRepo.findByInviteToken(token)
+                    .orElseThrow(() -> new EntityNotFoundException("Invalid invitation token"));
+
+            Meeting meeting = attendee.getMeeting();
+
+            // Check if meeting is still accessible
+            if (meeting.getStatus() == MeetingStatus.FAILED) {
+                return TokenValidationResponse.builder()
+                        .valid(false)
+                        .message("This meeting has been cancelled")
+                        .build();
+            }
+
+            // Check if token is already used but allow re-joining
+            boolean canJoin = attendee.getStatus() == AttendanceStatus.INVITED ||
+                    attendee.getStatus() == AttendanceStatus.CONFIRMED;
+
+            return TokenValidationResponse.builder()
+                    .valid(canJoin)
+                    .message(canJoin ? "Valid invitation" : "Already responded to this invitation")
+                    .meetingTitle(meeting.getTitle())
+                    .organizerName(meeting.getCreatedBy().getName())
+                    .build();
+
+        } catch (EntityNotFoundException e) {
+            return TokenValidationResponse.builder()
+                    .valid(false)
+                    .message("Invalid or expired invitation token")
+                    .build();
+        }
+    }
+
+    public MeetingDetailsFromToken getMeetingDetailsFromToken(String token) {
+        Attendee attendee = attendeeRepo.findByInviteToken(token)
+                .orElseThrow(() -> new EntityNotFoundException("Invalid invitation token"));
+
+        Meeting meeting = attendee.getMeeting();
+        User organizer = meeting.getCreatedBy();
+
+        return MeetingDetailsFromToken.builder()
+                .meetingId(meeting.getId())
+                .meetingTitle(meeting.getTitle())
+                .meetingDescription(meeting.getDescription())
+                .organizerName(organizer.getName())
+                .organizerEmail(organizer.getEmail())
+                .scheduledTime(meeting.getScheduledTime())
+                .requiresAuthentication(attendee.getUser() != null) // If user was specified, requires auth
+                .build();
+    }
+
+    @Transactional
+    public void linkAttendeeToUser(String email, User user) {
+        log.info("Linking attendee records for email: {} to user: {}", email, user.getEmail());
+
+        // Find all attendee records with this email that don't have a user assigned
+        List<Attendee> attendees = attendeeRepo.findByInviteEmailAndUserIsNull(email);
+
+        log.info("Found {} attendee records to link for email: {}", attendees.size(), email);
+
+        for (Attendee attendee : attendees) {
+            log.info("Linking attendee {} (meeting: {}) to user {}",
+                    attendee.getId(),
+                    attendee.getMeeting().getTitle(),
+                    user.getId());
+            attendee.setUser(user);
+            attendeeRepo.save(attendee);
+        }
+
+        log.info("Successfully linked {} attendee records for user: {}", attendees.size(), user.getEmail());
     }
 
     public Attendee updateAttendanceStatus(UUID attendeeId, AttendanceStatus status, User user) {
