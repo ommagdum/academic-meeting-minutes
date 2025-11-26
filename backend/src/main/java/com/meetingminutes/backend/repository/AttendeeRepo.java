@@ -2,9 +2,12 @@ package com.meetingminutes.backend.repository;
 
 import com.meetingminutes.backend.entity.AttendanceStatus;
 import com.meetingminutes.backend.entity.Attendee;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -40,4 +43,14 @@ public interface AttendeeRepo extends JpaRepository<Attendee, UUID> {
     void deleteByMeetingId(UUID meetingId);
 
     List<Attendee> findByInviteEmailAndUserIsNull(String inviteEmail);
+
+    @Query("SELECT a FROM Attendee a WHERE a.meeting.id = :meetingId " +
+            "AND (:status IS NULL OR a.status = :status) " +
+            "ORDER BY a.isOrganizer DESC, " +
+            "CASE WHEN a.user IS NOT NULL THEN a.user.name ELSE a.inviteEmail END ASC")
+    Page<Attendee> findByMeetingIdWithPagination(
+            @Param("meetingId") UUID meetingId,
+            @Param("status") AttendanceStatus status,
+            Pageable pageable
+    );
 }

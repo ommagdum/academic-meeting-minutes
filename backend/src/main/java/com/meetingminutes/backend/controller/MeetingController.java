@@ -241,6 +241,52 @@ public class MeetingController {
         }
     }
 
+    @GetMapping("/{meetingId}/transcript")
+    public ResponseEntity<ApiResponse<TranscriptResponse>> getMeetingTranscript(
+            @PathVariable UUID meetingId,
+            Authentication authentication) {
+
+        String email = authentication.getName();
+        User user = userService.findByEmail(email);
+        log.debug("Fetching transcript for meeting: {} for user: {}", meetingId, user.getEmail());
+
+        try {
+            // Verify user has access to the meeting
+            Meeting meeting = meetingService.getMeeting(meetingId, user);
+
+            // Get transcript from MongoDB
+            Optional<Transcript> transcriptOpt = transcriptRepository.findByMeetingId(meetingId);
+
+            if (transcriptOpt.isEmpty()) {
+                ApiResponse<TranscriptResponse> response = ApiResponse.<TranscriptResponse>builder()
+                        .success(false)
+                        .message("Transcript not available yet")
+                        .build();
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
+
+            Transcript transcript = transcriptOpt.get();
+            TranscriptResponse transcriptResponse = TranscriptResponse.from(transcript);
+
+            ApiResponse<TranscriptResponse> response = ApiResponse.<TranscriptResponse>builder()
+                    .success(true)
+                    .data(transcriptResponse)
+                    .build();
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Failed to fetch transcript for meeting: {}", meetingId, e);
+
+            ApiResponse<TranscriptResponse> response = ApiResponse.<TranscriptResponse>builder()
+                    .success(false)
+                    .message("Failed to fetch transcript: " + e.getMessage())
+                    .build();
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
     private MeetingDetailResponse convertToDetailResponse(
             Meeting meeting,
             List<AgendaItem> agendaItems,
@@ -717,6 +763,80 @@ public class MeetingController {
         } catch (Exception e) {
             log.error("Failed to partially update meeting: {}", meetingId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/{meetingId}/attendees")
+    public ResponseEntity<ApiResponse<PaginatedAttendeeResponse>> getMeetingAttendees(
+            @PathVariable UUID meetingId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) AttendanceStatus status,
+            Authentication authentication) {
+
+        String email = authentication.getName();
+        User user = userService.findByEmail(email);
+        log.debug("Fetching attendees for meeting: {}, page: {}, size: {}, status: {}",
+                meetingId, page, size, status);
+
+        try {
+            // Validate pagination parameters
+            if (page < 0) {
+                throw new ValidationException("Page number cannot be negative");
+            }
+            if (size <= 0 || size > 100) {
+                throw new ValidationException("Size must be between 1 and 100");
+            }
+
+            PaginatedAttendeeResponse response = attendeeService.getMeetingAttendeesWithPagination(
+                    meetingId, user, page, size, status);
+
+            ApiResponse<PaginatedAttendeeResponse> apiResponse = ApiResponse.<PaginatedAttendeeResponse>builder()
+                    .success(true)
+                    .data(response)
+                    .build();
+
+            return ResponseEntity.ok(apiResponse);
+
+        } catch (EntityNotFoundException e) {
+            log.error("Meeting not found: {}", meetingId, e);
+
+            ApiResponse<PaginatedAttendeeResponse> response = ApiResponse.<PaginatedAttendeeResponse>builder()
+                    .success(false)
+                    .message("Meeting not found")
+                    .build();
+
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+
+        } catch (AccessDeniedException e) {
+            log.error("Access denied for meeting attendees: {}", meetingId, e);
+
+            ApiResponse<PaginatedAttendeeResponse> response = ApiResponse.<PaginatedAttendeeResponse>builder()
+                    .success(false)
+                    .message("Access denied to meeting attendees")
+                    .build();
+
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+
+        } catch (ValidationException e) {
+            log.error("Validation failed for meeting attendees: {}", meetingId, e);
+
+            ApiResponse<PaginatedAttendeeResponse> response = ApiResponse.<PaginatedAttendeeResponse>builder()
+                    .success(false)
+                    .message(e.getMessage())
+                    .build();
+
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+
+        } catch (Exception e) {
+            log.error("Failed to fetch attendees for meeting: {}", meetingId, e);
+
+            ApiResponse<PaginatedAttendeeResponse> response = ApiResponse.<PaginatedAttendeeResponse>builder()
+                    .success(false)
+                    .message("Failed to fetch meeting attendees")
+                    .build();
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 

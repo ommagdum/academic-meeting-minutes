@@ -25,19 +25,24 @@ public class MeetingSeriesService {
     private final MeetingSeriesRepo meetingSeriesRepo;
     private final MeetingRepository meetingRepository;
 
+    // ✅ FIXED: Get series user created OR is attending meetings in
     public List<MeetingSeries> getUserSeries(User user) {
-        return meetingSeriesRepo.findByCreatedByOrderByCreatedAtDesc(user);
+        return meetingSeriesRepo.findByCreatedByOrAttendeeOrderByCreatedAtDesc(user);
     }
 
+    // ✅ FIXED: Allow access if user is attendee of any meeting in the series
     public List<Meeting> getMeetingsInSeries(UUID seriesId, User user) {
         MeetingSeries series = meetingSeriesRepo.findById(seriesId)
                 .orElseThrow(() -> new RuntimeException("Meeting series not found"));
 
-        if (!series.getCreatedBy().getId().equals(user.getId())) {
+        // Check if user is series creator OR attendee of any meeting in the series
+        if (!series.getCreatedBy().getId().equals(user.getId()) &&
+                !isUserAttendeeInSeries(seriesId, user)) {
             throw new RuntimeException("Access denied to this meeting series");
         }
 
-        return meetingRepository.findBySeriesIdOrderByCreatedAtDesc(seriesId);
+        // ✅ FIXED: Use method that includes meetings user can access
+        return meetingRepository.findBySeriesIdAndUserOrAttendee(seriesId, user);
     }
 
     public MeetingSeries createSeries(String title, String description, User user) {
@@ -49,6 +54,7 @@ public class MeetingSeriesService {
         return meetingSeriesRepo.save(series);
     }
 
+    // ✅ FIXED: Only allow deletion if user is the creator
     public void deleteSeries(UUID seriesId, User user) {
         MeetingSeries series = meetingSeriesRepo.findByIdAndCreatedBy(seriesId, user)
                 .orElseThrow(() -> new RuntimeException("Meeting series not found or access denied"));
@@ -61,6 +67,7 @@ public class MeetingSeriesService {
         meetingSeriesRepo.delete(series);
     }
 
+    // ✅ FIXED: Only allow updates if user is the creator
     public MeetingSeries updateSeries(UUID seriesId, String title, String description, User user) {
         MeetingSeries series = meetingSeriesRepo.findByIdAndCreatedBy(seriesId, user)
                 .orElseThrow(() -> new RuntimeException("Meeting series not found or access denied"));
@@ -70,14 +77,15 @@ public class MeetingSeriesService {
         return meetingSeriesRepo.save(series);
     }
 
+    // ✅ FIXED: Include series where user is attending meetings
     public List<MeetingSeriesResponse> getUserSeriesWithRecentMeetings(User user, int recentMeetingsLimit) {
-        List<MeetingSeries> seriesList = meetingSeriesRepo.findByCreatedByOrderByCreatedAtDesc(user);
+        List<MeetingSeries> seriesList = meetingSeriesRepo.findByCreatedByOrAttendeeOrderByCreatedAtDesc(user);
 
         return seriesList.stream()
                 .map(series -> {
-                    // Get recent meetings for this series
+                    // ✅ FIXED: Get meetings user can access in this series
                     List<Meeting> recentMeetings = meetingRepository
-                            .findBySeriesIdOrderByCreatedAtDesc(series.getId())
+                            .findBySeriesIdAndUserOrAttendee(series.getId(), user)
                             .stream()
                             .limit(recentMeetingsLimit)
                             .toList();
@@ -98,134 +106,45 @@ public class MeetingSeriesService {
                 })
                 .toList();
     }
-}
 
-//    public MeetingSeries createMeetingSeries(String title, String description, User user) {
-//        log.info("Creating new meeting series: {} for user: {}", title, user.getEmail());
-//
-//        MeetingSeries series = new MeetingSeries();
-//        series.setTitle(title);
-//        series.setDescription(description);
-//        series.setCreatedBy(user);
-//        series.setIsActive(true);
-//
-//        MeetingSeries savedSeries = meetingSeriesRepo.save(series);
-//        log.info("Meeting series created successfully: {}", savedSeries.getId());
-//
-//        return savedSeries;
-//    }
-//
-//    public MeetingSeries getSeriesWithMeetings(UUID seriesId, User user) {
-//        log.info("Fetching series with meetings: {} for user: {}", seriesId, user.getEmail());
-//
-//        MeetingSeries series = meetingSeriesRepo.findById(seriesId)
-//                .orElseThrow(() -> new RuntimeException("Meeting series not found "));
-//
-//        if(!series.getCreatedBy().getId().equals(user.getId())) {
-//            throw new RuntimeException("Access denied to this meeting series");
-//        }
-//
-//        List<Meeting> meetings = meetingRepository.findBySeriesIdOrderByCreatedAtDesc(seriesId);
-//        return series;
-//    }
-//
-//    public Optional<Meeting> getPreviousMeetingContext(UUID currentMeetingId, User user) {
-//        log.info("Fetching previous meeting context for: {}", currentMeetingId);
-//
-//        Meeting currentMeeting = meetingRepository.findById(currentMeetingId)
-//                .orElseThrow(() -> new RuntimeException("Current meeting not found"));
-//
-//        if (!hasAccessToMeeting(currentMeeting, user)) {
-//            throw new RuntimeException("Access denied to this meeting");
-//        }
-//
-//        if(currentMeeting.getSeries() == null) {
-//            return Optional.empty();
-//        }
-//
-//        List<Meeting> previousMeetings = meetingRepository.findProcessedMeetingsInSeries(
-//                currentMeeting.getSeries().getId()
-//        );
-//
-//        return previousMeetings.stream()
-//                .filter(meeting -> meeting.getCreatedAt().isBefore(currentMeeting.getCreatedAt())).findFirst();
-//    }
-//
-//    public List<MeetingSeries> getUserSeries(User user, Boolean activeOnly) {
-//        log.info("Fetching meeting series for user: {}, activeOnly: {}", user.getEmail(), activeOnly);
-//
-//        if (activeOnly != null && activeOnly) {
-//            return meetingSeriesRepo.findByCreatedByAndIsActive(user, true);
-//        }
-//
-//        return meetingSeriesRepo.findByCreatedBy(user);
-//    }
-//
-//    public MeetingSeries updateMeetingSeries(UUID seriesId, String title, String description, Boolean isActive, User user) {
-//        log.info("Updating meeting series: {}", seriesId);
-//        MeetingSeries series = meetingSeriesRepo.findById(seriesId)
-//                .orElseThrow(() -> new RuntimeException("Meeting series not found"));
-//
-//        if (!series.getCreatedBy().getId().equals(user.getId())) {
-//            throw new RuntimeException("Access denied to update this meeting series");
-//        }
-//
-//        if(title != null && !title.trim().isEmpty()) {
-//            series.setTitle(title);
-//        }
-//
-//        if (description != null) {
-//            series.setDescription(description);
-//        }
-//
-//        if (isActive != null) {
-//            series.setIsActive(isActive);
-//        }
-//
-//        MeetingSeries updatedSeries = meetingSeriesRepo.save(series);
-//        log.info("Meeting series updated successfully: {}", seriesId);
-//
-//        return updatedSeries;
-//    }
-//
-//    public void deactivateMeetingSeries(UUID seriesId, User user) {
-//        log.info("Deactivating meeting series: {}", seriesId);
-//
-//        MeetingSeries series = meetingSeriesRepo.findById(seriesId)
-//                .orElseThrow(() -> new RuntimeException("Meeting series not found"));
-//
-//        if (!series.getCreatedBy().getId().equals(user.getId())) {
-//            throw new RuntimeException("Access denied to deactivate this meeting series");
-//        }
-//
-//        series.setIsActive(false);
-//        meetingSeriesRepo.save(series);
-//
-//        log.info("Meeting series deactivated successfully: {}", seriesId);
-//    }
-//
-//
-//
-//    public SeriesStats getSeriesStats(UUID seriesId, User user) {
-//        MeetingSeries series = meetingSeriesRepo.findById(seriesId)
-//                .orElseThrow(() -> new RuntimeException("Meeting series not found"));
-//
-//        if (!series.getCreatedBy().getId().equals(user.getId())) {
-//            throw new RuntimeException("Access denied to this meeting series");
-//        }
-//
-//        List<Meeting> seriesMeetings = meetingRepository.findBySeriesIdOrderByCreatedAtDesc(seriesId);
-//
-//        long totalMeetings = seriesMeetings.size();
-//        long processedMeetings = seriesMeetings.stream()
-//                .filter(meeting -> meeting.getStatus().name().equals("PROCESSED"))
-//                .count();
-//
-//        return new SeriesStats(totalMeetings, processedMeetings);
-//    }
-//
-//    public record SeriesStats(long totalMeetings, long processedMeetings) {}
-//
-//    private boolean hasAccessToMeeting(Meeting meeting, User user) {
-//        return meeting.getCreatedBy().getId().equals(user.getId());
-//    }
+    // ✅ NEW: Check if user is attendee in any meeting of the series
+    private boolean isUserAttendeeInSeries(UUID seriesId, User user) {
+        return meetingRepository.existsBySeriesIdAndAttendee(seriesId, user);
+    }
+
+    // ✅ NEW: Get previous meeting context including attended meetings
+    public Optional<Meeting> getPreviousMeetingContext(UUID currentMeetingId, User user) {
+        log.info("Fetching previous meeting context for: {}", currentMeetingId);
+
+        Meeting currentMeeting = meetingRepository.findById(currentMeetingId)
+                .orElseThrow(() -> new RuntimeException("Current meeting not found"));
+
+        if (!hasAccessToMeeting(currentMeeting, user)) {
+            throw new RuntimeException("Access denied to this meeting");
+        }
+
+        if (currentMeeting.getSeries() == null) {
+            return Optional.empty();
+        }
+
+        // ✅ FIXED: Get processed meetings user can access in the series
+        List<Meeting> previousMeetings = meetingRepository.findProcessedMeetingsInSeriesForUserOrAttendee(
+                currentMeeting.getSeries().getId(), user
+        );
+
+        return previousMeetings.stream()
+                .filter(meeting -> meeting.getCreatedAt().isBefore(currentMeeting.getCreatedAt()))
+                .findFirst();
+    }
+
+    // ✅ FIXED: Updated access control to include attendees
+    private boolean hasAccessToMeeting(Meeting meeting, User user) {
+        // User is creator
+        if (meeting.getCreatedBy().getId().equals(user.getId())) {
+            return true;
+        }
+
+        // User is attendee
+        return meetingRepository.isUserAttendeeOfMeeting(meeting.getId(), user.getId());
+    }
+}

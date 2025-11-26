@@ -35,4 +35,10 @@ public interface MeetingSeriesRepo extends JpaRepository<MeetingSeries, UUID> {
     List<MeetingSeries> findActiveSeriesByUser(@Param("user") User user);
 
     boolean existsByTitleAndCreatedBy(String title, User createdBy);
+
+    @Query("SELECT DISTINCT ms FROM MeetingSeries ms " +
+            "WHERE ms.createdBy = :user " +
+            "OR ms.id IN (SELECT m.series.id FROM Meeting m " +
+            "JOIN m.attendees a WHERE a.user = :user AND m.series IS NOT NULL)")
+    List<MeetingSeries> findByCreatedByOrAttendeeOrderByCreatedAtDesc(@Param("user") User user);
 }

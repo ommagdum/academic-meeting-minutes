@@ -220,4 +220,34 @@ public interface MeetingRepository extends JpaRepository<Meeting, UUID> {
             @Param("userId") UUID userId,
             @Param("query") String query,
             Pageable pageable);
+
+    // Get meetings in series that user can access
+    @Query("SELECT m FROM Meeting m WHERE m.series.id = :seriesId " +
+            "AND (m.createdBy = :user OR m.id IN " +
+            "(SELECT a.meeting.id FROM Attendee a WHERE a.user = :user)) " +
+            "ORDER BY m.createdAt DESC")
+    List<Meeting> findBySeriesIdAndUserOrAttendee(@Param("seriesId") UUID seriesId,
+                                                  @Param("user") User user);
+
+    // Check if user is attendee in any meeting of the series
+    @Query("SELECT COUNT(m) > 0 FROM Meeting m " +
+            "JOIN m.attendees a " +
+            "WHERE m.series.id = :seriesId AND a.user = :user")
+    boolean existsBySeriesIdAndAttendee(@Param("seriesId") UUID seriesId,
+                                        @Param("user") User user);
+
+    // Get processed meetings in series that user can access
+    @Query("SELECT m FROM Meeting m WHERE m.series.id = :seriesId " +
+            "AND m.status = 'PROCESSED' " +
+            "AND (m.createdBy = :user OR m.id IN " +
+            "(SELECT a.meeting.id FROM Attendee a WHERE a.user = :user)) " +
+            "ORDER BY m.createdAt DESC")
+    List<Meeting> findProcessedMeetingsInSeriesForUserOrAttendee(@Param("seriesId") UUID seriesId,
+                                                                 @Param("user") User user);
+
+    // Check if user is attendee of specific meeting
+    @Query("SELECT COUNT(a) > 0 FROM Attendee a " +
+            "WHERE a.meeting.id = :meetingId AND a.user.id = :userId")
+    boolean isUserAttendeeOfMeeting(@Param("meetingId") UUID meetingId,
+                                    @Param("userId") UUID userId);
 }

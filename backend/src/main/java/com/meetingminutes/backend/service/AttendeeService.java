@@ -1,15 +1,17 @@
 package com.meetingminutes.backend.service;
 
-import com.meetingminutes.backend.dto.InviteParticipantRequest;
-import com.meetingminutes.backend.dto.MeetingDetailsFromToken;
-import com.meetingminutes.backend.dto.TokenValidationResponse;
+import com.meetingminutes.backend.dto.*;
 import com.meetingminutes.backend.entity.*;
+import com.meetingminutes.backend.exception.AccessDeniedException;
 import com.meetingminutes.backend.exception.EntityNotFoundException;
 import com.meetingminutes.backend.repository.AttendeeRepo;
 import com.meetingminutes.backend.repository.MeetingRepository;
 import com.meetingminutes.backend.repository.UserRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -152,6 +155,44 @@ public class AttendeeService {
         }
 
         return attendeeRepo.save(attendee);
+    }
+
+    public PaginatedAttendeeResponse getMeetingAttendeesWithPagination(
+            UUID meetingId,
+            User user,
+            int page,
+            int size,
+            AttendanceStatus status) {
+
+        log.debug("Fetching paginated attendees for meeting: {}, page: {}, size: {}, status: {}",
+                meetingId, page, size, status);
+
+        Meeting meeting = meetingRepository.findById(meetingId)
+                .orElseThrow(() -> new EntityNotFoundException("Meeting not found"));
+
+        // Check if user has access to the meeting
+        if (!hasAccessToMeeting(meeting, user)) {
+            throw new AccessDeniedException("Access denied to meeting attendees");
+        }
+
+        // Create pageable with sorting
+        Pageable pageable = PageRequest.of(page, size);
+
+        // Get paginated attendees
+        Page<Attendee> attendeesPage = attendeeRepo.findByMeetingIdWithPagination(meetingId, status, pageable);
+
+        // Convert to response DTOs
+        List<AttendeeDetailResponse> attendeeResponses = attendeesPage.getContent()
+                .stream()
+                .map(AttendeeDetailResponse::from)
+                .collect(Collectors.toList());
+
+        return PaginatedAttendeeResponse.from(
+                attendeeResponses,
+                page,
+                size,
+                attendeesPage.getTotalElements()
+        );
     }
 
     public Attendee joinMeetingByToken(String inviteToken, User user) {
