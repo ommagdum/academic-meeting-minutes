@@ -79,7 +79,7 @@ export const authService = {
     authCheckInProgress = (async (): Promise<User | null> => {
       try {
         // Token exists, verify it with the server
-        const response = await api.get<User>('/api/auth/me', {
+        const response = await api.get<any>('/api/auth/me', {
           headers: {
             'Cache-Control': 'no-cache',
             'Pragma': 'no-cache'
@@ -88,8 +88,30 @@ export const authService = {
           timeout: 10000
         });
         
-        if (response.data) {
-          return response.data;
+        // Log the raw response to debug
+        console.log('[Auth] Raw API response:', response.data);
+        
+        // Handle response that might be wrapped in a 'data' field
+        const userData = (response.data as any)?.data || response.data;
+        
+        // Log the user data structure
+        console.log('[Auth] User data:', userData);
+        console.log('[Auth] Profile picture URL:', userData?.profilePictureUrl || userData?.profilePicture || 'NOT FOUND');
+        
+        if (userData) {
+          // Map the response to User type, handling different possible field names
+          const user: User = {
+            id: userData.id || userData.userId || '',
+            email: userData.email || '',
+            name: userData.name || userData.displayName || 'User',
+            profilePictureUrl: userData.profilePictureUrl || userData.profilePicture || userData.picture || userData.avatar || '',
+            role: userData.role || 'PARTICIPANT',
+            lastLogin: userData.lastLogin || userData.lastLoginAt || new Date().toISOString(),
+            emailVerified: userData.emailVerified !== undefined ? userData.emailVerified : false,
+          };
+          
+          console.log('[Auth] Mapped user object:', user);
+          return user;
         }
         
         // No user data in response
@@ -131,7 +153,7 @@ export const authService = {
    * Initiate OAuth login
    * OAuth endpoints must point to the backend, not the frontend
    */
-  login: (provider: 'google' | 'microsoft'): void => {
+  login: (provider: 'google'): void => {
     const baseUrl = getBackendBaseUrl();
     
     // If no redirect intent has been set yet, default to dashboard

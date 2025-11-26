@@ -17,6 +17,7 @@ const MeetingList = () => {
   const [page, setPage] = useState(0);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState("createdAt,desc");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     loadMeetings();
@@ -60,6 +61,21 @@ const MeetingList = () => {
     }
   };
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedQuery = searchQuery.trim();
+    if (trimmedQuery) {
+      navigate(`/search?q=${encodeURIComponent(trimmedQuery)}`);
+    }
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSearch(e);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
@@ -86,14 +102,17 @@ const MeetingList = () => {
         {/* Filters */}
         <Card className="mb-6">
           <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Search - Disabled (not implemented in backend yet) */}
+            <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Search */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search meetings... (Coming soon)"
+                  type="search"
+                  placeholder="Search meetings..."
                   className="pl-10"
-                  disabled
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={handleSearchKeyDown}
                 />
               </div>
 
@@ -123,7 +142,7 @@ const MeetingList = () => {
                   <SelectItem value="scheduledTime,desc">Scheduled Date</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+            </form>
           </CardContent>
         </Card>
 

@@ -4,7 +4,7 @@ export type AuthContextType = {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (provider: 'google' | 'microsoft') => void;
+  login: (provider: 'google') => void;
   logout: () => Promise<void>;
   checkAuth: (force?: boolean) => Promise<User | null>;
 };

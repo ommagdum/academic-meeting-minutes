@@ -9,7 +9,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (provider: 'google' | 'microsoft') => void;
+  login: (provider: 'google') => void;
   logout: () => Promise<void>;
   checkAuth: (force?: boolean) => Promise<User | null>;
 }
@@ -37,7 +37,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   }, []);
 
-  const login = useCallback((provider: 'google' | 'microsoft') => {
+  const login = useCallback((provider: 'google') => {
     authService.login(provider);
   }, []);
 

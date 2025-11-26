@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { meetingService } from "@/services/meetingService";
 import { Meeting, ProcessingStatus, ActionItem } from "@/types/meeting";
+import { TranscriptTab } from "@/components/meeting/TranscriptTab";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import { ArrowLeft, Calendar, Users, FileText, Download, Edit } from "lucide-rea
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { AxiosError } from "axios";
+import { ParticipantsTab } from '@/components/meeting/ParticipantsTab';
 
 const MeetingDetail = () => {
   const { id: meetingId } = useParams<{ id: string }>();
@@ -423,9 +425,7 @@ const MeetingDetail = () => {
                 <CardTitle>Transcript</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Transcript functionality coming soon...
-                </p>
+                {meetingId && <TranscriptTab meetingId={meetingId} />}
               </CardContent>
             </Card>
           </TabsContent>
@@ -469,9 +469,7 @@ const MeetingDetail = () => {
                 <CardTitle>Participants</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  {meeting.attendeeCount} participant(s) invited
-                </p>
+                {meetingId && <ParticipantsTab meetingId={meetingId} />}
               </CardContent>
             </Card>
           </TabsContent>

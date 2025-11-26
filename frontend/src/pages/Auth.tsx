@@ -10,7 +10,7 @@ const Auth = () => {
   const { login: loginAuth, isAuthenticated, isLoading } = useAuth();
   const redirectUrl = searchParams.get('redirect');
 
-  const login = async (provider: 'google' | 'microsoft') => {
+  const login = async (provider: 'google') => {
     try {
       const pendingRedirect = redirectUrl || localStorage.getItem('pendingRedirect');
       if (pendingRedirect) {
@@ -137,21 +137,6 @@ const Auth = () => {
               <span className="font-medium">Continue with Google</span>
             </Button>
 
-            {/* Microsoft Auth Button */}
-            <Button
-              onClick={() => login('microsoft')}
-              variant="outline"
-              size="lg"
-              className="w-full h-12 relative group hover:border-primary/50 hover:bg-primary/5 transition-all"
-            >
-              <svg className="w-5 h-5 mr-3" viewBox="0 0 23 23">
-                <path fill="#f25022" d="M0 0h11v11H0z"/>
-                <path fill="#00a4ef" d="M12 0h11v11H12z"/>
-                <path fill="#7fba00" d="M0 12h11v11H0z"/>
-                <path fill="#ffb900" d="M12 12h11v11H12z"/>
-              </svg>
-              <span className="font-medium">Continue with Microsoft</span>
-            </Button>
           </div>
 
         </div>

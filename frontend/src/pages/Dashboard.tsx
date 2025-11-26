@@ -5,18 +5,47 @@ import { MeetingSearchResult } from "@/services/searchService";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { RecentMeetingsList } from "@/components/dashboard/RecentMeetingsList";
 import { QuickActions } from "@/components/dashboard/QuickActions";
-import { FileText, Clock, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { FileText, Clock, CheckCircle, AlertCircle, Loader2, LogOut, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
   const { toast } = useToast();
   
+  // Debug: Log user data to see what we're getting
+  useEffect(() => {
+    if (user) {
+      console.log('[Dashboard] User object:', user);
+      console.log('[Dashboard] Profile picture URL:', user.profilePictureUrl);
+      console.log('[Dashboard] User name:', user.name);
+      console.log('[Dashboard] User email:', user.email);
+    }
+  }, [user]);
+  
   // Helper function to calculate percentage change
   const getChangePercentage = (value: number, total: number): number => {
     if (total === 0) return 0;
     return Math.round((value / total) * 100);
+  };
+
+  // Helper function to get user initials for avatar fallback
+  const getUserInitials = (name: string | undefined): string => {
+    if (!name) return 'U';
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
   };
   const [meetings, setMeetings] = useState<MeetingSearchResult[]>([]);
   const [upcomingMeetings, setUpcomingMeetings] = useState<MeetingSearchResult[]>([]);
@@ -300,14 +329,50 @@ const Dashboard = () => {
                 Here's an overview of your meetings and activities
               </p>
             </div>
-            <Button 
-              variant="destructive" 
-              size="sm" 
-              className="text-sm shrink-0 w-full sm:w-auto"
-              onClick={logout}
-            >
-              Sign Out
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="flex items-center gap-2 h-auto py-2 px-3 shrink-0 hover:bg-accent"
+                >
+                  <Avatar className="h-8 w-8">
+                    {user?.profilePictureUrl ? (
+                      <AvatarImage 
+                        src={user.profilePictureUrl} 
+                        alt={user?.name || 'User'} 
+                      />
+                    ) : null}
+                    <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                      {getUserInitials(user?.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="hidden sm:inline-block text-sm font-medium">
+                    {user?.name || 'User'}
+                  </span>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground hidden sm:block" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      {user?.name || 'User'}
+                    </p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user?.email || ''}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="cursor-pointer text-destructive focus:text-destructive"
+                  onClick={logout}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Sign Out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 

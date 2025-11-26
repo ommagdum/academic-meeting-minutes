@@ -301,10 +301,24 @@ const SearchPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">Search Meetings</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
+              Search and discover your meetings
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+            <Button variant="outline" onClick={() => navigate('/dashboard')} className="w-full sm:w-auto">
+              <span className="hidden sm:inline">Back to Dashboard</span>
+              <span className="sm:hidden">Dashboard</span>
+            </Button>
+          </div>
+        </div>
+
         {/* Search Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-6">Search Meetings</h1>
-          
           {/* Search Form */}
           <form onSubmit={handleSearch} className="mb-6">
             <div className="flex flex-col sm:flex-row gap-2">

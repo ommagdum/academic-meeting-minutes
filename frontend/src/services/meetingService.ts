@@ -1,5 +1,6 @@
 import api from './api';
-import { Meeting, CreateMeetingRequest, MeetingSeries, ProcessingStatus, UploadResponse, ActionItem } from '@/types/meeting';
+import { Meeting, CreateMeetingRequest, MeetingSeries, ProcessingStatus, UploadResponse, ActionItem, AttendeesResponse } from '@/types/meeting';
+import { Transcript, ApiResponse } from '@/types/transcript';
 import { AxiosError } from 'axios';
 
 export const meetingService = {
@@ -176,4 +177,55 @@ export const meetingService = {
     link.remove();
     window.URL.revokeObjectURL(blobUrl);
   },
+
+  /**
+   * Get transcript for a meeting
+   */
+  getMeetingTranscript: async (meetingId: string): Promise<Transcript> => {
+    try {
+      const response = await api.get<ApiResponse<Transcript>>(`/api/v1/meetings/${meetingId}/transcript`);
+      if (!response.data.success || !response.data.data) {
+        throw new Error(response.data.message || 'Failed to fetch transcript');
+      }
+      return response.data.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      console.error('Error fetching transcript:', {
+        status: axiosError.response?.status,
+        statusText: axiosError.response?.statusText,
+        error: axiosError.message,
+        responseData: axiosError.response?.data
+      });
+      throw error;
+    }
+  },
+
+  getMeetingAttendees: async (
+    meetingId: string,
+    params?: {
+      page?: number;
+      size?: number;
+      status?: string;
+    }
+  ): Promise<AttendeesResponse> => {
+    try {
+      const response = await api.get<ApiResponse<AttendeesResponse>>(
+        `/api/v1/meetings/${meetingId}/attendees`,
+        { params }
+      );
+      if (!response.data.success || !response.data.data) {
+        throw new Error(response.data.message || 'Failed to fetch attendees');
+      }
+      return response.data.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      console.error('Error fetching attendees:', {
+        status: axiosError.response?.status,
+        statusText: axiosError.response?.statusText,
+        error: axiosError.message,
+        responseData: axiosError.response?.data
+      });
+      throw error;
+    }
+  }
 };

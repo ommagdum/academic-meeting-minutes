@@ -80,3 +80,26 @@ export interface ActionItem {
   createdAt: string;
   updatedAt?: string | null;
 }
+
+export interface Attendee {
+  id: string;
+  name: string;
+  email: string;
+  isOrganizer: boolean;
+  status: 'INVITED' | 'CONFIRMED' | 'DECLINED' | 'ATTENDED' | 'NO_SHOW';
+  invitedAt: string;
+  respondedAt: string | null;
+  joinedAt: string | null;
+  notes?: string;
+  userId: string | null;
+  isRegistered: boolean;
+}
+
+export interface AttendeesResponse {
+  attendees: Attendee[];
+  page: number;
+  size: number;
+  total: number;
+  totalPages: number;
+  last: boolean;
+}
