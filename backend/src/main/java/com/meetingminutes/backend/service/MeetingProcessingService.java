@@ -41,6 +41,7 @@ public class MeetingProcessingService {
     private final UserRepo userRepo;
     private final ActionItemRepo actionItemRepo;
     private final WebSocketEventPublisher webSocketEventPublisher;
+    private final MeetingAccessService meetingAccessService;
 
     @Async
     public CompletableFuture<Void> processMeeting(UUID meetingId, User user) {
@@ -577,7 +578,7 @@ public class MeetingProcessingService {
     }
 
     private boolean hasAccessToMeeting(Meeting meeting, User user) {
-        return meeting.getCreatedBy().getId().equals(user.getId());
+        return meetingAccessService.hasAccessToMeeting(meeting, user);
     }
 
     public record ProcessingStatus(

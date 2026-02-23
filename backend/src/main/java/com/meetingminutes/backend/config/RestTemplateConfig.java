@@ -14,9 +14,9 @@ public class RestTemplateConfig {
     public RestTemplate restTemplate() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
 
-        // Set timeouts (5 minutes for AI processing)
+        // Set timeouts (20 minutes for AI processing)
         factory.setConnectTimeout((int) Duration.ofMinutes(1).toMillis());
-        factory.setReadTimeout((int) Duration.ofMinutes(5).toMillis());
+        factory.setReadTimeout((int) Duration.ofMinutes(20).toMillis());
 
         return new RestTemplate(factory);
     }

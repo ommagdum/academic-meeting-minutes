@@ -1,6 +1,7 @@
 package com.meetingminutes.backend.service;
 
 import com.meetingminutes.backend.entity.ActionItem;
+import com.meetingminutes.backend.entity.Attendee;
 import com.meetingminutes.backend.entity.Meeting;
 import com.meetingminutes.backend.entity.User;
 import jakarta.mail.MessagingException;
@@ -122,13 +123,23 @@ public class EmailService {
 
             String htmlContent = renderTemplate("processing-complete", variables);
 
+            // Send to meeting creator
             sendEmail(user.getEmail(), subject, htmlContent);
-            logger.info("Processing complete notification sent to: {}", user.getEmail());
+            logger.info("Processing complete notification sent to creator: {}", user.getEmail());
+
+            // Send to all attendees
+            for (Attendee attendee : meeting.getAttendees()) {
+                if (!attendee.getUser().getEmail().equals(user.getEmail())) { // Avoid duplicate to creator
+                    sendEmail(attendee.getUser().getEmail(), subject, htmlContent);
+                    logger.info("Processing complete notification sent to attendee: {}", attendee.getUser().getEmail());
+                }
+            }
 
         } catch (Exception e) {
-            logger.error("Failed to send processing complete notification to: {}", user.getEmail(), e);
+            logger.error("Failed to send processing complete notifications", e);
         }
     }
+
 
     public void sendMeetingReminder(Meeting meeting, String email) {
         try {
@@ -151,15 +162,36 @@ public class EmailService {
     }
 
     private void sendEmail(String to, String subject, String htmlContent) throws MessagingException {
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+        int maxAttempts = 3;
+        long initialDelay = 1000; // 1 second
 
-        helper.setFrom(fromEmail);
-        helper.setTo(to);
-        helper.setSubject(subject);
-        helper.setText(htmlContent, true);
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                MimeMessage message = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-        mailSender.send(message);
+                helper.setFrom(fromEmail);
+                helper.setTo(to);
+                helper.setSubject(subject);
+                helper.setText(htmlContent, true);
+
+                mailSender.send(message);
+                return; // Success
+            } catch (Exception e) {
+                if (attempt == maxAttempts) throw e;
+
+                long delay = initialDelay * (long)Math.pow(2, attempt-1);
+                logger.warn("Email send failed (attempt {}), retrying in {} ms: {}",
+                        attempt, delay, e.getMessage());
+
+                try {
+                    Thread.sleep(delay);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new MessagingException("Interrupted during retry", ie);
+                }
+            }
+        }
     }
 
     private String renderTemplate(String templateName, Map<String, Object> variables) {

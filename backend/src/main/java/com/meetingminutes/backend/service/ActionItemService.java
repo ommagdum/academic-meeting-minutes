@@ -144,6 +144,27 @@ public class ActionItemService {
         actionItemRepo.delete(task);
     }
 
+    public ActionItem reassignTask(UUID taskId, String assigneeEmail, User user) {
+        ActionItem task = actionItemRepo.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        Meeting meeting = task.getMeeting();
+        // Only meeting organizer can reassign tasks
+        if (!meeting.getCreatedBy().getId().equals(user.getId())) {
+            throw new RuntimeException("Only meeting organizer can reassign tasks");
+        }
+
+        Optional<User> assigneeUser = userRepo.findByEmail(assigneeEmail);
+        if (assigneeUser.isPresent()) {
+            task.setAssignedToUser(assigneeUser.get());
+            task.setAssignedToEmail(null);
+        } else {
+            task.setAssignedToUser(null);
+            task.setAssignedToEmail(assigneeEmail);
+        }
+        return actionItemRepo.save(task);
+    }
+
     public List<ActionItem> getOverdueTasks() {
         return actionItemRepo.findOverdueActionItems(LocalDateTime.now());
     }
@@ -157,9 +178,16 @@ public class ActionItemService {
     }
 
     private boolean canUserUpdateTask(ActionItem task, User user) {
-        // User can update if they are assigned to the task
-        return task.getAssignedToUser() != null &&
-                task.getAssignedToUser().getId().equals(user.getId());
+        // User can update if they are assigned to the task or are organizer
+
+        // 1. User is the assigned user
+        if (task.getAssignedToUser() != null && task.getAssignedToUser().getId().equals(user.getId())) {
+            return true;
+        }
+
+        // 2. User is the organizer
+        Meeting meeting = task.getMeeting();
+        return meeting.getCreatedBy().getId().equals(user.getId());
     }
 
     private boolean hasAccessToMeeting(Meeting meeting, User user) {

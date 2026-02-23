@@ -1,7 +1,9 @@
 package com.meetingminutes.backend.controller;
 
 import com.meetingminutes.backend.dto.ActionItemResponse;
+import com.meetingminutes.backend.dto.ReassignTaskRequest;
 import com.meetingminutes.backend.dto.UpdateTaskRequest;
+import com.meetingminutes.backend.entity.ActionItem;
 import com.meetingminutes.backend.entity.TaskStatus;
 import com.meetingminutes.backend.entity.User;
 import com.meetingminutes.backend.service.ActionItemService;
@@ -61,6 +63,18 @@ public class ActionItemController {
         var response = convertToResponse(acknowledgedTask);
 
         return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{taskId}/assign")
+    public ResponseEntity<ActionItemResponse> reassignTask(
+            @PathVariable UUID taskId,
+            @RequestBody ReassignTaskRequest request, Authentication authentication
+            ) {
+        String email = authentication.getName();
+        User user = userService.findByEmail(email);
+
+        ActionItem updatedTask = actionItemService.reassignTask(taskId, request.getAssignee(), user);
+        return ResponseEntity.ok(convertToResponse(updatedTask));
     }
 
     private ActionItemResponse convertToResponse(com.meetingminutes.backend.entity.ActionItem actionItem) {
