@@ -36,6 +36,7 @@ export interface CreateMeetingRequest {
   usePreviousContext?: boolean;
   seriesId?: string;
   newSeriesTitle?: string;
+  status?: 'DRAFT' | 'PROCESSING' | 'PROCESSED' | 'FAILED';
 }
 
 export interface MeetingSeries {

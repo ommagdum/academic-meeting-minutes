@@ -41,10 +41,21 @@ const CreateMeeting = () => {
         ...(data.seriesOption === 'new' && data.newSeriesTitle 
           ? { newSeriesTitle: data.newSeriesTitle }
           : {}),
+        // Set status to PROCESSING by default
+        status: 'PROCESSING' as const,
       };
 
+      // Create the meeting
       const meeting = await meetingService.createMeeting(meetingRequest);
-      console.log("Meeting created:", meeting.id);
+      console.log("Meeting created:", meeting);
+      
+      // If the meeting was created with DRAFT status, immediately update it to PROCESSING
+      let updatedMeeting = meeting;
+      if (meeting.status === 'DRAFT') {
+        console.log("Updating meeting status from DRAFT to PROCESSING...");
+        updatedMeeting = await meetingService.updateMeeting(meeting.id, { status: 'PROCESSING' as const });
+        console.log("Meeting status updated:", updatedMeeting.status);
+      }
 
       // Step 2: Upload audio file
       if (data.audioFile) {
@@ -82,18 +93,27 @@ const CreateMeeting = () => {
       // Navigate to meeting detail page to show processing status
       navigate(`/meetings/${meeting.id}`);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Meeting creation failed:", error);
       
       let errorMessage = "Something went wrong. Please try again.";
       
-      if (error.response?.status === 401) {
-        errorMessage = "Session expired. Please log in again.";
-        setTimeout(() => navigate('/auth'), 2000);
-      } else if (error.response?.status === 400) {
-        errorMessage = error.response.data?.message || "Invalid meeting data. Please check your inputs.";
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
+      // Type guard to check if error is an AxiosError
+      const isAxiosError = (error: any): error is { response: { status: number; data: { message?: string } } } => {
+        return error && typeof error === 'object' && 'response' in error;
+      };
+      
+      if (isAxiosError(error)) {
+        if (error.response.status === 401) {
+          errorMessage = "Session expired. Please log in again.";
+          setTimeout(() => navigate('/auth'), 2000);
+        } else if (error.response.status === 400) {
+          errorMessage = error.response.data?.message || "Invalid meeting data. Please check your inputs.";
+        } else if (error.response.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
       }
 
       toast({

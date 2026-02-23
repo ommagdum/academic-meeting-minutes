@@ -118,7 +118,7 @@ const CTASection = () => {
               {' '}
               &
               {' '}
-              <a href="https://www.instagram.com/mr_prasann13_/" className="underline hover:opacity-80" target="_blank">Prassana</a>
+              <a href="https://www.linkedin.com/in/prasanna-bhosale-429b82395/" className="underline hover:opacity-80" target="_blank">Prassana</a>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center text-sm">
               <div className="flex items-center gap-2">

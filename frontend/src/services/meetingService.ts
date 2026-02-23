@@ -41,8 +41,9 @@ export const meetingService = {
   /**
    * Start AI processing for a meeting
    */
-  startProcessing: async (meetingId: string): Promise<void> => {
-    await api.post(`/api/v1/meetings/${meetingId}/process`);
+  startProcessing: async (meetingId: string): Promise<Meeting> => {
+    const response = await api.post<Meeting>(`/api/v1/meetings/${meetingId}/process`);
+    return response.data;
   },
 
   /**
@@ -227,5 +228,25 @@ export const meetingService = {
       });
       throw error;
     }
+  },
+
+  /**
+   * Update task status
+   */
+  updateTaskStatus: async (taskId: string, status: string): Promise<ActionItem> => {
+    const response = await api.patch<ActionItem>(`/api/v1/action-items/${taskId}/status`, {
+      status
+    });
+    return response.data;
+  },
+
+  /**
+   * Reassign task to a different user
+   */
+  reassignTask: async (taskId: string, assignee: string): Promise<ActionItem> => {
+    const response = await api.patch<ActionItem>(`/api/v1/action-items/${taskId}/assign`, {
+      assignee
+    });
+    return response.data;
   }
 };

@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { meetingService } from "@/services/meetingService";
-import { Meeting, ProcessingStatus, ActionItem } from "@/types/meeting";
+import { Meeting, ProcessingStatus, ActionItem, Attendee } from "@/types/meeting";
 import { TranscriptTab } from "@/components/meeting/TranscriptTab";
+import TaskItem from "@/components/meeting/TaskItem";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,11 +14,13 @@ import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { AxiosError } from "axios";
 import { ParticipantsTab } from '@/components/meeting/ParticipantsTab';
+import { useAuth } from '@/hooks/useAuth';
 
 const MeetingDetail = () => {
   const { id: meetingId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user: currentUser } = useAuth();
   
   // Log URL parameters when component mounts or meetingId changes
   useEffect(() => {
@@ -37,6 +40,8 @@ const MeetingDetail = () => {
   const [actionItems, setActionItems] = useState<ActionItem[] | null>(null);
   const [isLoadingActionItems, setIsLoadingActionItems] = useState(false);
   const [actionItemsError, setActionItemsError] = useState<string | null>(null);
+  const [attendees, setAttendees] = useState<Attendee[]>([]);
+  const [isLoadingAttendees, setIsLoadingAttendees] = useState(false);
 
   // Define loadMeeting first
   const loadMeeting = useCallback(async () => {
@@ -54,7 +59,9 @@ const MeetingDetail = () => {
       setIsLoading(true);
       setError(null);
       
-      const data = await meetingService.getMeeting(meetingId);
+      // Add timestamp to prevent caching
+      const timestamp = new Date().getTime();
+      const data = await meetingService.getMeeting(`${meetingId}?t=${timestamp}`);
       console.log('[MeetingDetail] Meeting data received:', data);
       
       if (!data) {
@@ -64,12 +71,18 @@ const MeetingDetail = () => {
       setMeeting(data);
       console.log('[MeetingDetail] Meeting state updated');
 
-      if (data.status === 'PROCESSING') {
-        console.log('[MeetingDetail] Meeting is processing, starting status polling...');
+      // Always try to get processing status if status is PROCESSING or if we don't have a status yet
+      if (data.status === 'PROCESSING' || data.status === 'DRAFT') {
+        console.log('[MeetingDetail] Meeting is processing or in draft, checking status...');
         try {
           const status = await meetingService.getProcessingStatus(meetingId);
           console.log('[MeetingDetail] Processing status:', status);
           setProcessingStatus(status);
+          
+          // If the status from processing endpoint is different, update the meeting
+          if (status.status !== data.status) {
+            setMeeting(prev => prev ? { ...prev, status: status.status } : null);
+          }
         } catch (statusError) {
           console.error('[MeetingDetail] Error getting processing status:', statusError);
         }
@@ -114,6 +127,38 @@ const MeetingDetail = () => {
     }
   }, [meetingId, navigate, toast]);
 
+  // Load attendees for the meeting
+  const loadAttendees = useCallback(async () => {
+    if (!meetingId) return;
+    
+    try {
+      setIsLoadingAttendees(true);
+      console.log(`[MeetingDetail] Loading attendees for meeting: ${meetingId}`);
+      
+      const response = await meetingService.getMeetingAttendees(meetingId, { page: 0, size: 100 });
+      console.log('[MeetingDetail] Attendees loaded:', response);
+      setAttendees(response.attendees);
+    } catch (error) {
+      console.error('[MeetingDetail] Failed to load attendees:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load attendees';
+      
+      toast({
+        title: "Error Loading Attendees",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingAttendees(false);
+    }
+  }, [meetingId, toast]);
+
+  // Handle task updates
+  const handleTaskUpdate = useCallback((updatedTask: ActionItem) => {
+    setActionItems(prev => 
+      prev ? prev.map(task => task.id === updatedTask.id ? updatedTask : task) : null
+    );
+  }, []);
+
   // Then define other functions that use loadMeeting
   const handleRetry = useCallback(async () => {
     if (!meetingId) return;
@@ -144,35 +189,61 @@ const MeetingDetail = () => {
       loadMeeting().catch(error => {
         console.error('[MeetingDetail] Error in loadMeeting:', error);
       });
+      // Also load attendees
+      loadAttendees();
     } else {
       console.error('[MeetingDetail] No meetingId provided in URL');
       setError('No meeting ID provided');
       setIsLoading(false);
     }
-  }, [meetingId, loadMeeting]);
+  }, [meetingId, loadMeeting, loadAttendees]);
 
-  // Poll for processing status if meeting is processing
+  // Poll for processing status if meeting is in DRAFT or PROCESSING state
   useEffect(() => {
-    if (!meetingId || !meeting || meeting.status !== 'PROCESSING') return;
+    if (!meetingId || !meeting) return;
+    
+    // Only poll if meeting is in a state that might change
+    if (meeting.status !== 'DRAFT' && meeting.status !== 'PROCESSING') {
+      return;
+    }
 
+    console.log(`[MeetingDetail] Starting status polling for meeting ${meetingId} (status: ${meeting.status})`);
+    
     const pollStatus = async () => {
       try {
+        console.log(`[MeetingDetail] Polling status for meeting ${meetingId}`);
         const status = await meetingService.getProcessingStatus(meetingId);
+        console.log(`[MeetingDetail] Received status update:`, status);
+        
+        // Update the processing status
         setProcessingStatus(status);
-
-        if (status.status === 'PROCESSED' || status.status === 'FAILED') {
-          loadMeeting();
+        
+        // If the status has changed, update the meeting
+        if (status.status !== meeting.status) {
+          console.log(`[MeetingDetail] Status changed from ${meeting.status} to ${status.status}, updating meeting...`);
+          setMeeting(prev => prev ? { ...prev, status: status.status } : null);
+          
+          // If processing is complete, refresh the full meeting data
+          if (status.status === 'PROCESSED' || status.status === 'FAILED') {
+            console.log(`[MeetingDetail] Processing complete, refreshing meeting data...`);
+            await loadMeeting();
+          }
         }
       } catch (error) {
-        console.error('Failed to fetch processing status:', error);
+        console.error('[MeetingDetail] Failed to fetch processing status:', error);
       }
     };
 
-    // Poll every 5 seconds
+    // Initial poll
     pollStatus();
-    const interval = setInterval(pollStatus, 5000);
+    
+    // Poll every 3 seconds for faster updates
+    const interval = setInterval(pollStatus, 3000);
 
-    return () => clearInterval(interval);
+    return () => {
+      console.log(`[MeetingDetail] Cleaning up status polling for meeting ${meetingId}`);
+      clearInterval(interval);
+    };
   }, [meetingId, meeting, loadMeeting]);
 
   // Load action items when tab changes to tasks
@@ -445,17 +516,15 @@ const MeetingDetail = () => {
                 ) : (
                   <div className="space-y-4">
                     {actionItems.map(item => (
-                      <div key={item.id} className="p-4 border rounded-lg">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="font-medium">{item.description}</div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                              Status: {item.status}
-                              {item.deadline ? ` • Due: ${format(new Date(item.deadline), 'MMM dd, yyyy')}` : ''}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                      <TaskItem
+                        key={item.id}
+                        task={item}
+                        meetingId={meetingId!}
+                        isOrganizer={meeting?.createdBy?.id === currentUser?.id}
+                        currentUser={currentUser}
+                        attendees={attendees}
+                        onTaskUpdate={handleTaskUpdate}
+                      />
                     ))}
                   </div>
                 )}
