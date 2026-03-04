@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ActionItem, Attendee } from '@/types/meeting';
 import { User } from '@/types/user';
 import { meetingService } from '@/services/meetingService';
@@ -31,6 +31,9 @@ const TaskItem: React.FC<TaskItemProps> = ({
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isReassigning, setIsReassigning] = useState(false);
   const [showReassignDropdown, setShowReassignDropdown] = useState(false);
+  const [customEmail, setCustomEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const reassignDropdownRef = useRef<HTMLDivElement>(null);
 
   // Check if current user is the assignee
   const isAssignee = task.assignedToUser?.id === currentUser?.id || 
@@ -134,13 +137,53 @@ const TaskItem: React.FC<TaskItemProps> = ({
 
   // Prepare attendees list for reassignment
   const reassignOptions = attendees.map(attendee => ({
-    email: attendee.user ? attendee.user.email : attendee.email,
-    name: attendee.user ? attendee.user.name : attendee.email,
+    email: attendee.user?.email || attendee.email,
+    name: attendee.user?.name || attendee.email,
     isRegistered: !!attendee.user
-  }));
+  })).filter(option => option.email); // Filter out any entries without email
 
   const statusOptions = getStatusOptions();
   const canChangeStatus = statusOptions.length > 0;
+
+  // Email validation function
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (reassignDropdownRef.current && !reassignDropdownRef.current.contains(event.target as Node)) {
+        setShowReassignDropdown(false);
+        setCustomEmail('');
+        setEmailError('');
+      }
+    };
+
+    if (showReassignDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showReassignDropdown]);
+
+  // Handle custom email reassignment
+  const handleCustomEmailReassign = () => {
+    if (!customEmail.trim()) {
+      setEmailError('Email is required');
+      return;
+    }
+
+    if (!isValidEmail(customEmail)) {
+      setEmailError('Please enter a valid email address');
+      return;
+    }
+
+    handleReassign(customEmail.trim());
+  };
 
   return (
     <Card className="mb-4">
@@ -199,7 +242,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
 
             {/* Reassign Button (Organizer Only) */}
             {isOrganizer && (
-              <div className="relative">
+              <div className="relative" ref={reassignDropdownRef}>
                 {isReassigning ? (
                   <Button variant="outline" size="sm" disabled>
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -225,9 +268,10 @@ const TaskItem: React.FC<TaskItemProps> = ({
                       <div className="max-h-48 overflow-y-auto">
                         {reassignOptions.map((option, index) => (
                           <button
-                            key={index}
+                            key={`${option.email}-${index}`}
                             onClick={() => handleReassign(option.email)}
-                            className="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded"
+                            className="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={isReassigning}
                           >
                             <div className="font-medium">{option.name}</div>
                             <div className="text-xs text-gray-500">{option.email}</div>
@@ -238,16 +282,39 @@ const TaskItem: React.FC<TaskItemProps> = ({
                         <input
                           type="email"
                           placeholder="Enter custom email..."
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                          value={customEmail}
+                          onChange={(e) => {
+                            setCustomEmail(e.target.value);
+                            setEmailError('');
+                          }}
                           onKeyPress={(e) => {
                             if (e.key === 'Enter') {
-                              const email = (e.target as HTMLInputElement).value;
-                              if (email) {
-                                handleReassign(email);
-                              }
+                              e.preventDefault();
+                              handleCustomEmailReassign();
                             }
                           }}
+                          className={`w-full px-2 py-1 text-sm border rounded ${
+                            emailError ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                          }`}
+                          disabled={isReassigning}
                         />
+                        {emailError && (
+                          <div className="text-xs text-red-600 mt-1">{emailError}</div>
+                        )}
+                        <button
+                          onClick={handleCustomEmailReassign}
+                          disabled={isReassigning || !customEmail.trim()}
+                          className="w-full mt-2 px-2 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                        >
+                          {isReassigning ? (
+                            <div className="flex items-center justify-center">
+                              <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                              Assigning...
+                            </div>
+                          ) : (
+                            'Assign'
+                          )}
+                        </button>
                       </div>
                     </div>
                   </div>

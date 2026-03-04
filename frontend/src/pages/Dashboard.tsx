@@ -5,7 +5,7 @@ import { MeetingSearchResult } from "@/services/searchService";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { RecentMeetingsList } from "@/components/dashboard/RecentMeetingsList";
 import { QuickActions } from "@/components/dashboard/QuickActions";
-import { FileText, Clock, CheckCircle, AlertCircle, Loader2, LogOut, ChevronDown } from "lucide-react";
+import { FileText, Clock, CheckCircle, AlertCircle, Loader2, LogOut, ChevronDown, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -225,7 +225,9 @@ const Dashboard = () => {
           meetingId: meeting.meetingId,
           _id: meeting._id,
           finalId: meetingId,
-          title: meeting.title
+          title: meeting.title,
+          status: meeting.status,
+          rawStatus: meeting.status
         });
 
         return {
@@ -240,7 +242,7 @@ const Dashboard = () => {
             createdAt: meeting.createdBy?.createdAt || new Date().toISOString(),
           },
           title: meeting.title || 'Untitled Meeting',
-          status: meeting.status || 'DRAFT',
+          status: meeting.status, // Remove the default fallback to preserve the actual status from backend
         };
       });
 
@@ -270,6 +272,17 @@ const Dashboard = () => {
 
   useEffect(() => {
     loadDashboard();
+    
+    // Set up periodic refresh to update meeting statuses
+    const interval = setInterval(() => {
+      console.log('[Dashboard] Refreshing dashboard data for status updates...');
+      loadDashboard();
+    }, 10000); // Refresh every 10 seconds
+    
+    return () => {
+      console.log('[Dashboard] Cleaning up periodic refresh');
+      clearInterval(interval);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array means this runs once on mount
 
@@ -329,50 +342,62 @@ const Dashboard = () => {
                 Here's an overview of your meetings and activities
               </p>
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="flex items-center gap-2 h-auto py-2 px-3 shrink-0 hover:bg-accent"
-                >
-                  <Avatar className="h-8 w-8">
-                    {user?.profilePictureUrl ? (
-                      <AvatarImage 
-                        src={user.profilePictureUrl} 
-                        alt={user?.name || 'User'} 
-                      />
-                    ) : null}
-                    <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                      {getUserInitials(user?.name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="hidden sm:inline-block text-sm font-medium">
-                    {user?.name || 'User'}
-                  </span>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground hidden sm:block" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => loadDashboard()}
+                disabled={isLoading}
+                className="shrink-0"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="flex items-center gap-2 h-auto py-2 px-3 shrink-0 hover:bg-accent"
+                  >
+                    <Avatar className="h-8 w-8">
+                      {user?.profilePictureUrl ? (
+                        <AvatarImage 
+                          src={user.profilePictureUrl} 
+                          alt={user?.name || 'User'} 
+                        />
+                      ) : null}
+                      <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                        {getUserInitials(user?.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="hidden sm:inline-block text-sm font-medium">
                       {user?.name || 'User'}
-                    </p>
-                    <p className="text-xs leading-none text-muted-foreground">
-                      {user?.email || ''}
-                    </p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="cursor-pointer text-destructive focus:text-destructive"
-                  onClick={logout}
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Sign Out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                    </span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground hidden sm:block" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">
+                        {user?.name || 'User'}
+                      </p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {user?.email || ''}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="cursor-pointer text-destructive focus:text-destructive"
+                    onClick={logout}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Sign Out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
 

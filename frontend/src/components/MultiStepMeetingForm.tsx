@@ -3,9 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 import { MeetingDetailsStep } from './multi-step-form/MeetingDetailsStep';
 import { AgendaItemsStep } from './multi-step-form/AgendaItemsStep';
 import { AudioUploadStep } from './multi-step-form/AudioUploadStep';
@@ -79,8 +80,10 @@ interface MultiStepMeetingFormProps {
 export function MultiStepMeetingForm({ onSubmit, onCancel, initialData }: MultiStepMeetingFormProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState<MeetingFormData>({
     // Meeting Details
@@ -173,10 +176,9 @@ export function MultiStepMeetingForm({ onSubmit, onCancel, initialData }: MultiS
     setIsSubmitting(true);
     try {
       await onSubmit(formData);
-      toast({
-        title: "Meeting Created Successfully!",
-        description: "AI processing started. You'll be notified when minutes are ready (2-5 minutes)."
-      });
+      setIsSubmitted(true);
+      // Navigation is handled by the parent component (CreateMeeting.tsx)
+      // The form will be unmounted when navigation occurs
     } catch (error) {
       toast({
         title: "Error",
@@ -350,11 +352,47 @@ export function MultiStepMeetingForm({ onSubmit, onCancel, initialData }: MultiS
               onClick={handleSubmit}
               disabled={isSubmitting || !validateStep(5)}
             >
-              {isSubmitting ? 'Creating...' : 'Create Meeting'}
+              {isSubmitting ? 'Creating Meeting...' : 'Create Meeting'}
             </Button>
           )}
         </div>
       </div>
+
+      {/* Loading overlay for post-submission */}
+      {(isSubmitting || isSubmitted) && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-card p-8 rounded-lg shadow-lg text-center space-y-6 max-w-md">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <div>
+              <h3 className="text-lg font-semibold">
+                {isSubmitted ? "Meeting Created Successfully!" : "Creating Meeting..."}
+              </h3>
+              <p className="text-sm text-muted-foreground mt-2">
+                {isSubmitted 
+                  ? "Your meeting is being processed by AI. This may take several minutes. We'll notify you by email when the minutes are ready." 
+                  : "Please wait while we set up your meeting..."
+                }
+              </p>
+            </div>
+            
+            {isSubmitted && (
+              <div className="space-y-3">
+                <Button 
+                  onClick={() => navigate('/dashboard')}
+                  className="w-full"
+                  variant="default"
+                >
+                  <Home className="w-4 h-4 mr-2" />
+                  Return to Dashboard
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  You can also view the meeting status in your dashboard
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

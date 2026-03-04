@@ -77,21 +77,26 @@ const CreateMeeting = () => {
         console.log("Participants invited");
       }
 
-      // Step 4: Start AI processing
+      // Step 4: Start AI processing (fire and forget - don't wait for completion)
       toast({
         title: "Starting AI processing...",
-        description: "Your meeting is now being processed",
+        description: "Your meeting is now being processed. This may take several minutes.",
       });
-      await meetingService.startProcessing(meeting.id);
-      console.log("Processing started");
+      
+      // Start processing without waiting for completion
+      meetingService.startProcessing(meeting.id).catch(error => {
+        console.warn("Processing start failed (but meeting was created):", error);
+      });
+      console.log("Processing started (async)");
 
       toast({
         title: "Meeting Created Successfully!",
-        description: "Your meeting is now being processed. You'll receive updates on the processing status.",
+        description: "Your meeting is being processed. We'll notify you by email when the minutes are ready.",
       });
 
-      // Navigate to meeting detail page to show processing status
-      navigate(`/meetings/${meeting.id}`);
+      // Navigate to dashboard instead of meeting detail page
+      console.log("Navigating to dashboard after meeting creation");
+      navigate("/dashboard");
 
     } catch (error: unknown) {
       console.error("Meeting creation failed:", error);

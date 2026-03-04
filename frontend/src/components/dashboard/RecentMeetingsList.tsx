@@ -16,8 +16,12 @@ export const RecentMeetingsList = ({ meetings, isLoading }: RecentMeetingsListPr
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
+  const getStatusColor = (status?: string | null) => {
+    if (!status) {
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
+    }
+    
+    switch (status.toUpperCase()) {
       case 'PROCESSED':
         return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
       case 'PROCESSING':
@@ -27,6 +31,7 @@ export const RecentMeetingsList = ({ meetings, isLoading }: RecentMeetingsListPr
       case 'FAILED':
         return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
       default:
+        console.warn('Unknown meeting status:', status);
         return 'bg-gray-100 text-gray-800';
     }
   };
@@ -88,7 +93,12 @@ export const RecentMeetingsList = ({ meetings, isLoading }: RecentMeetingsListPr
       <CardContent>
         <div className="space-y-4">
           {meetings.map((meeting) => {
-            console.log('Rendering meeting:', { id: meeting.id, title: meeting.title });
+            console.log('Rendering meeting:', { 
+              id: meeting.id, 
+              title: meeting.title, 
+              status: meeting.status,
+              statusType: typeof meeting.status 
+            });
             return (
               <div
                 key={meeting.id}
@@ -114,7 +124,7 @@ export const RecentMeetingsList = ({ meetings, isLoading }: RecentMeetingsListPr
                   <div className="flex items-center gap-2">
                     <h3 className="font-medium">{meeting.title}</h3>
                     <Badge className={getStatusColor(meeting.status)}>
-                      {meeting.status.toLowerCase()}
+                      {meeting.status?.toLowerCase() || 'unknown'}
                     </Badge>
                   </div>
                   <div className="flex items-center text-sm text-muted-foreground">
