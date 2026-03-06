@@ -5,9 +5,10 @@ import { MeetingSearchResult } from "@/services/searchService";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { RecentMeetingsList } from "@/components/dashboard/RecentMeetingsList";
 import { QuickActions } from "@/components/dashboard/QuickActions";
-import { FileText, Clock, CheckCircle, AlertCircle, Loader2, LogOut, ChevronDown, RefreshCw } from "lucide-react";
+import { FileText, Clock, CheckCircle, AlertCircle, Loader2, LogOut, ChevronDown, RefreshCw, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -21,6 +22,7 @@ import {
 const Dashboard = () => {
   const { user, logout } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   // Debug: Log user data to see what we're getting
   useEffect(() => {
@@ -388,6 +390,13 @@ const Dashboard = () => {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => navigate('/profile')}
+                  >
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Profile</span>
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     className="cursor-pointer text-destructive focus:text-destructive"
                     onClick={logout}

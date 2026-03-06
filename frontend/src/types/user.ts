@@ -6,6 +6,7 @@ export interface User {
   role: 'OWNER' | 'PARTICIPANT' | 'VIEWER';
   lastLogin: string;
   emailVerified: boolean;
+  createdAt: string;
   token?: string; // JWT token for authenticated requests
 }
 

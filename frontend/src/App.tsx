@@ -17,6 +17,7 @@ import Auth from "./pages/Auth";
 import OAuthRedirect from "./pages/OAuthRedirect";
 import Search from "./pages/Search";
 import JoinMeeting from "./pages/JoinMeeting";
+import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -86,6 +87,14 @@ const Root = () => (
       />
       <Route path="/join-meeting" element={<JoinMeeting />} />
       <Route path="/meetings/join" element={<JoinMeeting />} />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        }
+      />
       <Route path="*" element={<NotFound />} />
     </Routes>
   </AuthProvider>
