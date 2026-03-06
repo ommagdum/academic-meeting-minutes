@@ -63,10 +63,18 @@ export interface RecentActivity {
 
 export interface TranscriptSearchResult {
   meetingId: string;
-  meetingTitle: string;
-  excerpt: string;
-  timestamp: string;
+  title: string;
+  description?: string;
+  status: 'DRAFT' | 'PROCESSING' | 'PROCESSED' | 'FAILED';
+  meetingDate?: string;
+  createdAt: string;
+  participantCount: number;
+  actionItemCount: number;
+  hasTranscript: boolean;
+  seriesTitle?: string;
+  matchingFields: string[];
   relevanceScore: number;
+  highlight: string;
 }
 
 export interface AnalyticsData {
@@ -159,11 +167,29 @@ export const searchService = {
   /**
    * Search within transcripts
    */
-  searchTranscripts: async (query: string, page = 0, size = 10): Promise<{ results: TranscriptSearchResult[]; total: number }> => {
-    const response = await api.get<{ results: TranscriptSearchResult[]; total: number }>('/api/v1/search/transcripts', {
+  searchTranscripts: async (query: string, page = 0, size = 10): Promise<SearchResponse> => {
+    const response = await api.get<SearchResponse>('/api/v1/search/transcripts', {
       params: { q: query, page, size }
     });
-    return response.data;
+    
+    // Handle nested data structure (backend might wrap in 'data' field)
+    const responseData = (response.data as any)?.data || response.data;
+    
+    // Transform response to ensure id field exists (backend might use meetingId)
+    if (responseData?.results) {
+      responseData.results = responseData.results.map((meeting: any) => {
+        const transformed = {
+          ...meeting,
+          id: meeting.id || meeting.meetingId || meeting._id,
+        };
+        if (!transformed.id) {
+          console.warn('[searchService] Meeting missing ID after transformation:', meeting);
+        }
+        return transformed;
+      });
+    }
+    
+    return responseData;
   },
 
   /**
