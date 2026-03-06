@@ -43,6 +43,10 @@ const Profile = () => {
     resolver: zodResolver(profileSchema)
   });
 
+  useEffect(() => {
+    loadUserProfile();
+  }, [loadUserProfile]);
+
   const loadUserProfile = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -59,10 +63,6 @@ const Profile = () => {
       setIsLoading(false);
     }
   }, [reset]);
-
-  useEffect(() => {
-    loadUserProfile();
-  }, [loadUserProfile]);
 
   const onSubmit = async (data: ProfileFormData) => {
     try {

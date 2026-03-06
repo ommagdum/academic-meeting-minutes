@@ -53,24 +53,20 @@ const JoinMeeting = () => {
     navigate,
   ]);
 
-  // Once authenticated and validation is ready, auto-complete the join flow if requested
   useEffect(() => {
-    if (!isAuthenticated) return;
-    if (!token) return;
-    if (loading) return;
-    if (joining) return;
-    if (!validation?.valid) return;
+  // Conditions for auto-join
+  if (!isAuthenticated) return;
+  if (!token) return;
+  if (loading) return;
+  if (joining) return;
+  if (!validation?.valid) return;
 
-    const pendingToken = localStorage.getItem('pendingJoinToken');
-    const shouldAutoJoin = localStorage.getItem('shouldAutoJoin') === 'true';
-
-    if (pendingToken === token && shouldAutoJoin && !hasTriggeredAutoJoin.current) {
-      hasTriggeredAutoJoin.current = true;
-      localStorage.removeItem('pendingJoinToken');
-      localStorage.removeItem('shouldAutoJoin');
-      handleJoin();
-    }
-  }, [isAuthenticated, token, loading, validation, joining, handleJoin]);
+  // Use a ref to ensure we only auto-join once per token
+  if (!hasTriggeredAutoJoin.current) {
+    hasTriggeredAutoJoin.current = true;
+    handleJoin();
+  }
+}, [isAuthenticated, token, loading, validation, joining, handleJoin]);
 
   const formattedDate = useMemo(() => {
     if (!meeting?.scheduledTime) return 'Not scheduled';
