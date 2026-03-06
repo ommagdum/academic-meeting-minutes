@@ -34,8 +34,9 @@ export const meetingService = {
   /**
    * Invite participants to a meeting
    */
-  inviteParticipants: async (meetingId: string, emails: string[]): Promise<void> => {
-    await api.post(`/api/v1/meetings/${meetingId}/invite`, { emails });
+  inviteParticipants: async (meetingId: string, data: { emails: string[], message?: string }): Promise<{ success: boolean, message: string, data: { invitedCount: number } }> => {
+    const response = await api.post(`/api/v1/meetings/${meetingId}/invite`, data);
+    return response.data;
   },
 
   /**

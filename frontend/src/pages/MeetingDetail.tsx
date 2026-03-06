@@ -9,11 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProcessingStatusBanner } from "@/components/meeting/ProcessingStatusBanner";
-import { ArrowLeft, Calendar, Users, FileText, Download, Edit } from "lucide-react";
+import { ArrowLeft, Calendar, Users, FileText, Download, Edit, UserPlus } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { AxiosError } from "axios";
 import { ParticipantsTab } from '@/components/meeting/ParticipantsTab';
+import { EditMeetingModal } from '@/components/meeting/EditMeetingModal';
+import { InviteParticipantsModal } from '@/components/meeting/InviteParticipantsModal';
 import { useAuth } from '@/hooks/useAuth';
 
 const MeetingDetail = () => {
@@ -42,6 +44,8 @@ const MeetingDetail = () => {
   const [actionItemsError, setActionItemsError] = useState<string | null>(null);
   const [attendees, setAttendees] = useState<Attendee[]>([]);
   const [isLoadingAttendees, setIsLoadingAttendees] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
   // Define loadMeeting first
   const loadMeeting = useCallback(async () => {
@@ -158,6 +162,25 @@ const MeetingDetail = () => {
       prev ? prev.map(task => task.id === updatedTask.id ? updatedTask : task) : null
     );
   }, []);
+
+  // Handle edit meeting success
+  const handleEditSuccess = useCallback((updatedMeeting: Meeting) => {
+    setMeeting(updatedMeeting);
+    toast({
+      title: "Success",
+      description: "Meeting updated successfully.",
+    });
+  }, [toast]);
+
+  // Handle invite participants success
+  const handleInviteSuccess = useCallback((invitedCount: number) => {
+    toast({
+      title: "Invitations Sent",
+      description: `Successfully sent invitations to ${invitedCount} participant(s).`,
+    });
+    // Refresh attendees list to show newly invited participants
+    loadAttendees();
+  }, [toast, loadAttendees]);
 
   // Then define other functions that use loadMeeting
   const handleRetry = useCallback(async () => {
@@ -365,6 +388,9 @@ const MeetingDetail = () => {
     return null;
   }
 
+  // Check if current user is the meeting owner
+  const isMeetingOwner = currentUser?.id === meeting.createdBy.id;
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
@@ -400,10 +426,12 @@ const MeetingDetail = () => {
               )}
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm">
-                <Edit className="w-4 h-4 mr-2" />
-                Edit
-              </Button>
+              {isMeetingOwner && (
+                <Button variant="outline" size="sm" onClick={() => setIsEditModalOpen(true)}>
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit
+                </Button>
+              )}
               {meeting.minutesDocumentUrl && (
                 <Button size="sm" onClick={handleDownloadMinutes}>
                   <Download className="w-4 h-4 mr-2" />
@@ -535,7 +563,15 @@ const MeetingDetail = () => {
           <TabsContent value="participants">
             <Card>
               <CardHeader>
-                <CardTitle>Participants</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Participants</CardTitle>
+                  {isMeetingOwner && (
+                    <Button variant="outline" size="sm" onClick={() => setIsInviteModalOpen(true)}>
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      Invite
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 {meetingId && <ParticipantsTab meetingId={meetingId} />}
@@ -544,6 +580,26 @@ const MeetingDetail = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Edit Meeting Modal */}
+      {meeting && (
+        <EditMeetingModal
+          meeting={meeting}
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          onSuccess={handleEditSuccess}
+        />
+      )}
+
+      {/* Invite Participants Modal */}
+      {meetingId && (
+        <InviteParticipantsModal
+          meetingId={meetingId}
+          isOpen={isInviteModalOpen}
+          onClose={() => setIsInviteModalOpen(false)}
+          onSuccess={handleInviteSuccess}
+        />
+      )}
     </div>
   );
 };
