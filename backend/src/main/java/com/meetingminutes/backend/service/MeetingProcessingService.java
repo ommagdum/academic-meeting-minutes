@@ -331,7 +331,7 @@ public class MeetingProcessingService {
 
         return new ProcessingStatus(
                 meeting.getStatus(),
-                calculateRealProgress(meeting), // ✅ Use real progress calculation
+                calculateRealProgress(meeting),
                 getCurrentStep(meeting.getStatus()),
                 getStatusMessage(meeting.getStatus()),
                 meeting.getActualStartTime(),
