@@ -76,6 +76,9 @@ public class EmailService {
                         actionItem.getDeadline().format(DateTimeFormatter.ofPattern("MMM dd, yyyy")) : "Not set");
                 variables.put("priority", getPriorityText(actionItem.getPriority()));
                 variables.put("assignerName", actionItem.getMeeting().getCreatedBy().getName());
+                variables.put("assigneeName", actionItem.getAssignedToUser().getName());
+                variables.put("meetingId", actionItem.getMeeting().getId());
+                variables.put("baseUrl", baseUrl);
 
                 String htmlContent = renderTemplate("task-assignment", variables);
 

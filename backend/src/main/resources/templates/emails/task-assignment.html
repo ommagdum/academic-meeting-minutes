@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Task Assigned</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: hsl(220, 13%, 96%);
+            color: hsl(224, 15%, 15%);
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: hsl(0, 0%, 100%);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px -2px hsl(224, 76%, 48%, 0.1);
+        }
+
+        .header {
+            background: linear-gradient(135deg, hsl(224, 76%, 48%) 0%, hsl(224, 76%, 35%) 100%);
+            color: hsl(0, 0%, 100%);
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .header p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 16px;
+        }
+
+        .content {
+            padding: 30px;
+            line-height: 1.6;
+        }
+
+        .task-details {
+            background-color: hsl(220, 13%, 96%);
+            border: 1px solid hsl(220, 13%, 91%);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .task-details h3 {
+            margin-top: 0;
+            color: hsl(224, 15%, 15%);
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .task-details p {
+            margin: 10px 0;
+            color: hsl(224, 10%, 45%);
+        }
+
+        .priority-high {
+            color: hsl(0, 70%, 50%);
+            font-weight: 600;
+        }
+
+        .priority-medium {
+            color: hsl(40, 90%, 45%);
+            font-weight: 600;
+        }
+
+        .priority-low {
+            color: hsl(120, 60%, 40%);
+            font-weight: 600;
+        }
+
+        .button {
+            display: inline-block;
+            background: linear-gradient(135deg, hsl(224, 76%, 48%) 0%, hsl(224, 76%, 35%) 100%);
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 8px;
+            font-weight: 700;
+            margin: 20px 0;
+            box-shadow: 0 4px 20px -2px hsl(224, 76%, 48%, 0.2);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 30px -10px hsl(224, 76%, 48%, 0.3);
+        }
+
+        .footer {
+            background-color: hsl(220, 13%, 96%);
+            border-top: 1px solid hsl(220, 13%, 91%);
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: hsl(224, 10%, 45%);
+        }
+
+        .footer p {
+            margin: 0;
+        }
+
+        .link-fallback {
+            font-size: 12px;
+            color: hsl(224, 10%, 45%);
+            word-break: break-all;
+            margin-top: 10px;
+        }
+
+        strong {
+            color: hsl(224, 15%, 15%);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>New Task Assigned</h1>
+        <p>You have been assigned an action item</p>
+    </div>
+
+    <div class="content">
+        <p>Hello <strong th:text="${assigneeName}">Assignee</strong>,</p>
+
+        <p><strong th:text="${assignerName}">Organizer</strong> has assigned you a new task from the meeting:</p>
+
+        <div class="task-details">
+            <h3 th:text="${meetingTitle}">Meeting Title</h3>
+            <p><strong>Task:</strong> <span th:text="${taskDescription}">Task description</span></p>
+            <p th:if="${deadline != 'Not set'}"><strong>Deadline:</strong> <span th:text="${deadline}">Deadline</span></p>
+            <p>
+                <strong>Priority:</strong>
+                <span th:if="${priority == 'High'}" class="priority-high" th:text="${priority}">High</span>
+                <span th:if="${priority == 'Normal'}" class="priority-medium" th:text="${priority}">Normal</span>
+                <span th:if="${priority == 'Low'}" class="priority-low" th:text="${priority}">Low</span>
+                <span th:if="${priority == 'Normal' and (priority != 'High' and priority != 'Low')}" th:text="${priority}">Normal</span>
+            </p>
+        </div>
+
+        <p>Please log in to your dashboard to view the full details and update the task status.</p>
+
+        <a th:href="${baseUrl + '/meetings/' + meetingId}" class="button">View Task</a>
+
+        <div class="link-fallback">
+            <small>If the button doesn't work, copy and paste this link into your browser:<br>
+                <span th:text="${baseUrl + '/meetings/' + meetingId}">Meeting URL</span></small>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>© 2025 Academic Meeting Minutes Extractor. All rights reserved.</p>
+    </div>
+</div>
+</body>
+</html>

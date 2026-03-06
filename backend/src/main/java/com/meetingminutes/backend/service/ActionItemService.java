@@ -162,7 +162,14 @@ public class ActionItemService {
             task.setAssignedToUser(null);
             task.setAssignedToEmail(assigneeEmail);
         }
-        return actionItemRepo.save(task);
+
+        ActionItem updatedTask = actionItemRepo.save(task);
+
+        if (updatedTask.getAssignedToUser() != null) {
+            emailService.sendTaskAssignmentNotification(updatedTask);
+        }
+
+        return updatedTask;
     }
 
     public List<ActionItem> getOverdueTasks() {

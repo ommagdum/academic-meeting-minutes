@@ -67,9 +67,9 @@ spring:
             issuer-uri: https://accounts.google.com
 logging:
   level:
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
-    org.hibernate.tool.schema.internal: DEBUG
+    org.hibernate.SQL: ERROR
+    org.hibernate.type.descriptor.sql.BasicBinder: ERROR
+    org.hibernate.tool.schema.internal: WARN
 
 jwt:
   secret: ${JWT_SECRET}
