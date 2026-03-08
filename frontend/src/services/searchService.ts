@@ -25,7 +25,7 @@ export interface AdvancedSearchRequest {
   hasTranscript?: boolean;
   category?: string;
   dateGrouping?: 'day' | 'week' | 'month' | 'year' | 'quarter';
-  sortBy?: 'relevance' | 'date' | 'title';
+  sortBy?: 'relevance' | 'createdAt' | 'title' | 'scheduledTime';
   sortDirection?: 'asc' | 'desc';
   page?: number;
   size?: number;
@@ -124,9 +124,13 @@ export const searchService = {
   /**
    * Quick search (simple query)
    */
-  quickSearch: async (query: string, page = 0, size = 10): Promise<SearchResponse> => {
+  quickSearch: async (query: string, page = 0, size = 10, sortBy?: string, sortDirection?: string): Promise<SearchResponse> => {
+    const params: any = { q: query, page, size };
+    if (sortBy) params.sortBy = sortBy;
+    if (sortDirection) params.sortDirection = sortDirection;
+    
     const response = await api.get<SearchResponse>('/api/v1/search/meetings/quick', {
-      params: { q: query, page, size }
+      params
     });
     return response.data;
   },
@@ -134,9 +138,13 @@ export const searchService = {
   /**
    * Category-based search
    */
-  searchByCategory: async (category: string, page = 0, size = 20): Promise<SearchResponse> => {
+  searchByCategory: async (category: string, page = 0, size = 20, sortBy?: string, sortDirection?: string): Promise<SearchResponse> => {
+    const params: any = { page, size };
+    if (sortBy) params.sortBy = sortBy;
+    if (sortDirection) params.sortDirection = sortDirection;
+    
     const response = await api.get<SearchResponse>(`/api/v1/search/meetings/category/${category}`, {
-      params: { page, size }
+      params
     });
     
     // Handle nested data structure (backend might wrap in 'data' field)

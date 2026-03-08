@@ -47,8 +47,11 @@ const SearchPage = () => {
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(
     searchParams.get('status')?.split(',') || []
   );
-  const [sortBy, setSortBy] = useState<'relevance' | 'date' | 'title'>(
-    (searchParams.get('sort') as 'relevance' | 'date' | 'title') || 'relevance'
+  const [sortBy, setSortBy] = useState<'relevance' | 'createdAt' | 'title' | 'scheduledTime'>(
+    (searchParams.get('sort') as 'relevance' | 'createdAt' | 'title' | 'scheduledTime') || 'createdAt'
+  );
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(
+    (searchParams.get('direction') as 'asc' | 'desc') || 'desc'
   );
   const [showAdvanced, setShowAdvanced] = useState(false);
   
@@ -103,6 +106,7 @@ const SearchPage = () => {
       if (category) params.set('category', category);
       if (selectedStatuses.length) params.set('status', selectedStatuses.join(','));
       if (sortBy !== 'relevance') params.set('sort', sortBy);
+      if (sortDirection !== 'desc') params.set('direction', sortDirection);
       if (page > 0) params.set('page', page.toString());
       
       setSearchParams(params, { replace: true });
@@ -118,15 +122,15 @@ const SearchPage = () => {
         // Meeting search
         // If category is set and no query, use category search
         if (category && !searchQuery) {
-          response = await searchService.searchByCategory(category, page, pageSize);
+          response = await searchService.searchByCategory(category, page, pageSize, sortBy === 'relevance' ? undefined : sortBy, sortDirection);
         } else {
           // Otherwise use advanced search
           response = await searchService.advancedSearch({
             query: searchQuery || undefined,
             statuses: selectedStatuses.length > 0 ? selectedStatuses : undefined,
             category: category || undefined,
-            sortBy: sortBy === 'date' ? 'date' : sortBy === 'title' ? 'title' : 'relevance',
-            sortDirection: 'desc',
+            sortBy: sortBy === 'relevance' ? undefined : sortBy,
+            sortDirection: sortDirection,
             page,
             size: pageSize,
           });
@@ -159,7 +163,7 @@ const SearchPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [query, category, selectedStatuses, sortBy, pageSize, searchMode, setSearchParams, toast]);
+  }, [query, category, selectedStatuses, sortBy, sortDirection, pageSize, searchMode, setSearchParams, toast]);
 
   // Handle search mode change
   const handleSearchModeChange = (mode: 'meetings' | 'transcripts') => {
@@ -201,7 +205,7 @@ const SearchPage = () => {
       try {
         setIsLoading(true);
         setError(null);
-        const response = await searchService.searchByCategory(newCategory, 0, pageSize);
+        const response = await searchService.searchByCategory(newCategory, 0, pageSize, sortBy === 'relevance' ? undefined : sortBy, sortDirection);
         setResults(response.results || []);
         setTotalResults(response.totalResults || 0);
         setTotalPages(response.totalPages || 0);
@@ -234,6 +238,7 @@ const SearchPage = () => {
     if (category) params.set('category', category);
     if (selectedStatuses.length > 0) params.set('status', selectedStatuses.join(','));
     if (sortBy !== 'relevance') params.set('sort', sortBy);
+    if (sortDirection !== 'desc') params.set('direction', sortDirection);
     if (currentPage > 0) params.set('page', (currentPage + 1).toString());
     
     setSearchParams(params);
@@ -284,7 +289,8 @@ const SearchPage = () => {
     const urlQuery = searchParams.get('q') || '';
     const urlCategory = searchParams.get('category') || '';
     const urlStatus = searchParams.get('status') || '';
-    const urlSort = (searchParams.get('sort') as 'relevance' | 'date' | 'title') || 'relevance';
+    const urlSort = (searchParams.get('sort') as 'relevance' | 'createdAt' | 'title' | 'scheduledTime') || 'createdAt';
+    const urlDirection = (searchParams.get('direction') as 'asc' | 'desc') || 'desc';
     const urlPage = parseInt(searchParams.get('page') || '0', 10);
     const urlMode = (searchParams.get('mode') as 'meetings' | 'transcripts') || 'meetings';
 
@@ -297,6 +303,7 @@ const SearchPage = () => {
       setSelectedStatuses(statusArray);
     }
     if (urlSort !== sortBy) setSortBy(urlSort);
+    if (urlDirection !== sortDirection) setSortDirection(urlDirection);
     if (urlPage !== currentPage) setCurrentPage(Math.max(0, urlPage));
 
     // Perform initial search if we have params or on first mount
@@ -320,7 +327,7 @@ const SearchPage = () => {
             .finally(() => setIsLoading(false));
         } else if (urlCategory && !urlQuery) {
           // Category search
-          searchService.searchByCategory(urlCategory, Math.max(0, urlPage), pageSize)
+          searchService.searchByCategory(urlCategory, Math.max(0, urlPage), pageSize, urlSort === 'relevance' ? undefined : urlSort, urlDirection)
             .then(response => {
               setResults(response.results || []);
               setTranscriptResults([]);
@@ -450,8 +457,12 @@ const SearchPage = () => {
                     </Label>
                     <Select
                       value={sortBy}
-                      onValueChange={(value: 'relevance' | 'date' | 'title') => {
+                      onValueChange={(value: 'relevance' | 'createdAt' | 'title' | 'scheduledTime') => {
                         setSortBy(value);
+                        // Reset to default sort direction for relevance
+                        if (value === 'relevance') {
+                          setSortDirection('desc');
+                        }
                         // Trigger search when sort changes
                         performSearch(query, currentPage);
                       }}
@@ -461,8 +472,32 @@ const SearchPage = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="relevance">Relevance</SelectItem>
-                        <SelectItem value="date">Date</SelectItem>
+                        <SelectItem value="createdAt">Date Created</SelectItem>
+                        <SelectItem value="scheduledTime">Scheduled Time</SelectItem>
                         <SelectItem value="title">Title</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="sort-direction" className="block mb-2 text-sm font-medium">
+                      Sort Order
+                    </Label>
+                    <Select
+                      value={sortDirection}
+                      onValueChange={(value: 'asc' | 'desc') => {
+                        setSortDirection(value);
+                        // Trigger search when sort direction changes
+                        performSearch(query, currentPage);
+                      }}
+                      disabled={sortBy === 'relevance'}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Sort order" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="desc">Newest First</SelectItem>
+                        <SelectItem value="asc">Oldest First</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
