@@ -78,6 +78,8 @@ public class SearchController {
             @PathVariable String category,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String sortDirection,
             Authentication authentication) {
 
         String email = authentication.getName();
@@ -90,6 +92,8 @@ public class SearchController {
             request.setCategory(category);
             request.setPage(page);
             request.setSize(size);
+            request.setSortBy(sortBy);
+            request.setSortDirection(sortDirection);
 
             SearchResponse response = meetingSearchService.searchMeetings(request, user);
             return ResponseEntity.ok(response);

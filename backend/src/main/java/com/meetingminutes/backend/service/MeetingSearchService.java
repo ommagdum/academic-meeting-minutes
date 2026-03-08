@@ -20,10 +20,7 @@ import org.springframework.data.mongodb.core.query.TextCriteria;
 import org.springframework.data.mongodb.core.query.TextQuery;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.time.LocalDate;
-import java.time.YearMonth;
-import java.time.Year;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -56,14 +53,20 @@ public class MeetingSearchService {
     }
 
     private Sort createSort(SearchRequest request) {
-        if ("relevance".equals(request.getSortBy()) && request.getQuery() != null) {
-            return Sort.by(Sort.Direction.DESC, "createdAt"); // Relevance handled by full-text search
+        String sortBy = request.getSortBy();
+        if (sortBy == null) {
+            sortBy = "createdAt"; // default sort field
         }
 
-        Sort.Direction direction = "desc".equalsIgnoreCase(request.getSortDirection())
-                ? Sort.Direction.DESC : Sort.Direction.ASC;
+        if ("relevance".equals(sortBy) && request.getQuery() != null) {
+            return Sort.by(Sort.Direction.DESC, "createdAt"); // relevance is handled by full-text search
+        }
 
-        String sortField = switch (request.getSortBy()) {
+        // Default to DESC unless "asc" is explicitly requested
+        Sort.Direction direction = "asc".equalsIgnoreCase(request.getSortDirection())
+                ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+        String sortField = switch (sortBy) {
             case "title" -> "title";
             case "scheduledTime" -> "scheduledTime";
             case "status" -> "status";
@@ -90,12 +93,12 @@ public class MeetingSearchService {
             case "withTranscript" -> findMeetingsWithTranscripts(user, pageable);
             case "today" -> findMeetingsForDate(user, today, pageable);
             case "yesterday" -> findMeetingsForDate(user, today.minusDays(1), pageable);
-            case "thisWeek" -> findMeetingsForWeek(user, today, pageable);
-            case "lastWeek" -> findMeetingsForWeek(user, today.minusWeeks(1), pageable);
-            case "thisMonth" -> findMeetingsForMonth(user, currentMonth, pageable);
-            case "lastMonth" -> findMeetingsForMonth(user, currentMonth.minusMonths(1), pageable);
-            case "thisYear" -> findMeetingsForYear(user, currentYear, pageable);
-            case "lastYear" -> findMeetingsForYear(user, currentYear.minusYears(1), pageable);
+            case "thisweek" -> findMeetingsForWeek(user, today, pageable);
+            case "lastweek" -> findMeetingsForWeek(user, today.minusWeeks(1), pageable);
+            case "thismonth" -> findMeetingsForMonth(user, currentMonth, pageable);
+            case "lastmonth" -> findMeetingsForMonth(user, currentMonth.minusMonths(1), pageable);
+            case "thisyear" -> findMeetingsForYear(user, currentYear, pageable);
+            case "lastyear" -> findMeetingsForYear(user, currentYear.minusYears(1), pageable);
             case "q1" -> findMeetingsForQuarter(user, currentYear, 1, pageable);
             case "q2" -> findMeetingsForQuarter(user, currentYear, 2, pageable);
             case "q3" -> findMeetingsForQuarter(user, currentYear, 3, pageable);
@@ -168,35 +171,35 @@ public class MeetingSearchService {
     }
 
     private Page<Meeting> executeAdvancedSearch(SearchRequest request, User user, Pageable pageable) {
-        // Handle category-based search
+        // If both category and query are present, combine them
+        if (request.getCategory() != null && !request.getCategory().trim().isEmpty() &&
+                request.getQuery() != null && !request.getQuery().trim().isEmpty()) {
+            return searchByCategoryAndQuery(request.getCategory(), request.getQuery(), user, pageable);
+        }
+        // Handle category‑only search (existing code)
         if (request.getCategory() != null && !request.getCategory().trim().isEmpty()) {
             return executeCategorySearch(request.getCategory(), user, pageable);
         }
-
-        // Handle full-text search with filters
+        // Handle full‑text search (existing code)
         if (request.getQuery() != null && !request.getQuery().trim().isEmpty()) {
             return executeFullTextSearchWithFilters(request, user, pageable);
         }
-
-        // Handle filtered search without text query
+        // Handle filtered search without text query (existing code)
         return executeFilteredSearch(request, user, pageable);
     }
 
     private Page<Meeting> executeFullTextSearchWithFilters(SearchRequest request, User user, Pageable pageable) {
         String query = request.getQuery().trim();
+        String sortField = request.getSortBy();
+        String sortDirection = request.getSortDirection();
 
-        // Create unsorted pageable to prevent duplicate sorting
-        Pageable unsortedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
-
-        // ✅ FIXED: Use the new full-text search that includes attended meetings
-        Page<Meeting> results = meetingRepository.fullTextSearchWithRankingForUserOrAttendee(user.getId(), query, unsortedPageable);
-
-        // Apply additional filters if needed
-        if (hasAdditionalFilters(request)) {
-            results = applyAdditionalFilters(results, request, user);
+        // If no sort field is specified, default to relevance
+        if (sortField == null) {
+            sortField = "relevance";
         }
 
-        return results;
+        Pageable unsortedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+        return meetingRepository.fullTextSearchWithDynamicSort(user.getId(), query, sortField, sortDirection, unsortedPageable);
     }
 
     private boolean hasAdditionalFilters(SearchRequest request) {
@@ -582,6 +585,64 @@ public class MeetingSearchService {
             }
             case "year" -> String.valueOf(dateTime.getYear());
             default -> dateTime.toLocalDate().format(DateTimeFormatter.ISO_LOCAL_DATE);
+        };
+    }
+
+    private Page<Meeting> searchByCategoryAndQuery(String category, String query, User user, Pageable pageable) {
+        LocalDateTime[] range = getDateRangeForCategory(category);
+        if (range == null) {
+            // If category not recognized, fall back to full‑text search only
+            SearchRequest fallback = new SearchRequest();
+            fallback.setQuery(query);
+            return executeFullTextSearchWithFilters(fallback, user, pageable);
+        }
+
+        // Use unsorted pageable to prevent extra ORDER BY
+        Pageable unsortedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+
+        // Decide which field to filter on based on category
+        if (shouldUseCreatedAtForCategory(category)) {
+            return meetingRepository.fullTextSearchWithDateRangeOnCreatedAt(
+                    user.getId(), query, range[0], range[1], unsortedPageable
+            );
+        } else {
+            return meetingRepository.fullTextSearchWithDateRange(
+                    user.getId(), query, range[0], range[1], unsortedPageable
+            );
+        }
+    }
+
+    private boolean shouldUseCreatedAtForCategory(String category) {
+        // Categories that should filter by creation date
+        return List.of("recent", "thismonth", "thisweek", "today", "yesterday")
+                .contains(category.toLowerCase());
+    }
+
+    private LocalDateTime[] getDateRangeForCategory(String category) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDate today = LocalDate.now();
+        YearMonth currentMonth = YearMonth.now();
+        Year currentYear = Year.now();
+
+        return switch (category.toLowerCase()) {
+            case "thismonth" -> {
+                LocalDateTime start = currentMonth.atDay(1).atStartOfDay();
+                LocalDateTime end = currentMonth.atEndOfMonth().atTime(23, 59, 59);
+                yield new LocalDateTime[]{start, end};
+            }
+            case "thisweek" -> {
+                LocalDateTime start = today.with(java.time.DayOfWeek.MONDAY).atStartOfDay();
+                LocalDateTime end = start.plusDays(7);
+                yield new LocalDateTime[]{start, end};
+            }
+            case "today" -> {
+                LocalDateTime start = today.atStartOfDay();
+                LocalDateTime end = today.plusDays(1).atStartOfDay();
+                yield new LocalDateTime[]{start, end};
+            }
+            case "processed" -> null; // processed doesn't have a date range
+            // Add other categories as needed
+            default -> null;
         };
     }
 }

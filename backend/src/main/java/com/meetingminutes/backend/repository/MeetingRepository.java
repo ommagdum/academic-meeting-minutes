@@ -16,7 +16,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface MeetingRepository extends JpaRepository<Meeting, UUID> {
+public interface MeetingRepository extends JpaRepository<Meeting, UUID>, MeetingRepositoryCustom {
 
     // EXISTING METHODS (keep these)
     Page<Meeting> findByCreatedByOrderByCreatedAtDesc(User user, Pageable pageable);
@@ -250,4 +250,69 @@ public interface MeetingRepository extends JpaRepository<Meeting, UUID> {
             "WHERE a.meeting.id = :meetingId AND a.user.id = :userId")
     boolean isUserAttendeeOfMeeting(@Param("meetingId") UUID meetingId,
                                     @Param("userId") UUID userId);
+
+    @Query(value = "SELECT m.*, ts_rank_cd(m.search_vector, plainto_tsquery('english', :query)) as rank " +
+            "FROM meetings m " +
+            "WHERE (m.created_by = :userId OR m.id IN (SELECT a.meeting_id FROM attendees a WHERE a.user_id = :userId)) " +
+            "AND m.search_vector @@ plainto_tsquery('english', :query) " +
+            "AND m.scheduled_time BETWEEN :start AND :end " +
+            "ORDER BY rank DESC, m.created_at DESC",
+            countQuery = "SELECT COUNT(*) FROM meetings m " +
+                    "WHERE (m.created_by = :userId OR m.id IN (SELECT a.meeting_id FROM attendees a WHERE a.user_id = :userId)) " +
+                    "AND m.search_vector @@ plainto_tsquery('english', :query) " +
+                    "AND m.scheduled_time BETWEEN :start AND :end",
+            nativeQuery = true)
+    Page<Meeting> fullTextSearchWithDateRange(@Param("userId") UUID userId,
+                                              @Param("query") String query,
+                                              @Param("start") LocalDateTime start,
+                                              @Param("end") LocalDateTime end,
+                                              Pageable pageable);
+
+    @Query(value = "SELECT m.*, ts_rank_cd(m.search_vector, plainto_tsquery('english', :query)) as rank " +
+            "FROM meetings m " +
+            "WHERE (m.created_by = :userId OR m.id IN (SELECT a.meeting_id FROM attendees a WHERE a.user_id = :userId)) " +
+            "AND m.search_vector @@ plainto_tsquery('english', :query) " +
+            "AND m.created_at BETWEEN :start AND :end " +
+            "ORDER BY rank DESC, m.created_at DESC",
+            countQuery = "SELECT COUNT(*) FROM meetings m " +
+                    "WHERE (m.created_by = :userId OR m.id IN (SELECT a.meeting_id FROM attendees a WHERE a.user_id = :userId)) " +
+                    "AND m.search_vector @@ plainto_tsquery('english', :query) " +
+                    "AND m.created_at BETWEEN :start AND :end",
+            nativeQuery = true)
+    Page<Meeting> fullTextSearchWithDateRangeOnCreatedAt(@Param("userId") UUID userId,
+                                                         @Param("query") String query,
+                                                         @Param("start") LocalDateTime start,
+                                                         @Param("end") LocalDateTime end,
+                                                         Pageable pageable);
+
+    @Query(value = "SELECT m.*, ts_rank_cd(m.search_vector, plainto_tsquery('english', :query)) as rank " +
+            "FROM meetings m " +
+            "WHERE (m.created_by = :userId OR m.id IN (SELECT a.meeting_id FROM attendees a WHERE a.user_id = :userId)) " +
+            "AND m.search_vector @@ plainto_tsquery('english', :query) " +
+            "ORDER BY " +
+            "CASE WHEN :sortField = 'relevance' OR :sortField IS NULL THEN rank END DESC, " +
+            "CASE WHEN :sortField = 'createdAt' THEN m.created_at END " +  // direction will be appended separately
+            "NULLS LAST",
+            countQuery = "SELECT COUNT(*) FROM meetings m " +
+                    "WHERE (m.created_by = :userId OR m.id IN (SELECT a.meeting_id FROM attendees a WHERE a.user_id = :userId)) " +
+                    "AND m.search_vector @@ plainto_tsquery('english', :query)",
+            nativeQuery = true)
+    Page<Meeting> fullTextSearchWithSort(@Param("userId") UUID userId,
+                                         @Param("query") String query,
+                                         @Param("sortField") String sortField,
+                                         @Param("sortDirection") String sortDirection,
+                                         Pageable pageable);
+
+    @Query(value = "SELECT m.* FROM meetings m " +
+            "WHERE (m.created_by = :userId OR m.id IN (SELECT a.meeting_id FROM attendees a WHERE a.user_id = :userId)) " +
+            "AND m.search_vector @@ plainto_tsquery('english', :query) " +
+            "ORDER BY m.created_at :sortDirection",
+            countQuery = "SELECT COUNT(*) FROM meetings m " +
+                    "WHERE (m.created_by = :userId OR m.id IN (SELECT a.meeting_id FROM attendees a WHERE a.user_id = :userId)) " +
+                    "AND m.search_vector @@ plainto_tsquery('english', :query)",
+            nativeQuery = true)
+    Page<Meeting> fullTextSearchOrderByCreatedAt(@Param("userId") UUID userId,
+                                                 @Param("query") String query,
+                                                 @Param("sortDirection") String sortDirection,
+                                                 Pageable pageable);
 }
