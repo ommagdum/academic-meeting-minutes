@@ -43,8 +43,26 @@ export interface MeetingSeries {
   id: string;
   title: string;
   description?: string;
-  createdAt: string;
+  createdBy: User;
+  isActive: boolean;
   meetingCount: number;
+  recentMeetings?: MeetingSummary[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MeetingSummary {
+  id: string;
+  title: string;
+  description?: string;
+  status: 'DRAFT' | 'PROCESSING' | 'PROCESSED' | 'FAILED';
+  scheduledTime?: string;
+  createdAt: string;
+  attendeeCount: number;
+  actionItemCount: number;
+  hasTranscript: boolean;
+  seriesId?: string;
+  seriesTitle?: string;
 }
 
 export interface ProcessingStatus {

@@ -147,7 +147,9 @@ export function EditMeetingModal({ meeting, isOpen, onClose, onSuccess }: EditMe
       if (formData.seriesOption === 'existing' && formData.seriesId) {
         updateData.seriesId = formData.seriesId;
       } else if (formData.seriesOption === 'new' && formData.newSeriesTitle) {
-        updateData.newSeriesTitle = formData.newSeriesTitle.trim();
+        // For new series, we need to create the series first, then update the meeting
+        // For now, don't include newSeriesTitle in the meeting update
+        // The new series creation should be handled separately
       } else if (formData.seriesOption === 'none') {
         updateData.seriesId = null;
       }

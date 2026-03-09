@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { meetingService } from "@/services/meetingService";
 import { format } from "date-fns";
+import type { CreateMeetingRequest } from "@/types/meeting";
 
 const CreateMeeting = () => {
   const navigate = useNavigate();
@@ -15,13 +16,7 @@ const CreateMeeting = () => {
       setIsProcessing(true);
       console.log("Starting meeting creation flow...");
       
-      // Step 1: Create meeting with basic info and agenda
-      toast({
-        title: "Creating meeting...",
-        description: "Setting up your meeting details",
-      });
-
-      const meetingRequest = {
+      const meetingRequest: CreateMeetingRequest = {
         title: data.title,
         description: data.description,
         agendaText: data.agendaText,
@@ -35,15 +30,22 @@ const CreateMeeting = () => {
           ? { scheduledTime: format(data.scheduledTime, "yyyy-MM-dd'T'HH:mm:ss") }
           : {}),
         usePreviousContext: data.usePreviousContext,
-        ...(data.seriesOption === 'existing' && data.seriesId 
-          ? { seriesId: data.seriesId }
-          : {}),
-        ...(data.seriesOption === 'new' && data.newSeriesTitle 
-          ? { newSeriesTitle: data.newSeriesTitle }
-          : {}),
         // Set status to PROCESSING by default
         status: 'PROCESSING' as const,
       };
+
+      // Handle series creation if needed
+      if (data.seriesOption === 'new' && data.newSeriesTitle) {
+        console.log("Creating new series first...");
+        const newSeries = await meetingService.createMeetingSeries({
+          title: data.newSeriesTitle.trim(),
+          description: '', // Optional description for new series
+        });
+        console.log("New series created:", newSeries);
+        meetingRequest.seriesId = newSeries.id;
+      } else if (data.seriesOption === 'existing' && data.seriesId) {
+        meetingRequest.seriesId = data.seriesId;
+      }
 
       // Create the meeting
       const meeting = await meetingService.createMeeting(meetingRequest);
@@ -73,7 +75,9 @@ const CreateMeeting = () => {
           title: "Inviting participants...",
           description: `Sending invitations to ${data.participantEmails.length} participant(s)`,
         });
-        await meetingService.inviteParticipants(meeting.id, data.participantEmails);
+        await meetingService.inviteParticipants(meeting.id, { 
+          emails: data.participantEmails 
+        });
         console.log("Participants invited");
       }
 
@@ -103,8 +107,10 @@ const CreateMeeting = () => {
       
       let errorMessage = "Something went wrong. Please try again.";
       
-      // Type guard to check if error is an AxiosError
-      const isAxiosError = (error: any): error is { response: { status: number; data: { message?: string } } } => {
+      // Type guard to check if error is an AxiosError with proper typing
+      const isAxiosError = (error: unknown): error is { 
+        response: { status: number; data: { message?: string } } 
+      } => {
         return error && typeof error === 'object' && 'response' in error;
       };
       
@@ -114,7 +120,7 @@ const CreateMeeting = () => {
           setTimeout(() => navigate('/auth'), 2000);
         } else if (error.response.status === 400) {
           errorMessage = error.response.data?.message || "Invalid meeting data. Please check your inputs.";
-        } else if (error.response.data?.message) {
+        } else if (error.response?.data?.message) {
           errorMessage = error.response.data.message;
         }
       } else if (error instanceof Error) {

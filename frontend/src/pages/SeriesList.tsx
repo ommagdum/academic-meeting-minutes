@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Users, FileText, Plus, Search, FolderOpen } from 'lucide-react';
+import { Calendar, Users, FileText, Plus, Search, FolderOpen, User } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,8 +22,9 @@ export default function SeriesList() {
         setError(null);
         const data = await meetingService.getMeetingSeries();
         setSeries(data || []);
-      } catch (e: any) {
-        setError(e?.response?.data?.message || 'Failed to load series');
+      } catch (e: unknown) {
+        const error = e as { response?: { data?: { message?: string } } };
+        setError(error?.response?.data?.message || 'Failed to load series');
       } finally {
         setIsLoading(false);
       }
@@ -51,7 +52,7 @@ export default function SeriesList() {
                 <Link to="/dashboard">Back to Dashboard</Link>
               </Button>
               <Button asChild size="lg">
-                <Link to="/create-meeting">
+                <Link to="/create-series">
                   <Plus className="mr-2 h-5 w-5" />
                   New Series
                 </Link>
@@ -105,7 +106,7 @@ export default function SeriesList() {
                   : "Create your first meeting series to organize recurring meetings."}
               </p>
               <Button asChild>
-                <Link to="/create-meeting">
+                <Link to="/create-series">
                   <Plus className="mr-2 h-4 w-4" />
                   Create First Series
                 </Link>
@@ -133,6 +134,10 @@ export default function SeriesList() {
                       <div className="flex items-center text-muted-foreground">
                         <FileText className="mr-2 h-4 w-4" />
                         <span>{s.meetingCount} meetings</span>
+                      </div>
+                      <div className="flex items-center text-muted-foreground">
+                        <User className="mr-2 h-4 w-4" />
+                        <span>Created by {s.createdBy.name || s.createdBy.email}</span>
                       </div>
                       <div className="flex items-center text-muted-foreground">
                         <Calendar className="mr-2 h-4 w-4" />

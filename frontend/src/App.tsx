@@ -13,6 +13,7 @@ import MeetingList from "./pages/MeetingList";
 import MeetingDetail from "./pages/MeetingDetail";
 import SeriesList from "./pages/SeriesList";
 import SeriesDetail from "./pages/SeriesDetail";
+import CreateSeries from "./pages/CreateSeries";
 import Auth from "./pages/Auth";
 import OAuthRedirect from "./pages/OAuthRedirect";
 import Search from "./pages/Search";
@@ -58,6 +59,14 @@ const Root = () => (
         element={
           <ProtectedRoute>
             <MeetingDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/create-series"
+        element={
+          <ProtectedRoute>
+            <CreateSeries />
           </ProtectedRoute>
         }
       />
