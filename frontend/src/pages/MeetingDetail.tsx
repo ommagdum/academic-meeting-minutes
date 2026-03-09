@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ProcessingStatusBanner } from "@/components/meeting/ProcessingStatusBanner";
-import { ArrowLeft, Calendar, Users, FileText, Download, Edit, UserPlus } from "lucide-react";
+import { ArrowLeft, Calendar, Users, FileText, Download, Edit, UserPlus, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { AxiosError } from "axios";
@@ -300,29 +301,38 @@ const MeetingDetail = () => {
     loadActionItems();
   }, [activeTab, meetingId, toast]);
 
-  const handleDownloadMinutes = async () => {
+  const handleDownloadPDF = async () => {
     if (!meetingId) return;
     try {
-      // Try to extract a documentId from minutesDocumentUrl if present
-      const url = meeting?.minutesDocumentUrl || '';
-      const match = url.match(/\/documents\/([A-Za-z0-9_-]+)\b/);
-      if (match && match[1]) {
-        await meetingService.downloadDocument(meetingId, match[1], `${meeting?.title || 'minutes'}.pdf`);
-        return;
-      }
-      // Fallback: if a direct URL exists, open it in a new tab
-      if (url) {
-        window.open(url, '_blank');
-        return;
-      }
+      const filename = meeting?.title ? `${meeting.title.replace(/[^a-zA-Z0-9\s]/g, '_')}.pdf` : 'minutes.pdf';
+      await meetingService.downloadLatestDocument(meetingId, 'pdf', filename);
       toast({
-        title: 'No Document Available',
-        description: 'Minutes document is not available for download yet.',
-        variant: 'destructive',
+        title: 'Download Started',
+        description: 'PDF download started successfully.',
       });
     } catch (error) {
-      console.error('Failed to download document:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to download document';
+      console.error('Failed to download PDF:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to download PDF';
+      toast({
+        title: 'Download Failed',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDownloadDOCX = async () => {
+    if (!meetingId) return;
+    try {
+      const filename = meeting?.title ? `${meeting.title.replace(/[^a-zA-Z0-9\s]/g, '_')}.docx` : 'minutes.docx';
+      await meetingService.downloadLatestDocument(meetingId, 'docx', filename);
+      toast({
+        title: 'Download Started',
+        description: 'DOCX download started successfully.',
+      });
+    } catch (error) {
+      console.error('Failed to download DOCX:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to download DOCX';
       toast({
         title: 'Download Failed',
         description: errorMessage,
@@ -433,10 +443,25 @@ const MeetingDetail = () => {
                 </Button>
               )}
               {meeting.minutesDocumentUrl && (
-                <Button size="sm" onClick={handleDownloadMinutes}>
-                  <Download className="w-4 h-4 mr-2" />
-                  Download Minutes
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm">
+                      <Download className="w-4 h-4 mr-2" />
+                      Download Minutes
+                      <ChevronDown className="w-4 h-4 ml-2" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleDownloadPDF}>
+                      <FileText className="w-4 h-4 mr-2" />
+                      Download PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleDownloadDOCX}>
+                      <FileText className="w-4 h-4 mr-2" />
+                      Download DOCX
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
             </div>
           </div>

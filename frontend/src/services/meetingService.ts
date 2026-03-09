@@ -243,6 +243,31 @@ export const meetingService = {
   },
 
   /**
+   * Download the latest document for a meeting by format (pdf or docx)
+   */
+  downloadLatestDocument: async (
+    meetingId: string,
+    format: 'pdf' | 'docx',
+    filename?: string,
+  ): Promise<void> => {
+    const url = `/api/v1/meetings/${meetingId}/documents/latest/download`;
+    const response = await api.get(url, { 
+      params: { format },
+      responseType: "blob" 
+    });
+
+    const defaultFilename = filename || `minutes.${format}`;
+    const blobUrl = window.URL.createObjectURL(response.data);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = defaultFilename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(blobUrl);
+  },
+
+  /**
    * Get transcript for a meeting
    */
   getMeetingTranscript: async (meetingId: string): Promise<Transcript> => {
