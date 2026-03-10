@@ -8,10 +8,7 @@ import com.meetingminutes.backend.entity.*;
 import com.meetingminutes.backend.exception.AccessDeniedException;
 import com.meetingminutes.backend.exception.EntityNotFoundException;
 import com.meetingminutes.backend.exception.ValidationException;
-import com.meetingminutes.backend.repository.ActionItemRepo;
-import com.meetingminutes.backend.repository.AgendaItemRepo;
-import com.meetingminutes.backend.repository.AttendeeRepo;
-import com.meetingminutes.backend.repository.MeetingRepository;
+import com.meetingminutes.backend.repository.*;
 import com.meetingminutes.backend.repository.mongo.AIExtractionRepository;
 import com.meetingminutes.backend.repository.mongo.TranscriptRepository;
 import com.meetingminutes.backend.service.*;
@@ -60,6 +57,7 @@ public class MeetingController {
     private final TranscriptRepository transcriptRepository;
     private final AIExtractionRepository aiExtractionRepository;
     private final MeetingRepository meetingRepository;
+    private final MeetingSeriesRepo meetingSeriesRepo;
 
     @Value("${app.upload.max-file-size:524288000}")
     private long maxFileSize;
@@ -733,6 +731,14 @@ public class MeetingController {
                             meeting.setScheduledTime(LocalDateTime.parse((String) value));
                         }
                         break;
+                    case "seriesId":
+                        if (value instanceof String) {
+                            UUID seriesUuid = UUID.fromString((String) value);
+                            MeetingSeries series = meetingSeriesRepo.findById(seriesUuid)
+                                    .orElseThrow(() -> new ValidationException("Series not found"));
+                            meeting.setSeries(series);
+                        }
+                        break;
                     default:
                         log.warn("Unknown field in partial update: {}", key);
                 }
@@ -892,9 +898,6 @@ public class MeetingController {
     }
 
     private String getAudioFilePathForMeeting(UUID meetingId) {
-        // This would retrieve the actual file path from the database
-        // For now, return a placeholder - in real implementation,
-        // we'd store the file path when uploading
         return "/tmp/uploads/" + meetingId + "_audio.mp3";
     }
 
