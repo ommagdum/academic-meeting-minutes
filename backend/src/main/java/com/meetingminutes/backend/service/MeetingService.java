@@ -53,7 +53,7 @@ public class MeetingService {
         meeting.setSeries(series);
         meeting.setCreatedBy(user);
         meeting.setScheduledTime(request.getScheduledTime());
-        meeting.setStatus(MeetingStatus.PROCESSING);
+        meeting.setStatus(MeetingStatus.DRAFT);
 
         Meeting savedMeeting = meetingRepository.save(meeting);
 
