@@ -79,7 +79,7 @@ app:
     temp-directory: /tmp/uploads
     max-file-size: 524288000
   oauth2:
-    redirect-uri: http://localhost:5173/oauth2/redirect
+    redirect-uri: ${OAUTH2_REDIRECT_URI}
   email:
     from: team.meetingminutes@gmail.com
     base-url: http://localhost:5173
