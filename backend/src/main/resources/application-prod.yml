@@ -116,7 +116,7 @@ springdoc:
 
 ai:
   service:
-    base-url: http://localhost:5001
+    base-url: ${AI_SERVICE_URL}
     timeout: 300000  # 5 minutes in milliseconds
     retry:
       max-attempts: 3
