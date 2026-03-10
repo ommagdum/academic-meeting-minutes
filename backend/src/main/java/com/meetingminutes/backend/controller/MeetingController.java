@@ -390,8 +390,7 @@ public class MeetingController {
             String filePath = fileUploadService.uploadAudioFile(file, meetingId);
 
             meetingService.updateAudioFilePath(meetingId, filePath, user);
-
-            meetingService.updateMeetingStatus(meetingId, MeetingStatus.DRAFT, user);
+            meetingService.updateMeetingStatus(meetingId, MeetingStatus.PROCESSING, user);
 
             AudioUploadResponse response = AudioUploadResponse.builder()
                     .success(true)
