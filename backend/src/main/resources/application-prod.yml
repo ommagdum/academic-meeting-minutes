@@ -18,6 +18,7 @@ spring:
     mongodb:
       uri: mongodb://localhost:27017/meeting_minutes
       auto-index-creation: true
+      uuid-representation: standard
 
   mail:
     host: smtp.gmail.com
