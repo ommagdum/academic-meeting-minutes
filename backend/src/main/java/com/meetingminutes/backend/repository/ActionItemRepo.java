@@ -42,5 +42,5 @@ public interface ActionItemRepo extends JpaRepository<ActionItem, UUID> {
     @Query("SELECT COUNT(ai) FROM ActionItem ai WHERE ai.meeting.id = :meetingId")
     long countByMeetingId(@Param("meetingId") UUID meetingId);
 
-    void deleteByMeetingId(UUID meetingId);
+    int deleteByMeetingId(UUID meetingId);
 }

@@ -16,6 +16,7 @@ import com.meetingminutes.backend.repository.mongo.AIExtractionRepository;
 import com.meetingminutes.backend.repository.mongo.TranscriptRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,6 +43,9 @@ public class MeetingProcessingService {
     private final ActionItemRepo actionItemRepo;
     private final WebSocketEventPublisher webSocketEventPublisher;
     private final MeetingAccessService meetingAccessService;
+
+    @Lazy
+    private final MeetingProcessingService self;
 
     @Async
     public CompletableFuture<Void> processMeeting(UUID meetingId, User user) {
@@ -346,8 +350,8 @@ public class MeetingProcessingService {
         // Reset meeting status to PROCESSING
         updateMeetingStatus(meetingId, MeetingStatus.PROCESSING, user);
 
-        // Restart the processing pipeline
-        return processMeeting(meetingId, user);
+        // Call through proxy so @Async is respected
+        return self.processMeeting(meetingId, user);
     }
 
     private void createActionItemsFromExtraction(Meeting meeting, AIExtraction extraction) {
@@ -357,6 +361,12 @@ public class MeetingProcessingService {
         }
 
         try {
+            // Delete any existing action items first to prevent duplicates on retry
+            int deleted = actionItemRepo.deleteByMeetingId(meeting.getId());
+            if (deleted > 0) {
+                log.info("Deleted {} existing action items before re-creating for meeting: {}",
+                        deleted, meeting.getId());
+            }
             List<ExtractedData.ExtractedActionItem> extractedActionItems =
                     extraction.getExtractedData().getActionItems();
 
