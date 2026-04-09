@@ -103,6 +103,8 @@ public class EmailService {
                 variables.put("meetingTitle", actionItem.getMeeting().getTitle());
                 variables.put("deadline", actionItem.getDeadline().format(DateTimeFormatter.ofPattern("MMM dd, yyyy")));
                 variables.put("isOverdue", actionItem.getDeadline().isBefore(java.time.LocalDateTime.now()));
+                variables.put("assigneeName", assignee.getName());
+                variables.put("taskLink", baseUrl + "/meetings/" + actionItem.getMeeting().getId());
 
                 String htmlContent = renderTemplate("task-reminder", variables);
 
