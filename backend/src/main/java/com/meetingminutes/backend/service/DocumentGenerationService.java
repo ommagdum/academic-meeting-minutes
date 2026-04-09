@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import org.xhtmlrenderer.pdf.ITextRenderer;
+import org.bson.Document;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -60,7 +61,8 @@ public class DocumentGenerationService {
 
             // Generate filename and store in GridFS
             String filename = generateFilename(meeting, "pdf");
-            String fileId = storeInGridFS(pdfBytes, filename, "application/pdf");
+            String fileId = storeInGridFS(pdfBytes, filename, "application/pdf",
+                    meeting.getId(), "PDF");
 
             // Save document metadata
             saveDocumentMetadata(meeting, fileId, filename, GeneratedDocument.DocumentType.MINUTES_PDF,
@@ -91,7 +93,8 @@ public class DocumentGenerationService {
             // Generate filename and store in GridFS
             String filename = generateFilename(meeting, "docx");
             String fileId = storeInGridFS(docxBytes, filename,
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    meeting.getId(), "DOCX");
 
             // Save document metadata
             saveDocumentMetadata(meeting, fileId, filename, GeneratedDocument.DocumentType.MINUTES_DOCX,
@@ -265,10 +268,14 @@ public class DocumentGenerationService {
     /**
      * Stores file in GridFS and returns file ID
      */
-    private String storeInGridFS(byte[] content, String filename, String contentType) {
+    private String storeInGridFS(byte[] content, String filename, String contentType,
+                                 UUID meetingId, String documentType) {
         try (InputStream inputStream = new ByteArrayInputStream(content)) {
-            // Store in GridFS and return the file ID
-            return gridFsTemplate.store(inputStream, filename, contentType).toString();
+            Document metadata = new Document();
+            metadata.put("meetingId", meetingId.toString());
+            metadata.put("documentType", documentType);
+
+            return gridFsTemplate.store(inputStream, filename, contentType, metadata).toString();
         } catch (IOException e) {
             throw new RuntimeException("Failed to store document in GridFS", e);
         }
