@@ -132,9 +132,28 @@ public class EmailService {
 
             // Send to all attendees
             for (Attendee attendee : meeting.getAttendees()) {
-                if (!attendee.getUser().getEmail().equals(user.getEmail())) { // Avoid duplicate to creator
-                    sendEmail(attendee.getUser().getEmail(), subject, htmlContent);
-                    logger.info("Processing complete notification sent to attendee: {}", attendee.getUser().getEmail());
+                String recipientEmail;
+                if (attendee.getUser() != null) {
+                    recipientEmail = attendee.getUser().getEmail();
+                } else if (attendee.getInviteEmail() != null) {
+                    recipientEmail = attendee.getInviteEmail();
+                } else {
+                    continue; // no contact info — skip
+                }
+
+                if (!recipientEmail.equals(user.getEmail())) { // Avoid duplicate to creator
+                    try {
+                        // Personalise name if we have it
+                        String attendeeName = attendee.getUser() != null
+                                ? attendee.getUser().getName() : "Participant";
+                        variables.put("userName", attendeeName);
+                        String attendeeHtml = renderTemplate("processing-complete", variables);
+                        sendEmail(recipientEmail, subject, attendeeHtml);
+                        logger.info("Processing complete notification sent to attendee: {}", recipientEmail);
+                    } catch (Exception e) {
+                        logger.error("Failed to send notification to attendee: {}", recipientEmail, e);
+                        // continue to next attendee
+                    }
                 }
             }
 
