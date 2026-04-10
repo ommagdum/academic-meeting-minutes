@@ -16,6 +16,8 @@ import com.meetingminutes.backend.repository.mongo.AIExtractionRepository;
 import com.meetingminutes.backend.repository.mongo.TranscriptRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -44,8 +46,7 @@ public class MeetingProcessingService {
     private final WebSocketEventPublisher webSocketEventPublisher;
     private final MeetingAccessService meetingAccessService;
 
-    @Lazy
-    private final MeetingProcessingService self;
+    private final ApplicationContext applicationContext;
 
     @Async
     public CompletableFuture<Void> processMeeting(UUID meetingId, User user) {
@@ -350,8 +351,8 @@ public class MeetingProcessingService {
         // Reset meeting status to PROCESSING
         updateMeetingStatus(meetingId, MeetingStatus.PROCESSING, user);
 
-        // Call through proxy so @Async is respected
-        return self.processMeeting(meetingId, user);
+        MeetingProcessingService proxy = applicationContext.getBean(MeetingProcessingService.class);
+        return proxy.processMeeting(meetingId, user);
     }
 
     private void createActionItemsFromExtraction(Meeting meeting, AIExtraction extraction) {
