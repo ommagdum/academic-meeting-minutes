@@ -32,6 +32,13 @@ public class User extends BaseEntity{
 
     private Boolean emailVerified = false;
 
+    @Column(name = "password_hash")
+    private String passwordHash;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "auth_provider")
+    private AuthProvider authProvider = AuthProvider.LOCAL;
+
     private String createdBy;
     private String updatedBy;
 

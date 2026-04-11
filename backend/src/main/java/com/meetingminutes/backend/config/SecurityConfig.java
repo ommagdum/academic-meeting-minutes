@@ -2,6 +2,7 @@ package com.meetingminutes.backend.config;
 
 import com.meetingminutes.backend.filter.JwtAuthFilter;
 import com.meetingminutes.backend.handler.CustomOAuth2SuccessHandler;
+import com.meetingminutes.backend.repository.UserRepo;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
@@ -11,9 +12,17 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -28,11 +37,53 @@ import java.io.IOException;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    private final JwtAuthFilter jwtAuthFilter;
+    private final CustomOAuth2SuccessHandler customOAuth2SuccessHandler;
+    private final UserRepo userRepo;
+
+    public SecurityConfig(JwtAuthFilter jwtAuthFilter,
+                          CustomOAuth2SuccessHandler customOAuth2SuccessHandler,
+                          UserRepo userRepo) {
+        this.jwtAuthFilter = jwtAuthFilter;
+        this.customOAuth2SuccessHandler = customOAuth2SuccessHandler;
+        this.userRepo = userRepo;
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public UserDetailsService userDetailsService() {
+        return username -> userRepo.findByEmail(username)
+                .map(user -> org.springframework.security.core.userdetails.User
+                        .withUsername(user.getEmail())
+                        .password(user.getPasswordHash() != null ? user.getPasswordHash() : "")
+                        .roles(user.getRole().name())
+                        .build())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+    }
+
+    @Bean
+    public AuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setUserDetailsService(userDetailsService());
+        provider.setPasswordEncoder(passwordEncoder());
+        return provider;
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
+    }
+
     @Bean
     public GenericFilterBean securityHeadersFilter() {
         return new GenericFilterBean() {
             @Override
-            public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
+            public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse,
+                                 FilterChain filterChain) throws IOException, ServletException {
                 HttpServletResponse httpResponse = (HttpServletResponse) servletResponse;
                 httpResponse.setHeader("X-Content-Type-Options", "nosniff");
                 httpResponse.setHeader("X-Frame-Options", "DENY");
@@ -44,25 +95,17 @@ public class SecurityConfig {
         };
     }
 
-    private final JwtAuthFilter jwtAuthFilter;
-    private final CustomOAuth2SuccessHandler customOAuth2SuccessHandler;
-
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter, CustomOAuth2SuccessHandler customOAuth2SuccessHandler) {
-        this.jwtAuthFilter = jwtAuthFilter;
-        this.customOAuth2SuccessHandler = customOAuth2SuccessHandler;
-    }
-
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // IMPORTANT
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authenticationProvider(authenticationProvider())
                 .authorizeHttpRequests(authz -> authz
-                        // Allow preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/public/meetings/join/**").permitAll()
-                        // Public resources
                         .requestMatchers(
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
@@ -71,13 +114,12 @@ public class SecurityConfig {
                                 "/webjars/**",
                                 "/swagger-resources/**"
                         ).permitAll()
-                        // Public API + OAuth endpoints
                         .requestMatchers("/api/auth/**", "/api/public/**").permitAll()
                         .requestMatchers("/oauth2/**", "/login/**").permitAll()
                         .anyRequest().authenticated()
                 )
-                // Return 401 for unauthenticated API requests (instead of 302 redirect)
-                .exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+                .exceptionHandling(e -> e
+                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .oauth2Login(oauth2 -> oauth2.successHandler(customOAuth2SuccessHandler))
                 .addFilterBefore(securityHeadersFilter(), UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
@@ -89,7 +131,7 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
         config.addAllowedOrigin("http://localhost:5173");
-        config.addAllowedHeader("*"); // or explicitly: Authorization, Content-Type, X-Requested-With
+        config.addAllowedHeader("*");
         config.addAllowedMethod("GET");
         config.addAllowedMethod("POST");
         config.addAllowedMethod("PUT");
@@ -101,5 +143,4 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", config);
         return source;
     }
-
 }
