@@ -40,12 +40,6 @@ spring:
       ddl-auto: update
     properties:
       hibernate:
-        search:
-          backend:
-            type: lucene
-            directory:
-              root: ./build/lucene
-          enable_dirty_check: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
 
