@@ -1,7 +1,13 @@
 package com.meetingminutes.backend.service;
 
+import com.meetingminutes.backend.repository.mongo.AIExtractionRepository;
+import com.meetingminutes.backend.repository.mongo.TranscriptRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.data.mongodb.core.aggregation.ConditionalOperators;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -13,7 +19,9 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class AnalyticsService {
+
     private final JdbcTemplate jdbcTemplate;
+    private final MongoTemplate mongoTemplate;
 
     public Map<String, Object> getMeetingStatsByUser(UUID userId) {
         String sql = """
@@ -26,7 +34,6 @@ public class AnalyticsService {
             FROM meetings
             WHERE created_by = ?
         """;
-
         return jdbcTemplate.queryForMap(sql, userId);
     }
 
@@ -39,7 +46,6 @@ public class AnalyticsService {
             JOIN meetings m ON a.meeting_id = m.id
             WHERE m.created_by = ?
         """;
-
         return jdbcTemplate.queryForMap(sql, userId);
     }
 
@@ -54,7 +60,6 @@ public class AnalyticsService {
             JOIN meetings m ON ai.meeting_id = m.id
             WHERE m.created_by = ?
         """;
-
         return jdbcTemplate.queryForMap(sql, userId);
     }
 
@@ -71,20 +76,17 @@ public class AnalyticsService {
             ORDER BY month DESC
             LIMIT ?
         """;
-
         LocalDateTime startDate = LocalDateTime.now().minusMonths(monthsBack);
         return jdbcTemplate.queryForList(sql, userId, startDate, monthsBack);
     }
 
     public Map<String, Object> getUserDashboardStats(UUID userId) {
         Map<String, Object> dashboard = new HashMap<>();
-
         dashboard.put("meetingStats", getMeetingStatsByUser(userId));
         dashboard.put("taskStats", getTaskStatsByUser(userId));
         dashboard.put("participantStats", getParticipantStats(userId));
         dashboard.put("recentTrend", getMonthlyMeetingTrend(userId, 6));
 
-        // Add upcoming meetings count
         String upcomingMeetingsSql = """
             SELECT COUNT(*) FROM meetings
             WHERE created_by = ? AND scheduled_time > ? AND scheduled_time < ?
@@ -115,36 +117,64 @@ public class AnalyticsService {
             ORDER BY meeting_count DESC
             LIMIT ?
         """;
-
         return jdbcTemplate.queryForList(sql, userId, limit);
     }
 
-    public Map<String, Object> getProcessingPerformance() {
-        String sql = """
-            SELECT
-                AVG(processing_time) as avg_processing_time,
-                MAX(processing_time) as max_processing_time,
-                MIN(processing_time) as min_processing_time,
-                COUNT(*) as total_processed
-            FROM transcripts
-            WHERE processing_time IS NOT NULL
-        """;
+    // ---- FIXED: was querying PostgreSQL for MongoDB-only tables ----
 
-        return jdbcTemplate.queryForMap(sql);
+    public Map<String, Object> getProcessingPerformance() {
+        Aggregation agg = Aggregation.newAggregation(
+                Aggregation.match(
+                        org.springframework.data.mongodb.core.query.Criteria
+                                .where("processing_time").ne(null)
+                ),
+                Aggregation.group()
+                        .avg("processing_time").as("avg_processing_time")
+                        .max("processing_time").as("max_processing_time")
+                        .min("processing_time").as("min_processing_time")
+                        .count().as("total_processed")
+        );
+
+        AggregationResults<Map> results = mongoTemplate.aggregate(
+                agg, "transcripts", Map.class
+        );
+
+        if (results.getMappedResults().isEmpty()) {
+            Map<String, Object> empty = new HashMap<>();
+            empty.put("avg_processing_time", 0);
+            empty.put("max_processing_time", 0);
+            empty.put("min_processing_time", 0);
+            empty.put("total_processed", 0);
+            return empty;
+        }
+
+        return results.getMappedResults().get(0);
     }
 
     public List<Map<String, Object>> getAIExtractionAccuracy() {
-        String sql = """
-            SELECT
-                model_version,
-                AVG(confidence_score) as avg_confidence,
-                COUNT(*) as extraction_count,
-                COUNT(CASE WHEN success = true THEN 1 END) as success_count
-            FROM ai_extractions
-            GROUP BY model_version
-            ORDER BY avg_confidence DESC
-        """;
+        Aggregation agg = Aggregation.newAggregation(
+                Aggregation.group("model_version")
+                        .avg("confidence_score").as("avg_confidence")
+                        .count().as("extraction_count")
+                        .sum(
+                                ConditionalOperators
+                                        .when(org.springframework.data.mongodb.core.query.Criteria
+                                                .where("success").is(true))
+                                        .then(1)
+                                        .otherwise(0)
+                        ).as("success_count"),
+                Aggregation.sort(
+                        org.springframework.data.domain.Sort.by(
+                                org.springframework.data.domain.Sort.Direction.DESC,
+                                "avg_confidence"
+                        )
+                )
+        );
 
-        return jdbcTemplate.queryForList(sql);
+        AggregationResults<Map> results = mongoTemplate.aggregate(
+                agg, "ai_extractions", Map.class
+        );
+
+        return (List<Map<String, Object>>) (List<?>) results.getMappedResults();
     }
 }
