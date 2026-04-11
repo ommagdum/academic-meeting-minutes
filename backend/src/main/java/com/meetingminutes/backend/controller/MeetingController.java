@@ -252,8 +252,16 @@ public class MeetingController {
             // Verify user has access to the meeting
             Meeting meeting = meetingService.getMeeting(meetingId, user);
 
+            log.info("Total transcripts in DB: {}", transcriptRepository.count());
+            log.info("Looking for transcript with meetingId type: {}, value: {}",
+                    meetingId.getClass().getSimpleName(), meetingId);
+
             // Get transcript from MongoDB
             Optional<Transcript> transcriptOpt = transcriptRepository.findByMeetingId(meetingId);
+
+            log.info("Looking for transcript with meetingId: {}", meetingId);
+            log.info("Transcript found: {}", transcriptOpt.isPresent());
+            transcriptOpt.ifPresent(t -> log.info("Transcript id: {}, meetingId stored: {}", t.getId(), t.getMeetingId()));
 
             if (transcriptOpt.isEmpty()) {
                 ApiResponse<TranscriptResponse> response = ApiResponse.<TranscriptResponse>builder()

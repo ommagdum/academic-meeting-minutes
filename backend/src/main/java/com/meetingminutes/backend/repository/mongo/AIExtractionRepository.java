@@ -12,35 +12,35 @@ import java.util.UUID;
 
 @Repository
 public interface AIExtractionRepository extends MongoRepository<AIExtraction, String> {
+
     Optional<AIExtraction> findByMeetingId(UUID meetingId);
     boolean existsByMeetingId(UUID meetingId);
     void deleteByMeetingId(UUID meetingId);
 
-    @Query("{ 'meetingId': ?0 }")
+    @Query("{ 'meeting_id': ?0 }")
     Optional<AIExtraction> findExtractionByMeetingId(UUID meetingId);
 
-    @Query("{ 'success': true, 'confidenceScore': { $gte: ?0 } }")
+    @Query("{ 'success': true, 'confidence_score': { $gte: ?0 } }")
     List<AIExtraction> findSuccessfulExtractionsWithMinConfidence(Double minConfidence);
 
     @Query("{ 'success': false }")
     List<AIExtraction> findFailedExtractions();
 
-    @Query("{ 'createdAt': { $gte: ?0, $lte: ?1 } }")
+    @Query("{ 'created_at': { $gte: ?0, $lte: ?1 } }")
     List<AIExtraction> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 
-    @Query(value = "{ 'meetingId': ?0 }", fields = "{ 'extractedData': 1, 'processingTime':1 }")
+    @Query(value = "{ 'meeting_id': ?0 }", fields = "{ 'extracted_data': 1, 'processing_time': 1 }")
     Optional<AIExtraction> findBasicExtractionInfoByMeetingId(UUID meetingId);
 
-    @Query(value = "{ 'modelVersion': ?0 }")
+    @Query(value = "{ 'model_version': ?0 }")
     List<AIExtraction> findByModelVersion(String modelVersion);
 
     @Query(value = "{}", count = true)
     long countAllExtractions();
 
-    @Query(value = "{ 'success': true}", count = true)
+    @Query(value = "{ 'success': true }", count = true)
     long countSuccessfulExtractions();
 
-    @Query(value = "{ 'success': false}", count = true)
+    @Query(value = "{ 'success': false }", count = true)
     long countFailedExtractions();
-
 }

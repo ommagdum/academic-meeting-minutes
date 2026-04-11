@@ -363,11 +363,8 @@ public class MeetingProcessingService {
 
         try {
             // Delete any existing action items first to prevent duplicates on retry
-            int deleted = actionItemRepo.deleteByMeetingId(meeting.getId());
-            if (deleted > 0) {
-                log.info("Deleted {} existing action items before re-creating for meeting: {}",
-                        deleted, meeting.getId());
-            }
+            actionItemRepo.deleteByMeetingId(meeting.getId());
+            log.info("Cleared existing action items before re-creating for meeting: {}", meeting.getId());
             List<ExtractedData.ExtractedActionItem> extractedActionItems =
                     extraction.getExtractedData().getActionItems();
 

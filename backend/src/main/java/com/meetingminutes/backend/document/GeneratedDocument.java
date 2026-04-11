@@ -11,7 +11,7 @@ import org.springframework.data.mongodb.core.mapping.Field;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Document(collection = "documents.files") // GridFS files collection
+@Document(collection = "generated_documents") // GridFS files collection
 @Data
 @Builder
 @NoArgsConstructor
