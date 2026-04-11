@@ -63,13 +63,4 @@ public class Meeting extends BaseEntity {
         this.title = title;
         this.createdBy = createdBy;
     }
-
-    @PrePersist
-    @PreUpdate
-    private void updateSearchVector() {
-        this.searchVector = String.join(" ",
-                this.title !=null ? this.title: "",
-                this.description != null ? this.description : "",
-                this.agendaText != null ? this.agendaText : "").toLowerCase();
-    }
 }
