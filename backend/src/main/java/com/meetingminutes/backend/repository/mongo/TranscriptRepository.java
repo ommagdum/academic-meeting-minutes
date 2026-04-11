@@ -37,4 +37,7 @@ public interface TranscriptRepository extends MongoRepository<Transcript, String
 
     @Query(value = "{ 'processing_time': { $gt: ?0 } }", count = true)
     long countTranscriptsWithProcessingTimeGreaterThan(Double processingTime);
+
+    @Query("{ 'meeting_id': { $in: ?0 } }")
+    List<Transcript> findByMeetingIdIn(List<UUID> meetingIds);
 }

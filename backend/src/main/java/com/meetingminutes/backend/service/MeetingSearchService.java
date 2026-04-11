@@ -140,7 +140,7 @@ public class MeetingSearchService {
     }
 
     private Page<Meeting> findMeetingsWithTranscripts(User user, Pageable pageable) {
-        // ✅ FIXED: Get meetings user created OR is attending
+        // Get only the meeting IDs the user can access
         List<UUID> userMeetingIds = meetingRepository.findByUserOrAttendee(user, Pageable.unpaged())
                 .stream()
                 .map(Meeting::getId)
@@ -150,24 +150,19 @@ public class MeetingSearchService {
             return Page.empty(pageable);
         }
 
-        // Get meetings that have transcripts
-        List<UUID> meetingIdsWithTranscripts = transcriptRepository.findAll()
+        // Query MongoDB for only the IDs in the user's meeting list — NOT findAll()
+        List<UUID> meetingIdsWithTranscripts = transcriptRepository
+                .findByMeetingIdIn(userMeetingIds)
                 .stream()
                 .map(transcript -> transcript.getMeetingId())
                 .distinct()
                 .collect(Collectors.toList());
 
-        // Filter user meetings that have transcripts
-        List<UUID> userMeetingsWithTranscripts = userMeetingIds.stream()
-                .filter(meetingIdsWithTranscripts::contains)
-                .collect(Collectors.toList());
-
-        if (userMeetingsWithTranscripts.isEmpty()) {
+        if (meetingIdsWithTranscripts.isEmpty()) {
             return Page.empty(pageable);
         }
 
-        // ✅ FIXED: Use userOrAttendee method
-        return meetingRepository.findByUserOrAttendeeAndIdIn(user, userMeetingsWithTranscripts, pageable);
+        return meetingRepository.findByUserOrAttendeeAndIdIn(user, meetingIdsWithTranscripts, pageable);
     }
 
     private Page<Meeting> executeAdvancedSearch(SearchRequest request, User user, Pageable pageable) {
@@ -200,30 +195,6 @@ public class MeetingSearchService {
 
         Pageable unsortedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
         return meetingRepository.fullTextSearchWithDynamicSort(user.getId(), query, sortField, sortDirection, unsortedPageable);
-    }
-
-    private boolean hasAdditionalFilters(SearchRequest request) {
-        return request.getStatuses() != null || request.getSeriesId() != null ||
-                request.getFromDate() != null || request.getToDate() != null ||
-                request.getHasActionItems() != null || request.getHasTranscript() != null;
-    }
-
-    private Page<Meeting> applyAdditionalFilters(Page<Meeting> initialResults, SearchRequest request, User user) {
-        // This is a simplified implementation - in production, build a dynamic query
-        // For now, we'll filter the results in memory (suitable for moderate result sets)
-        List<Meeting> filtered = initialResults.getContent().stream()
-                .filter(meeting -> filterByStatus(meeting, request.getStatuses()))
-                .filter(meeting -> filterBySeries(meeting, request.getSeriesId()))
-                .filter(meeting -> filterByDateRange(meeting, request.getFromDate(), request.getToDate()))
-                .filter(meeting -> filterByActionItems(meeting, request.getHasActionItems()))
-                .filter(meeting -> filterByTranscript(meeting, request.getHasTranscript()))
-                .collect(Collectors.toList());
-
-        return new org.springframework.data.domain.PageImpl<>(
-                filtered,
-                initialResults.getPageable(),
-                filtered.size()
-        );
     }
 
     // Filter methods (no changes needed here)
