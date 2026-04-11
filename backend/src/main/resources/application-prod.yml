@@ -77,10 +77,6 @@ app:
   email:
     from: team.meetingminutes@gmail.com
     base-url: http://localhost:5173
-  rate-limit:
-    auth-per-minute: 10
-    upload-per-minute: 5
-    ai-processing-per-minute: 3
   search:
     max-results: 1000
     default-page-size: 20
