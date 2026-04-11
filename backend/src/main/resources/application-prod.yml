@@ -61,8 +61,8 @@ spring:
 logging:
   level:
     org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
-    org.hibernate.tool.schema.internal: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: ERROR
+    org.hibernate.tool.schema.internal: WARN
 
 jwt:
   secret: ${JWT_SECRET}
@@ -83,26 +83,6 @@ app:
     enable-full-text: true
     highlight-fragment-size: 200
     highlight-max-fragments: 3
-
-springdoc:
-  swagger-ui:
-    enabled: true
-    path: /swagger-ui.html
-    operations-sorter: alpha
-    tags-sorter: alpha
-  api-docs:
-    enabled: true
-    path: /v3/api-docs
-  info:
-    title: Academic Meeting Minutes Extractor API
-    description: REST API for automated meeting minutes generation
-    version: 1.0.0
-    contact:
-      name: Development Team
-      email: dev@academicminutes.com
-    license:
-      name: Academic License
-      url: https://academicminutes.com/license
 
 ai:
   service:
