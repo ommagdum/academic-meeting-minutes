@@ -35,7 +35,8 @@ public class MeetingRepositoryImpl implements MeetingRepositoryCustom {
         } else {
             // Sort by a regular column
             String column = mapSortFieldToColumn(sortField);
-            orderByClause = "ORDER BY " + column + " " + sortDirection;
+            String safeDirection = "ASC".equalsIgnoreCase(sortDirection) ? "ASC" : "DESC";
+            orderByClause = "ORDER BY " + column + " " + safeDirection;
         }
 
         String countSql = "SELECT COUNT(*) FROM meetings m " +

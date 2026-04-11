@@ -303,16 +303,4 @@ public interface MeetingRepository extends JpaRepository<Meeting, UUID>, Meeting
                                          @Param("sortDirection") String sortDirection,
                                          Pageable pageable);
 
-    @Query(value = "SELECT m.* FROM meetings m " +
-            "WHERE (m.created_by = :userId OR m.id IN (SELECT a.meeting_id FROM attendees a WHERE a.user_id = :userId)) " +
-            "AND m.search_vector @@ plainto_tsquery('english', :query) " +
-            "ORDER BY m.created_at :sortDirection",
-            countQuery = "SELECT COUNT(*) FROM meetings m " +
-                    "WHERE (m.created_by = :userId OR m.id IN (SELECT a.meeting_id FROM attendees a WHERE a.user_id = :userId)) " +
-                    "AND m.search_vector @@ plainto_tsquery('english', :query)",
-            nativeQuery = true)
-    Page<Meeting> fullTextSearchOrderByCreatedAt(@Param("userId") UUID userId,
-                                                 @Param("query") String query,
-                                                 @Param("sortDirection") String sortDirection,
-                                                 Pageable pageable);
 }
