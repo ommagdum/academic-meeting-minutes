@@ -5,7 +5,7 @@ import com.meetingminutes.backend.document.GeneratedDocument;
 import com.meetingminutes.backend.document.Transcript;
 import com.meetingminutes.backend.dto.*;
 import com.meetingminutes.backend.entity.*;
-import com.meetingminutes.backend.exception.AccessDeniedException;
+import com.meetingminutes.backend.exception.ForbiddenException;
 import com.meetingminutes.backend.exception.EntityNotFoundException;
 import com.meetingminutes.backend.exception.ValidationException;
 import com.meetingminutes.backend.repository.*;
@@ -139,7 +139,7 @@ public class MeetingController {
         } catch (EntityNotFoundException e) {
             log.error("Meeting not found: {}", meetingId, e);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        } catch (AccessDeniedException e) {
+        } catch (ForbiddenException e) {
             log.error("Access denied for meeting: {}", meetingId, e);
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         } catch (ValidationException e) {
@@ -213,7 +213,7 @@ public class MeetingController {
 
             if (!agendaItem.getMeeting().getId().equals(meetingId) ||
                     !agendaItem.getMeeting().getCreatedBy().getId().equals(user.getId())) {
-                throw new AccessDeniedException("Cannot delete this agenda item");
+                throw new ForbiddenException("Cannot delete this agenda item");
             }
 
             if (agendaItem.getMeeting().getStatus() == MeetingStatus.PROCESSING) {
@@ -231,7 +231,7 @@ public class MeetingController {
 
         } catch (EntityNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        } catch (AccessDeniedException | ValidationException e) {
+        } catch (ForbiddenException | ValidationException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         } catch (Exception e) {
             log.error("Failed to delete agenda item: {} from meeting: {}", agendaItemId, meetingId, e);
@@ -821,7 +821,7 @@ public class MeetingController {
 
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
 
-        } catch (AccessDeniedException e) {
+        } catch (ForbiddenException e) {
             log.error("Access denied for meeting attendees: {}", meetingId, e);
 
             ApiResponse<PaginatedAttendeeResponse> response = ApiResponse.<PaginatedAttendeeResponse>builder()

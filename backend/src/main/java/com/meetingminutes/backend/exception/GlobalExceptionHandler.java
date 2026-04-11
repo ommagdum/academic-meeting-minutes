@@ -9,7 +9,6 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -20,13 +19,14 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleEntityNotFound(EntityNotFoundException ex) {
-       ErrorResponse error = new ErrorResponse(
-               "ENTITY_NOT_FOUND",
-               ex.getMessage()
-       );
-       return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        ErrorResponse error = new ErrorResponse(
+                "ENTITY_NOT_FOUND",
+                ex.getMessage()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
 
+    @ExceptionHandler(ValidationException.class)   // FIX-034: was missing @ExceptionHandler
     public ResponseEntity<ErrorResponse> handleValidationException(ValidationException ex) {
         ErrorResponse error = new ErrorResponse(
                 "VALIDATION_ERROR",
@@ -35,8 +35,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
+    @ExceptionHandler(ProcessingException.class)   // FIX-034: was never handled → 500
+    public ResponseEntity<ErrorResponse> handleProcessingException(ProcessingException ex) {
+        ErrorResponse error = new ErrorResponse(
+                "PROCESSING_ERROR",
+                ex.getMessage()
+        );
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(error);
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ErrorResponse> handleForbidden(ForbiddenException ex) {
         ErrorResponse error = new ErrorResponse(
                 "ACCESS_DENIED",
                 ex.getMessage()
@@ -50,7 +59,7 @@ public class GlobalExceptionHandler {
                 "FILE_UPLOAD_ERROR",
                 ex.getMessage()
         );
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -88,11 +97,10 @@ public class GlobalExceptionHandler {
 
         ErrorResponse error = ErrorResponse.builder()
                 .error("DATA_INTEGRITY_VIOLATION")
-                .message("Profile update failed due to data constraints")
+                .message("Operation failed due to data constraints")
                 .timestamp(LocalDateTime.now())
                 .build();
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 }
-

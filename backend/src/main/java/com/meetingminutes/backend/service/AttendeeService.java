@@ -2,7 +2,7 @@ package com.meetingminutes.backend.service;
 
 import com.meetingminutes.backend.dto.*;
 import com.meetingminutes.backend.entity.*;
-import com.meetingminutes.backend.exception.AccessDeniedException;
+import com.meetingminutes.backend.exception.ForbiddenException;
 import com.meetingminutes.backend.exception.EntityNotFoundException;
 import com.meetingminutes.backend.repository.AttendeeRepo;
 import com.meetingminutes.backend.repository.MeetingRepository;
@@ -172,7 +172,7 @@ public class AttendeeService {
 
         // Check if user has access to the meeting
         if (!hasAccessToMeeting(meeting, user)) {
-            throw new AccessDeniedException("Access denied to meeting attendees");
+            throw new ForbiddenException("Access denied to meeting attendees");
         }
 
         // Create pageable with sorting
