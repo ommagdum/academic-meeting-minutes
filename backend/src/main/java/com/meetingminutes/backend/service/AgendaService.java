@@ -5,6 +5,7 @@ import com.meetingminutes.backend.entity.AgendaItem;
 import com.meetingminutes.backend.entity.Meeting;
 import com.meetingminutes.backend.entity.User;
 import com.meetingminutes.backend.repository.AgendaItemRepo;
+import com.meetingminutes.backend.repository.AttendeeRepo;
 import com.meetingminutes.backend.repository.MeetingRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ public class AgendaService {
 
     private final AgendaItemRepo agendaItemRepo;
     private final MeetingRepository meetingRepository;
+    private final AttendeeRepo attendeeRepo;
 
     public AgendaItem createAgendaItem(CreateAgendaItemRequest request, UUID meetingId, User user) {
         Meeting meeting = meetingRepository.findById(meetingId)
@@ -105,7 +107,10 @@ public class AgendaService {
         Meeting meeting = meetingRepository.findById(meetingId)
                 .orElseThrow(() -> new IllegalArgumentException("Meeting not found"));
 
-        if(!meeting.getCreatedBy().getId().equals(user.getId())) {
+        boolean isOwner = meeting.getCreatedBy().getId().equals(user.getId());
+        boolean isAttendee = attendeeRepo.findByMeetingIdAndUserId(meetingId, user.getId()).isPresent();
+
+        if (!isOwner && !isAttendee) {
             throw new IllegalArgumentException("User not authorized to view this meeting's agenda");
         }
 

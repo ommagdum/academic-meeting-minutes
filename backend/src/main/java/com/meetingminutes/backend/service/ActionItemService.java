@@ -172,8 +172,8 @@ public class ActionItemService {
         return updatedTask;
     }
 
-    public List<ActionItem> getOverdueTasks() {
-        return actionItemRepo.findOverdueActionItems(LocalDateTime.now());
+    public List<ActionItem> getOverdueTasks(User user) {
+        return actionItemRepo.findOverdueActionItemsByUser(user.getId(), LocalDateTime.now());
     }
 
     public List<ActionItem> getUnacknowledgedTasks(User user) {

@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -62,6 +63,7 @@ public class EmailService {
         }
     }
 
+    @Async
     public void sendTaskAssignmentNotification(ActionItem actionItem) {
         if (actionItem.getAssignedToUser() != null) {
             User assignee = actionItem.getAssignedToUser();
@@ -117,6 +119,7 @@ public class EmailService {
         }
     }
 
+    @Async
     public void sendProcessingCompleteNotification(User user, Meeting meeting) {
         try {
             String subject = "Meeting Processing Complete: " + meeting.getTitle();

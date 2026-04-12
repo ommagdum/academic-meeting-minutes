@@ -46,4 +46,11 @@ public interface ActionItemRepo extends JpaRepository<ActionItem, UUID> {
     @Transactional
     void deleteByMeetingId(UUID meetingId);
 
+    @Query("SELECT ai FROM ActionItem ai WHERE ai.assignedToUser.id = :userId " +
+            "AND ai.deadline < :currentDate AND ai.status NOT IN ('COMPLETED', 'CANCELLED')")
+    List<ActionItem> findOverdueActionItemsByUser(@Param("userId") UUID userId,
+                                                  @Param("currentDate") LocalDateTime currentDate);
+
+    boolean existsByMeetingIdAndAssignedToUserId(UUID meetingId, UUID assignedToUserId);
+
 }

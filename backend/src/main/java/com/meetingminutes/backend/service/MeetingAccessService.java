@@ -26,9 +26,8 @@ public class MeetingAccessService {
         }
 
         // 3. Check if user is assigned to any action item
-        boolean hasAssignedTask = actionItemRepo.findByMeetingId(meeting.getId()).stream()
-                .anyMatch(task -> task.getAssignedToUser() != null &&
-                        task.getAssignedToUser().getId().equals(user.getId()));
+        boolean hasAssignedTask = actionItemRepo
+                .existsByMeetingIdAndAssignedToUserId(meeting.getId(), user.getId());
 
         return hasAssignedTask;
     }
