@@ -55,12 +55,8 @@ public class ReminderScheduler {
     @Scheduled(cron = "0 0 9 * * MON")
     public void sendOverdueTaskReminders() {
         log.info("Running overdue task reminder job");
-
-        List<ActionItem> overdueItems = actionItemRepo
-                .findOverdueActionItems(LocalDateTime.now());
-
+        List<ActionItem> overdueItems = actionItemRepo.findOverdueActionItems(LocalDateTime.now());
         overdueItems.forEach(emailService::sendTaskReminder);
-
         log.info("Sent reminders for {} overdue tasks", overdueItems.size());
     }
 }
