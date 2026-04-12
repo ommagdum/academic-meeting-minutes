@@ -16,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -31,6 +32,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/v1/dashboard")
 @RequiredArgsConstructor
 @Slf4j
+@Transactional(readOnly = true)
 public class DashboardController {
 
     private final MeetingRepository meetingRepository;
@@ -205,12 +207,13 @@ public class DashboardController {
                 .actualEndTime(meeting.getActualEndTime())
                 .createdAt(meeting.getCreatedAt())
                 .updatedAt(meeting.getUpdatedAt())
-                .attendeeCount(meeting.getAttendees() != null ? meeting.getAttendees().size() : 0)
-                .agendaItemCount(meeting.getAgendaItems() != null ? meeting.getAgendaItems().size() : 0)
-                .actionItemCount(meeting.getActionItems() != null ? meeting.getActionItems().size() : 0)
                 .seriesId(meeting.getSeries() != null ? meeting.getSeries().getId() : null)
                 .seriesTitle(meeting.getSeries() != null ? meeting.getSeries().getTitle() : null)
                 .createdBy(com.meetingminutes.backend.dto.UserResponse.from(meeting.getCreatedBy()))
+                // Use 0 instead of lazy-loading collections for dashboard summary
+                .attendeeCount(0)
+                .agendaItemCount(0)
+                .actionItemCount(0)
                 .build();
     }
 }

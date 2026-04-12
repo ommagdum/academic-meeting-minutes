@@ -30,10 +30,19 @@ public class ActionItemController {
             Authentication authentication) {
         String email = authentication.getName();
         User user = userService.findByEmail(email);
-        var actionItems = actionItemService.getUserTasks(user);
-        var responses = actionItems.stream()
-                .map(this::convertToResponse)
-                .toList();
+
+        List<ActionItemResponse> responses;
+        if (status != null) {
+            responses = actionItemService.getUserTasksByStatus(user, status)
+                    .stream()
+                    .map(this::convertToResponse)
+                    .toList();
+        } else {
+            responses = actionItemService.getUserTasks(user)
+                    .stream()
+                    .map(this::convertToResponse)
+                    .toList();
+        }
 
         return ResponseEntity.ok(responses);
     }

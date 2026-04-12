@@ -1,5 +1,6 @@
 package com.meetingminutes.backend.controller;
 
+import com.meetingminutes.backend.dto.AgendaItemResponse;
 import com.meetingminutes.backend.dto.CreateAgendaItemRequest;
 import com.meetingminutes.backend.entity.AgendaItem;
 import com.meetingminutes.backend.entity.User;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/meetings/{meetingId}/agenda")
@@ -21,31 +23,31 @@ public class AgendaController {
     private final AgendaService agendaService;
     private final UserService userService;
 
-
-
     @GetMapping
-    public ResponseEntity<List<AgendaItem>> getMeetingAgenda(
+    public ResponseEntity<List<AgendaItemResponse>> getMeetingAgenda(
             @PathVariable UUID meetingId,
             Authentication authentication) {
         String email = authentication.getName();
         User user = userService.findByEmail(email);
         List<AgendaItem> agenda = agendaService.getMeetingAgenda(meetingId, user);
-        return ResponseEntity.ok(agenda);
+        return ResponseEntity.ok(agenda.stream()
+                .map(AgendaItemResponse::from)
+                .collect(Collectors.toList()));
     }
 
     @PostMapping
-    public ResponseEntity<AgendaItem> createAgendaItem(
+    public ResponseEntity<AgendaItemResponse> createAgendaItem(
             @PathVariable UUID meetingId,
             @RequestBody CreateAgendaItemRequest request,
             Authentication authentication) {
         String email = authentication.getName();
         User user = userService.findByEmail(email);
         AgendaItem agendaItem = agendaService.createAgendaItem(request, meetingId, user);
-        return ResponseEntity.ok(agendaItem);
+        return ResponseEntity.ok(AgendaItemResponse.from(agendaItem));
     }
 
     @PutMapping("/{agendaItemId}")
-    public ResponseEntity<AgendaItem> updateAgendaItem(
+    public ResponseEntity<AgendaItemResponse> updateAgendaItem(
             @PathVariable UUID meetingId,
             @PathVariable UUID agendaItemId,
             @RequestBody CreateAgendaItemRequest request,
@@ -53,7 +55,7 @@ public class AgendaController {
         String email = authentication.getName();
         User user = userService.findByEmail(email);
         AgendaItem agendaItem = agendaService.updateAgendaItem(agendaItemId, request, user);
-        return ResponseEntity.ok(agendaItem);
+        return ResponseEntity.ok(AgendaItemResponse.from(agendaItem));
     }
 
     @DeleteMapping("/{agendaItemId}")
