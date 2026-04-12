@@ -4,5 +4,6 @@ public enum MeetingStatus {
     DRAFT,
     PROCESSING,
     PROCESSED,
-    FAILED
+    FAILED,
+    SCHEDULED
 }
