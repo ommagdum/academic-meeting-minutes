@@ -14,7 +14,6 @@ import java.util.UUID;
 public class AudioUploadResponse {
     private String fileId;
     private String fileName;
-    private String filePath;
     private String fileSize;
     private String contentType;
     private String uploadStatus;

@@ -29,7 +29,7 @@ public class MeetingSeries extends BaseEntity{
 
     private Boolean isActive = true;
 
-    @OneToMany(mappedBy = "series", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "series", fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     private List<Meeting> meetings = new ArrayList<>();
 
     public Integer getMeetingCount() {
