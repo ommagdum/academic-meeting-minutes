@@ -35,14 +35,17 @@ public class JwtService {
         return claimsResolver.apply(claims);
     }
 
+    @Deprecated
     public String generateToken(UserDetails userDetails) {
         return generateToken(new HashMap<>(), userDetails);
     }
 
+    @Deprecated
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails ) {
         return buildToken(extraClaims, userDetails, jwtExpiration);
     }
 
+    @Deprecated
     public String generateToken(UserDetails userDetails, long expiration) {
         return buildToken(new HashMap<>(), userDetails, expiration);
     }

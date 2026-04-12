@@ -403,7 +403,6 @@ public class MeetingController {
             AudioUploadResponse response = AudioUploadResponse.builder()
                     .success(true)
                     .message("Audio file uploaded successfully")
-                    .filePath(filePath)
                     .fileSize(fileUploadService.getFileSizeReadable(file.getSize()))
                     .fileName(file.getOriginalFilename())
                     .meetingId(meetingId)
