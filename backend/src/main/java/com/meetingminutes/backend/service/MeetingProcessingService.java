@@ -561,6 +561,7 @@ public class MeetingProcessingService {
     private String getCurrentStep(MeetingStatus status) {
         return switch (status) {
             case DRAFT -> "WAITING_FOR_PROCESSING";
+            case SCHEDULED -> "SCHEDULED";
             case PROCESSING -> "AI_PROCESSING";
             case PROCESSED -> "COMPLETED";
             case FAILED -> "FAILED";
@@ -570,6 +571,7 @@ public class MeetingProcessingService {
     private String getStatusMessage(MeetingStatus status) {
         return switch (status) {
             case DRAFT -> "Ready for processing - upload audio to start";
+            case SCHEDULED -> "Meeting is scheduled";
             case PROCESSING -> "AI is processing your meeting - this may take a few minutes";
             case PROCESSED -> "Processing completed successfully - minutes are ready";
             case FAILED -> "Processing failed - please try again or contact support";
@@ -579,6 +581,7 @@ public class MeetingProcessingService {
     private int calculateProgress(MeetingStatus status) {
         return switch (status) {
             case DRAFT -> 0;
+            case SCHEDULED -> 0;
             case PROCESSING -> 50; // In progress
             case PROCESSED -> 100; // Completed
             case FAILED -> 0; // Reset on failure
