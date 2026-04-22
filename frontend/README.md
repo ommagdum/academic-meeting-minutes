@@ -1,73 +1,78 @@
-# Welcome to your Lovable project
+# Academic Meeting Minutes - Frontend
 
-## Project info
+This is the frontend application for the Academic Meeting Minutes platform. It provides a modern, responsive, and robust user interface to manage academic meetings, track meeting series, and facilitate seamless collaboration among attendees.
 
-**URL**: https://lovable.dev/projects/7dbb1f6c-978a-46a5-a372-9d426d2cb3fb
+## Features
 
-## How can I edit this code?
+- **User Authentication:** Secure login, registration, and OAuth integration support. Protected routes ensure data privacy.
+- **Dashboard:** A comprehensive overview of upcoming meetings, recent activities, and quick actions.
+- **Meeting Management:** Create new meetings, view details, update schedules, and join active meetings. Manage meeting minutes, action items, and participants efficiently.
+- **Series Management:** Organize recurring or related meetings into cohesive series for better historical tracking and continuity.
+- **Advanced Search:** Integrated search functionality to quickly find past meetings, specific discussions, or pending action items.
+- **Profile Management:** Manage user settings and profile details.
 
-There are several ways of editing your application.
+## Technology Stack
 
-**Use Lovable**
+- **Core:** React 18, TypeScript, Vite
+- **Styling:** Tailwind CSS
+- **UI Components:** [shadcn/ui](https://ui.shadcn.com/), Radix UI Pre-built primitives, Lucide React icons
+- **Routing:** React Router DOM (v6 with new data router API)
+- **Data Fetching & State:** `@tanstack/react-query` (React Query)
+- **Forms & Validation:** React Hook Form, Zod
+- **Real-time / WebSockets:** SockJS, StompJS
+- **Charts / Visualizations:** Recharts
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/7dbb1f6c-978a-46a5-a372-9d426d2cb3fb) and start prompting.
+## Prerequisites
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Node.js**: v18 or higher recommended.
+- **npm** or **yarn** package manager.
 
-**Use your preferred IDE**
+## Getting Started
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+1. **Navigate to the frontend directory**
+   ```bash
+   cd frontend
+   ```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-Follow these steps:
+3. **Environment Setup**
+   Configure the necessary environment variables required for your backend API connection and OAuth providers. Create a `.env` or `.env.local` file based on your deployment needs.
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+4. **Start the Development Server**
+   ```bash
+   npm run dev
+   ```
+   The application will start, usually at `http://localhost:5173`. Any changes made to the code will auto-reload the page.
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## Available Scripts
 
-# Step 3: Install the necessary dependencies.
-npm i
+- **`npm run dev`**: Starts the local development server.
+- **`npm run build`**: Compiles TypeScript and builds the app for production to the `dist` folder.
+- **`npm run build:dev`**: Builds the application using the development mode configuration.
+- **`npm run lint`**: Runs ESLint to identify and report code quality issues.
+- **`npm run preview`**: Locally previews the production build generated in the `dist` folder.
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+## Project Structure
+
+```text
+frontend/
+├── src/
+│   ├── assets/       # Static assets (images, fonts, raw styles)
+│   ├── components/   # Reusable UI components (including shadcn/ui components)
+│   ├── contexts/     # React Context providers (e.g., AuthContext)
+│   ├── hooks/        # Custom React hooks
+│   ├── lib/          # Utility libraries and configurations (e.g., utils for clsx/tailwind-merge)
+│   ├── pages/        # Application route components (Dashboard, MeetingList, CreateMeeting, etc.)
+│   ├── services/     # API service abstractions (authService, meetingService, searchService, etc.)
+│   ├── types/        # TypeScript type definitions and interfaces API responses
+│   ├── utils/        # Generic helper functions
+│   ├── App.tsx       # Main component and application routing configuration
+│   ├── main.tsx      # Application entry point and standard providers
+│   └── index.css     # Global stylesheets and Tailwind directives
+├── package.json      # Dependencies and NPM scripts
+└── vite.config.ts    # Vite bundler configuration
 ```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/7dbb1f6c-978a-46a5-a372-9d426d2cb3fb) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
