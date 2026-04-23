@@ -1,0 +1,16 @@
+name: Keep Services Awake
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping AI Service (Hugging Face)
+        run: curl -s https://om-magdum-meeting-minutes-ai.hf.space/ai/health > /dev/null
+
+      - name: Ping Spring Boot API (Render)
+        run: curl -s https://meeting-minutes-api-npii.onrender.com > /dev/null
