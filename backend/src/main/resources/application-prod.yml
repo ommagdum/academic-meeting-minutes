@@ -12,11 +12,8 @@ spring:
       enabled: true
 
   data:
-    redis:
-      host: localhost
-      port: 6379
     mongodb:
-      uri: mongodb://localhost:27017/meeting_minutes
+      uri: ${MONGO_URI}
       auto-index-creation: true
       uuid-representation: standard
 
