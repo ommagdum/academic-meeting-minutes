@@ -19,6 +19,8 @@ import OAuthRedirect from "./pages/OAuthRedirect";
 import Search from "./pages/Search";
 import JoinMeeting from "./pages/JoinMeeting";
 import Profile from "./pages/Profile";
+import CheckEmailPage from "./pages/CheckEmailPage";
+import VerifyEmailPage from "./pages/VerifyEmailPage";
 
 const queryClient = new QueryClient();
 
@@ -96,6 +98,8 @@ const Root = () => (
       />
       <Route path="/join-meeting" element={<JoinMeeting />} />
       <Route path="/meetings/join" element={<JoinMeeting />} />
+      <Route path="/check-email" element={<CheckEmailPage />} />
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
       <Route
         path="/profile"
         element={

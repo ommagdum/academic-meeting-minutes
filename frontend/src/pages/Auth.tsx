@@ -1,10 +1,12 @@
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Brain, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
+import { Brain, Eye, EyeOff, Loader2, AlertCircle, Mail, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
+import { authService } from "@/services/authService";
+import { toast } from "@/components/ui/use-toast";
 
 type AuthTab = "signin" | "signup";
 
@@ -30,6 +32,7 @@ const Divider = () => (
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const { login: loginAuth, loginWithCredentials, register, isAuthenticated, isLoading } = useAuth();
   const redirectUrl = searchParams.get('redirect');
@@ -45,6 +48,19 @@ const Auth = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showGoogleFallback, setShowGoogleFallback] = useState(false);
+  const [showEmailNotVerified, setShowEmailNotVerified] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [verifiedSuccess, setVerifiedSuccess] = useState(false);
+
+  // ─── Detect verification success state from /verify-email redirect ─────────
+  useEffect(() => {
+    const state = location.state as { verifiedSuccess?: boolean } | null;
+    if (state?.verifiedSuccess) {
+      setVerifiedSuccess(true);
+      // Clear location state so it doesn't persist on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   // ─── Redirect helpers ─────────────────────────────────────────────────────────
   const handleGoogleLogin = async () => {
@@ -108,6 +124,7 @@ const Auth = () => {
     e.preventDefault();
     setError(null);
     setShowGoogleFallback(false);
+    setShowEmailNotVerified(false);
 
     if (!email || !password) {
       setError("Please fill in all fields.");
@@ -119,7 +136,12 @@ const Auth = () => {
       await loginWithCredentials(email, password);
     } catch (err: any) {
       const status = err?.response?.status;
-      if (status === 401) {
+      const errorCode = err?.response?.data?.error;
+
+      if (status === 403 && errorCode === 'EMAIL_NOT_VERIFIED') {
+        setShowEmailNotVerified(true);
+        setError(null); // Use the dedicated verification UI instead
+      } else if (status === 401) {
         setError("Incorrect email or password.");
         setShowGoogleFallback(true);
       } else if (status === 429) {
@@ -166,10 +188,24 @@ const Auth = () => {
     }
   };
 
+  const handleResendVerification = async () => {
+    if (!email || isResending) return;
+    setIsResending(true);
+    try {
+      await authService.resendVerification(email);
+      toast({ title: "Verification email sent!", description: "Check your inbox for the new verification link." });
+    } catch {
+      toast({ title: "Failed to resend", description: "Please try again.", variant: "destructive" });
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   const switchTab = (newTab: AuthTab) => {
     setTab(newTab);
     setError(null);
     setShowGoogleFallback(false);
+    setShowEmailNotVerified(false);
     setPassword("");
   };
 
@@ -204,6 +240,17 @@ const Auth = () => {
             AI-Powered Meeting Documentation for Educational Institutions
           </p>
         </div>
+
+        {/* Email verified success banner */}
+        {verifiedSuccess && (
+          <div className="flex items-start gap-2.5 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 mb-6">
+            <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 text-green-600" />
+            <div>
+              <p className="font-medium">Email verified successfully!</p>
+              <p className="text-green-700">You can now sign in to your account.</p>
+            </div>
+          </div>
+        )}
 
         <div className="bg-card border border-border rounded-lg shadow-elegant p-8 lg:p-10">
 
@@ -293,6 +340,30 @@ const Auth = () => {
                   </button>
                 </div>
               </div>
+
+              {/* Email not verified banner — info style (amber/blue, not red) */}
+              {showEmailNotVerified && (
+                <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-3 text-sm">
+                  <div className="flex items-start gap-2.5 mb-2">
+                    <Mail className="w-4 h-4 mt-0.5 shrink-0 text-amber-600" />
+                    <div>
+                      <p className="font-medium text-amber-800">Email not verified</p>
+                      <p className="text-amber-700 text-xs mt-0.5">
+                        Please check your inbox for the verification link. The link expires in 24 hours.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    id="resend-verification-btn"
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={isResending}
+                    className="w-full mt-1 flex items-center justify-center gap-2 rounded-md border border-amber-300 bg-amber-100 px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-200 transition-colors disabled:opacity-50"
+                  >
+                    {isResending ? <><Loader2 className="w-3 h-3 animate-spin" /> Sending…</> : "Resend verification email"}
+                  </button>
+                </div>
+              )}
 
               {/* Error banner */}
               {error && (

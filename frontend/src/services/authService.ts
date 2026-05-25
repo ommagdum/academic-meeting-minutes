@@ -90,13 +90,16 @@ let authCheckInProgress: Promise<User | null> | null = null;
 export const authService = {
   /**
    * Register a new user with email + password.
-   * POST /api/auth/register  →  201 Created  →  AuthResponse
+   * POST /api/auth/register  →  201 Created
+   * Returns the registered email (no JWT — user must verify email first).
    */
-  register: async (name: string, email: string, password: string): Promise<User> => {
+  register: async (name: string, email: string, password: string): Promise<{ email: string; message: string }> => {
     const response = await api.post<AuthResponse>('/api/auth/register', { name, email, password });
-    const { accessToken, user } = response.data;
-    setAuthToken(accessToken, 'local');
-    return mapUser(user);
+    // No token is returned — user needs to verify email before they can log in
+    return {
+      email,
+      message: (response.data as any).message || 'VERIFICATION_EMAIL_SENT',
+    };
   },
 
   /**
@@ -219,6 +222,25 @@ export const authService = {
       clearAuthState();
       window.location.href = '/';
     }
+  },
+
+  /**
+   * Verify email address using the token from the verification link.
+   * GET /api/auth/verify-email?token={token}
+   */
+  verifyEmail: async (token: string): Promise<{ success: boolean; message: string }> => {
+    const response = await api.get('/api/auth/verify-email', {
+      params: { token },
+    });
+    return { success: true, message: (response.data as any).message || 'Email verified successfully' };
+  },
+
+  /**
+   * Request a new verification email.
+   * POST /api/auth/resend-verification
+   */
+  resendVerification: async (email: string): Promise<void> => {
+    await api.post('/api/auth/resend-verification', { email });
   },
 
   getToken: (): string | null => getToken(),

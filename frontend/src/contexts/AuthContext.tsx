@@ -36,13 +36,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // ─── Credential-based register ────────────────────────────────────────────────
   const register = useCallback(
     async (name: string, email: string, password: string): Promise<void> => {
-      const userData = await authService.register(name, email, password);
-      setUser(userData);
-      setProvider('local');
-      const returnTo = localStorage.getItem('redirectAfterLogin') || '/dashboard';
-      localStorage.removeItem('redirectAfterLogin');
-      navigate(returnTo, { replace: true });
-      toast({ title: 'Account created', description: `Welcome, ${userData.name}!` });
+      const result = await authService.register(name, email, password);
+      // Do NOT set user or store token — user must verify email first
+      navigate('/check-email', { state: { email: result.email }, replace: true });
     },
     [navigate],
   );
@@ -160,7 +156,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           if (
             !location.pathname.startsWith('/auth') &&
             !location.pathname.startsWith('/login') &&
-            !location.pathname.startsWith('/oauth2')
+            !location.pathname.startsWith('/oauth2') &&
+            !location.pathname.startsWith('/check-email') &&
+            !location.pathname.startsWith('/verify-email')
           ) {
             navigate(`/auth?returnTo=${encodeURIComponent(location.pathname + location.search)}`, {
               replace: true,
