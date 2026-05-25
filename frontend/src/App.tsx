@@ -59,7 +59,6 @@ const Root = () => (
         <Route path="/create-series" element={<AppPage><CreateSeries /></AppPage>} />
         <Route path="/series"       element={<AppPage><SeriesList /></AppPage>} />
         <Route path="/series/:id"   element={<AppPage><SeriesDetail /></AppPage>} />
-        <Route path="/search"       element={<AppPage><Search /></AppPage>} />
         <Route path="/profile"      element={<AppPage><Profile /></AppPage>} />
 
         <Route path="*" element={<NotFound />} />

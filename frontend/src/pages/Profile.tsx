@@ -3,13 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
-import { Loader2, User, ArrowLeft } from 'lucide-react';
+import { User, ArrowLeft, Loader2 } from 'lucide-react';
 import { userService, ProfileUpdateRequest } from '@/services/userService';
 import { User as UserType } from '@/types/user';
 
@@ -43,10 +38,6 @@ const Profile = () => {
     resolver: zodResolver(profileSchema)
   });
 
-  useEffect(() => {
-    loadUserProfile();
-  }, [loadUserProfile]);
-
   const loadUserProfile = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -64,198 +55,158 @@ const Profile = () => {
     }
   }, [reset]);
 
+  useEffect(() => {
+    loadUserProfile();
+  }, [loadUserProfile]);
+
   const onSubmit = async (data: ProfileFormData) => {
     try {
       setIsUpdating(true);
-      
       const updateData: ProfileUpdateRequest = {
         name: data.name,
         ...(data.profilePictureUrl && { profilePictureUrl: data.profilePictureUrl })
       };
-
       const updatedUser = await userService.updateProfile(updateData);
       setUser(updatedUser);
       toast.success('Profile updated successfully!');
     } catch (error: unknown) {
       console.error('Failed to update profile:', error);
       const axiosError = error as { response?: { data?: { message?: string } } };
-      const errorMessage = axiosError.response?.data?.message || 'Failed to update profile. Please try again.';
-      toast.error(errorMessage);
+      toast.error(axiosError.response?.data?.message || 'Failed to update profile.');
     } finally {
       setIsUpdating(false);
     }
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
+  const getInitials = (name: string) => name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-10 h-10 border-2 border-transparent border-t-[#0071E3] rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <Button
-            variant="ghost"
-            onClick={() => navigate(-1)}
-            className="mb-4"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-          <h1 className="text-3xl font-bold text-gray-900">Profile Settings</h1>
-          <p className="mt-2 text-gray-600">
-            Update your personal information and profile picture
-          </p>
+    <div className="max-w-2xl mx-auto px-6 py-10 animate-fade-in">
+      {/* ── Header ───────────────────────────────────────────── */}
+      <button 
+        onClick={() => navigate(-1)}
+        className="flex items-center gap-2 mb-8 text-sm font-medium hover:text-[#0071E3] transition-colors"
+        style={{ color: "var(--text-secondary)" }}
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back
+      </button>
+
+      <div className="mb-10">
+        <h1 className="display-sm mb-2" style={{ color: "var(--text-primary)" }}>Profile Settings</h1>
+        <p className="body-base">Update your personal information and preferences.</p>
+      </div>
+
+      {/* ── Profile Form ─────────────────────────────────────── */}
+      <div className="card-surface p-8 mb-8">
+        <div className="flex items-center gap-3 mb-6 border-b pb-6" style={{ borderColor: "var(--border-subtle)" }}>
+          <User className="w-5 h-5 text-[#0071E3]" />
+          <div>
+            <h2 className="text-lg font-semibold font-display" style={{ color: "var(--text-primary)" }}>Profile Information</h2>
+            <p className="text-sm font-body" style={{ color: "var(--text-secondary)" }}>Manage your account details and how others see you</p>
+          </div>
         </div>
 
-        {/* Profile Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Profile Information
-            </CardTitle>
-            <CardDescription>
-              Manage your account details and how others see you
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              {/* Current Profile Preview */}
-              <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-                <Avatar className="h-16 w-16">
-                  <AvatarImage src={user?.profilePictureUrl || ''} />
-                  <AvatarFallback className="text-lg">
-                    {user?.name ? getInitials(user.name) : 'U'}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="font-medium text-gray-900">{user?.name}</h3>
-                  <p className="text-sm text-gray-500">{user?.email}</p>
-                  <p className="text-xs text-gray-400 mt-1">Role: {user?.role}</p>
-                </div>
-              </div>
-
-              {/* Name Field */}
-              <div className="space-y-2">
-                <Label htmlFor="name">Name *</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="Enter your name"
-                  {...register('name')}
-                  className={errors.name ? 'border-red-500' : ''}
-                />
-                {errors.name && (
-                  <p className="text-sm text-red-600">{errors.name.message}</p>
-                )}
-              </div>
-
-              {/* Profile Picture URL Field */}
-              <div className="space-y-2">
-                <Label htmlFor="profilePictureUrl">Profile Picture URL</Label>
-                <Input
-                  id="profilePictureUrl"
-                  type="url"
-                  placeholder="https://example.com/profile.jpg"
-                  {...register('profilePictureUrl')}
-                  className={errors.profilePictureUrl ? 'border-red-500' : ''}
-                />
-                {errors.profilePictureUrl ? (
-                  <p className="text-sm text-red-600">{errors.profilePictureUrl.message}</p>
-                ) : (
-                  <p className="text-xs text-gray-500">
-                    Optional: Enter a URL to your profile picture (png, jpg, jpeg, gif, webp)
-                  </p>
-                )}
-              </div>
-
-              {/* Profile Picture Preview */}
-              {user?.profilePictureUrl && (
-                <div className="space-y-2">
-                  <Label>Current Profile Picture</Label>
-                  <div className="flex items-center space-x-4">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={user.profilePictureUrl} />
-                      <AvatarFallback>
-                        {user.name ? getInitials(user.name) : 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm text-gray-600 truncate max-w-xs">
-                      {user.profilePictureUrl}
-                    </span>
-                  </div>
-                </div>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <div className="flex items-center gap-6 p-4 rounded-xl" style={{ background: "var(--surface-raised)", border: "1px solid var(--border-subtle)" }}>
+            <div className="relative w-16 h-16 rounded-full overflow-hidden bg-[#0071E3]/20 flex items-center justify-center shrink-0">
+              {user?.profilePictureUrl ? (
+                <img src={user.profilePictureUrl} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-xl font-bold text-[#0071E3]">{user?.name ? getInitials(user.name) : 'U'}</span>
               )}
-
-              {/* Form Actions */}
-              <div className="flex justify-end space-x-3 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => reset()}
-                  disabled={!isDirty || isUpdating}
-                >
-                  Reset
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={!isDirty || isUpdating}
-                >
-                  {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Update Profile
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Account Info */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Account Information</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Email:</span>
-                <span className="font-medium">{user?.email}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Email Verified:</span>
-                <span className={`font-medium ${user?.emailVerified ? 'text-green-600' : 'text-red-600'}`}>
-                  {user?.emailVerified ? 'Verified' : 'Not Verified'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Member Since:</span>
-                <span className="font-medium">
-                  {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Last Login:</span>
-                <span className="font-medium">
-                  {user?.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'N/A'}
-                </span>
-              </div>
             </div>
-          </CardContent>
-        </Card>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-lg truncate" style={{ color: "var(--text-primary)" }}>{user?.name}</h3>
+              <p className="text-sm truncate mb-1" style={{ color: "var(--text-secondary)" }}>{user?.email}</p>
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full uppercase tracking-wider" style={{ background: "rgba(255,255,255,0.1)", color: "var(--text-tertiary)" }}>
+                {user?.role}
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium font-body block" style={{ color: "var(--text-secondary)" }}>Name <span className="text-[#FF453A]">*</span></label>
+            <input
+              type="text"
+              placeholder="Enter your name"
+              {...register('name')}
+              className={`input-dark w-full ${errors.name ? '!border-[#FF453A]' : ''}`}
+            />
+            {errors.name && <p className="text-xs text-[#FF453A] mt-1">{errors.name.message}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium font-body block" style={{ color: "var(--text-secondary)" }}>Profile Picture URL</label>
+            <input
+              type="url"
+              placeholder="https://example.com/profile.jpg"
+              {...register('profilePictureUrl')}
+              className={`input-dark w-full ${errors.profilePictureUrl ? '!border-[#FF453A]' : ''}`}
+            />
+            {errors.profilePictureUrl ? (
+              <p className="text-xs text-[#FF453A] mt-1">{errors.profilePictureUrl.message}</p>
+            ) : (
+              <p className="text-xs mt-1" style={{ color: "var(--text-tertiary)" }}>Optional: Enter a URL to your profile picture (png, jpg, webp)</p>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-3 pt-6 border-t" style={{ borderColor: "var(--border-subtle)" }}>
+            <button
+              type="button"
+              onClick={() => reset()}
+              disabled={!isDirty || isUpdating}
+              className="px-5 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+              style={{ background: "var(--surface-raised)", color: "var(--text-primary)", border: "1px solid var(--border-subtle)" }}
+            >
+              Reset
+            </button>
+            <button
+              type="submit"
+              disabled={!isDirty || isUpdating}
+              className="btn-accent px-5 py-2 text-sm font-medium rounded-lg flex items-center justify-center disabled:opacity-50 min-w-[120px]"
+            >
+              {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Update Profile'}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* ── Account Info ─────────────────────────────────────── */}
+      <div className="card-surface p-8">
+        <h2 className="text-lg font-semibold font-display mb-6" style={{ color: "var(--text-primary)" }}>Account Information</h2>
+        <div className="space-y-4 text-sm font-body">
+          <div className="flex items-center justify-between py-3 border-b" style={{ borderColor: "var(--border-subtle)" }}>
+            <span style={{ color: "var(--text-secondary)" }}>Email</span>
+            <span className="font-medium" style={{ color: "var(--text-primary)" }}>{user?.email}</span>
+          </div>
+          <div className="flex items-center justify-between py-3 border-b" style={{ borderColor: "var(--border-subtle)" }}>
+            <span style={{ color: "var(--text-secondary)" }}>Email Verification</span>
+            <span className={`font-medium ${user?.emailVerified ? 'text-[#34C759]' : 'text-[#FF453A]'}`}>
+              {user?.emailVerified ? 'Verified' : 'Not Verified'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between py-3 border-b" style={{ borderColor: "var(--border-subtle)" }}>
+            <span style={{ color: "var(--text-secondary)" }}>Member Since</span>
+            <span className="font-medium" style={{ color: "var(--text-primary)" }}>
+              {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between py-3">
+            <span style={{ color: "var(--text-secondary)" }}>Last Login</span>
+            <span className="font-medium" style={{ color: "var(--text-primary)" }}>
+              {user?.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'N/A'}
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );
