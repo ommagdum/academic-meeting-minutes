@@ -1,13 +1,41 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Brain, CheckCircle2, XCircle, Clock, Loader2, ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { CheckCircle2, XCircle, Clock, Loader2, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { authService } from "@/services/authService";
 import { toast } from "@/components/ui/use-toast";
 
 type VerifyState = "loading" | "success" | "expired" | "invalid";
+
+/* ── Shared page shell ──────────────────────────────────── */
+const AuthShell = ({ children }: { children: React.ReactNode }) => (
+  <div
+    className="min-h-screen flex items-center justify-center px-4 py-16 relative"
+    style={{ background: "var(--bg)" }}
+  >
+    <div className="absolute inset-0 dot-grid" aria-hidden="true" />
+    <div
+      className="absolute inset-0 pointer-events-none"
+      style={{
+        background: "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(0,113,227,0.12), transparent)",
+      }}
+      aria-hidden="true"
+    />
+    <div className="relative z-10 w-full max-w-md animate-scale-in">
+      {children}
+    </div>
+  </div>
+);
+
+/* ── Logo mark ──────────────────────────────────────────── */
+const AsteriskMark = () => (
+  <svg width="24" height="24" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+    <line x1="14" y1="2" x2="14" y2="26" stroke="#0071E3" strokeWidth="2.5" strokeLinecap="round" />
+    <line x1="2" y1="14" x2="26" y2="14" stroke="#0071E3" strokeWidth="2.5" strokeLinecap="round" />
+    <line x1="4.93" y1="4.93" x2="23.07" y2="23.07" stroke="#0071E3" strokeWidth="2.5" strokeLinecap="round" />
+    <line x1="23.07" y1="4.93" x2="4.93" y2="23.07" stroke="#0071E3" strokeWidth="2.5" strokeLinecap="round" />
+  </svg>
+);
 
 const VerifyEmailPage = () => {
   const [searchParams] = useSearchParams();
@@ -20,29 +48,19 @@ const VerifyEmailPage = () => {
   const [resendSent, setResendSent] = useState(false);
 
   useEffect(() => {
-    if (!token) {
-      setState("invalid");
-      return;
-    }
+    if (!token) { setState("invalid"); return; }
 
     const verify = async () => {
       try {
         await authService.verifyEmail(token);
         setState("success");
-        // Redirect to login after a short delay with a success state
         setTimeout(() => {
           navigate("/login", { state: { verifiedSuccess: true }, replace: true });
         }, 2000);
       } catch (err: any) {
-        const status = err?.response?.status;
-        if (status === 410) {
-          setState("expired");
-        } else {
-          setState("invalid");
-        }
+        setState(err?.response?.status === 410 ? "expired" : "invalid");
       }
     };
-
     verify();
   }, [token, navigate]);
 
@@ -53,170 +71,169 @@ const VerifyEmailPage = () => {
     try {
       await authService.resendVerification(resendEmail.trim());
       setResendSent(true);
-      toast({
-        title: "Verification email sent!",
-        description: "Check your inbox for a new verification link.",
-      });
+      toast({ title: "Verification email sent!", description: "Check your inbox for a new verification link." });
     } catch {
-      toast({
-        title: "Failed to send",
-        description: "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
+      toast({ title: "Failed to send", description: "Something went wrong. Please try again.", variant: "destructive" });
     } finally {
       setIsResending(false);
     }
   };
 
-  // ─── Loading ───────────────────────────────────────────────────────────────
+  // ── Loading ─────────────────────────────────────────────────────────────────
   if (state === "loading") {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center animate-fade-up">
-          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
-            style={{ background: "linear-gradient(135deg, hsl(224, 76%, 48%) 0%, hsl(224, 76%, 35%) 100%)" }}>
-            <Loader2 className="w-8 h-8 text-white animate-spin" />
+      <AuthShell>
+        <div className="card-surface p-12 text-center">
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
+            style={{ background: "rgba(0,113,227,0.12)", border: "2px solid rgba(0,113,227,0.25)" }}
+          >
+            <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#0071E3" }} />
           </div>
-          <h2 className="text-xl font-semibold text-foreground mb-2">Verifying your email…</h2>
-          <p className="text-muted-foreground text-sm">Please wait a moment.</p>
+          <h2 className="display-sm mb-2" style={{ color: "var(--text-primary)" }}>Verifying your email…</h2>
+          <p className="body-sm">Please wait a moment.</p>
         </div>
-      </div>
+      </AuthShell>
     );
   }
 
+  // ── States ──────────────────────────────────────────────────────────────────
+  const stateConfig = {
+    success: {
+      icon: <CheckCircle2 className="w-9 h-9" style={{ color: "#34C759" }} />,
+      iconBg: "rgba(52,199,89,0.12)",
+      iconBorder: "rgba(52,199,89,0.25)",
+      title: "Email verified!",
+      desc: "Your email has been verified. You can now sign in to your account.",
+    },
+    expired: {
+      icon: <Clock className="w-9 h-9" style={{ color: "#FF9F0A" }} />,
+      iconBg: "rgba(255,159,10,0.12)",
+      iconBorder: "rgba(255,159,10,0.25)",
+      title: "Link expired",
+      desc: "Verification links are valid for 24 hours. Request a new one below.",
+    },
+    invalid: {
+      icon: <XCircle className="w-9 h-9" style={{ color: "#FF453A" }} />,
+      iconBg: "rgba(255,69,58,0.12)",
+      iconBorder: "rgba(255,69,58,0.25)",
+      title: "Invalid link",
+      desc: "This link is invalid or has already been used.",
+    },
+  }[state as "success" | "expired" | "invalid"];
+
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md animate-fade-up">
-
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-4">
-            <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center shadow-card">
-              <Brain className="w-7 h-7 text-primary-foreground" />
-            </div>
-          </div>
-          <p className="text-sm text-muted-foreground">Academic Meeting Minutes Extractor</p>
-        </div>
-
-        <div className="bg-card border border-border rounded-lg shadow-elegant p-8 lg:p-10 text-center">
-
-          {/* ── Success ──────────────────────────────────────────────────────── */}
-          {state === "success" && (
-            <>
-              <div className="flex justify-center mb-6">
-                <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
-                  <CheckCircle2 className="w-10 h-10 text-green-600" />
-                </div>
-              </div>
-              <h1 className="text-2xl font-bold text-foreground mb-3">Email verified!</h1>
-              <p className="text-muted-foreground mb-6 leading-relaxed">
-                Your email address has been verified successfully. You can now sign in to your account.
-              </p>
-              <p className="text-sm text-muted-foreground mb-6">
-                Redirecting you to the login page…
-              </p>
-              <Button
-                id="verify-success-login-btn"
-                onClick={() => navigate("/login", { state: { verifiedSuccess: true }, replace: true })}
-                className="w-full"
-                size="lg"
-              >
-                Go to Login
-              </Button>
-            </>
-          )}
-
-          {/* ── Expired ──────────────────────────────────────────────────────── */}
-          {state === "expired" && (
-            <>
-              <div className="flex justify-center mb-6">
-                <div className="w-20 h-20 rounded-full bg-amber-100 flex items-center justify-center">
-                  <Clock className="w-10 h-10 text-amber-600" />
-                </div>
-              </div>
-              <h1 className="text-2xl font-bold text-foreground mb-3">Link expired</h1>
-              <p className="text-muted-foreground mb-6 leading-relaxed">
-                Your verification link has expired. Verification links are only valid for{" "}
-                <span className="font-medium text-foreground">24 hours</span>. Request a new one below.
-              </p>
-
-              {!resendSent ? (
-                <form onSubmit={handleResend} className="space-y-4 text-left">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="resend-email" className="text-sm font-medium">
-                      Your email address
-                    </Label>
-                    <Input
-                      id="resend-email"
-                      type="email"
-                      placeholder="jane@example.com"
-                      value={resendEmail}
-                      onChange={(e) => setResendEmail(e.target.value)}
-                      disabled={isResending}
-                      required
-                    />
-                  </div>
-                  <Button
-                    id="verify-expired-resend-btn"
-                    type="submit"
-                    size="lg"
-                    className="w-full"
-                    disabled={isResending || !resendEmail.trim()}
-                  >
-                    {isResending ? (
-                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending…</>
-                    ) : (
-                      "Send new verification link"
-                    )}
-                  </Button>
-                </form>
-              ) : (
-                <div className="flex items-center gap-2.5 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-                  <CheckCircle2 className="w-4 h-4 shrink-0 text-green-600" />
-                  <p>Verification email sent! Check your inbox.</p>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* ── Invalid ──────────────────────────────────────────────────────── */}
-          {state === "invalid" && (
-            <>
-              <div className="flex justify-center mb-6">
-                <div className="w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center">
-                  <XCircle className="w-10 h-10 text-destructive" />
-                </div>
-              </div>
-              <h1 className="text-2xl font-bold text-foreground mb-3">Invalid link</h1>
-              <p className="text-muted-foreground mb-6 leading-relaxed">
-                This verification link is invalid or has already been used. If you believe this is a mistake, please{" "}
-                <button
-                  className="text-primary hover:underline font-medium"
-                  onClick={() => navigate("/login")}
-                >
-                  go back to login
-                </button>{" "}
-                and request a new verification email.
-              </p>
-            </>
-          )}
-
-        </div>
-
-        {/* Back to login */}
-        <div className="mt-6 text-center">
-          <button
-            id="verify-back-to-login"
-            onClick={() => navigate("/login")}
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Login
-          </button>
-        </div>
-
+    <AuthShell>
+      {/* Logo */}
+      <div className="text-center mb-8">
+        <button onClick={() => navigate("/")} className="inline-flex items-center gap-2 outline-none mb-4" aria-label="MinutesAI home">
+          <AsteriskMark />
+          <span style={{ fontFamily: "var(--font-display)", fontSize: "1.125rem", fontWeight: 600, color: "var(--text-primary)" }}>
+            MinutesAI
+          </span>
+        </button>
       </div>
-    </div>
+
+      <div className="card-surface p-8 text-center">
+        {/* Icon */}
+        <div
+          className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
+          style={{ background: stateConfig.iconBg, border: `2px solid ${stateConfig.iconBorder}` }}
+        >
+          {stateConfig.icon}
+        </div>
+
+        <h1 className="display-sm mb-3" style={{ color: "var(--text-primary)" }}>{stateConfig.title}</h1>
+        <p className="body-base mb-6">{stateConfig.desc}</p>
+
+        {/* Success: redirect note + go to login button */}
+        {state === "success" && (
+          <>
+            <p className="body-sm mb-5">Redirecting you to the login page…</p>
+            <button
+              id="verify-success-login-btn"
+              onClick={() => navigate("/login", { state: { verifiedSuccess: true }, replace: true })}
+              className="btn-accent w-full py-2.5 rounded-lg"
+              style={{ borderRadius: "var(--radius-md)" }}
+            >
+              Go to Login
+            </button>
+          </>
+        )}
+
+        {/* Expired: resend form */}
+        {state === "expired" && (
+          !resendSent ? (
+            <form onSubmit={handleResend} className="space-y-4 text-left mt-2">
+              <div>
+                <label
+                  htmlFor="resend-email"
+                  style={{ fontFamily: "var(--font-body)", fontSize: "0.8125rem", fontWeight: 500, color: "var(--text-secondary)", display: "block", marginBottom: "0.375rem" }}
+                >
+                  Your email address
+                </label>
+                <Input
+                  id="resend-email"
+                  type="email"
+                  placeholder="jane@example.com"
+                  value={resendEmail}
+                  onChange={(e) => setResendEmail(e.target.value)}
+                  disabled={isResending}
+                  required
+                  className="input-dark"
+                />
+              </div>
+              <button
+                id="verify-expired-resend-btn"
+                type="submit"
+                disabled={isResending || !resendEmail.trim()}
+                className="btn-accent w-full py-2.5 rounded-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                style={{ borderRadius: "var(--radius-md)" }}
+              >
+                {isResending
+                  ? <span className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" />Sending…</span>
+                  : "Send new verification link"
+                }
+              </button>
+            </form>
+          ) : (
+            <div
+              className="flex items-center gap-2.5 rounded-lg border px-4 py-3 text-sm mt-2 animate-fade-in"
+              style={{ background: "rgba(52,199,89,0.08)", borderColor: "rgba(52,199,89,0.25)", color: "#34C759" }}
+            >
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <p style={{ color: "var(--text-secondary)" }}>Verification email sent! Check your inbox.</p>
+            </div>
+          )
+        )}
+
+        {/* Invalid: link to login */}
+        {state === "invalid" && (
+          <button
+            onClick={() => navigate("/login")}
+            className="btn-accent w-full py-2.5 rounded-lg"
+            style={{ borderRadius: "var(--radius-md)" }}
+          >
+            Go to Login
+          </button>
+        )}
+      </div>
+
+      {/* Back to login */}
+      <div className="mt-6 text-center">
+        <button
+          id="verify-back-to-login"
+          onClick={() => navigate("/login")}
+          className="inline-flex items-center gap-1.5 text-sm transition-colors"
+          style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-body)" }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-tertiary)")}
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Login
+        </button>
+      </div>
+    </AuthShell>
   );
 };
 
