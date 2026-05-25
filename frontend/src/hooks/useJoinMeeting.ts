@@ -123,7 +123,7 @@ export const useJoinMeeting = (token: string): UseJoinMeetingResult => {
     setError(null);
 
     try {
-      const isAuthenticated = !!localStorage.getItem('auth_token');
+      const isAuthenticated = !!localStorage.getItem('auth_token') || !!sessionStorage.getItem('auth_token');
       const requiresAuth = validation?.requiresAuth || meeting?.requiresAuthentication;
       
       // If not logged in and authentication is not required, or if already logged in
