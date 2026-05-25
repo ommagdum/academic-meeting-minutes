@@ -93,11 +93,7 @@ const CreateMeeting = () => {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10 animate-fade-in">
-      <div className="mb-10 text-center">
-        <h1 className="display-sm mb-2" style={{ color: "var(--text-primary)" }}>Create New Meeting</h1>
-        <p className="body-base">Set up your meeting with AI-powered documentation and participant management.</p>
-      </div>
-      
+
       <MultiStepMeetingForm onSubmit={handleSubmit} onCancel={handleCancel} />
 
       {isProcessing && (
