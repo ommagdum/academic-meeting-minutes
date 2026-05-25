@@ -1,113 +1,165 @@
-import { Upload, Cog, Download, ArrowRight, Clock, CheckCircle2 } from "lucide-react";
-import dashboardPreview from "@/assets/dashboard-preview.jpg";
+import { Upload, Cog, Download } from "lucide-react";
+import { useInView } from "@/hooks/useInView";
 
 const steps = [
   {
-    step: "01",
+    num: "01",
     icon: Upload,
-    title: "Upload Audio",
-    description: "Drag and drop meeting recordings in multiple formats.",
-    features: ["MP3, WAV, M4A", "Batch uploads", "Secure storage"],
-    time: "< 30 seconds"
+    title: "Upload Your Audio",
+    description:
+      "Drag and drop meeting recordings in any common format. Batch upload supported — process multiple sessions at once.",
+    tags: ["MP3, WAV, M4A", "Batch uploads", "Secure cloud storage"],
+    time: "< 30 sec",
   },
   {
-    step: "02", 
+    num: "02",
     icon: Cog,
-    title: "AI Processing",
-    description: "Whisper transcribes, Mistral 7B extracts key information.",
-    features: ["Speech-to-text", "Content analysis", "Structure generation"],
-    time: "2-5 minutes"
+    title: "AI Does the Work",
+    description:
+      "Whisper transcribes with high accuracy. Mistral 7B then extracts decisions, action items, and agenda outcomes.",
+    tags: ["Speech-to-text", "Content analysis", "Structure generation"],
+    time: "2 – 5 min",
   },
   {
-    step: "03",
+    num: "03",
     icon: Download,
     title: "Minutes Ready",
-    description: "Download professional minutes with task tracking.",
-    features: ["PDF/DOCX formats", "Action items", "Instant sharing"],
-    time: "Instant"
-  }
+    description:
+      "Download polished, formatted minutes in PDF or DOCX. Action items auto-tracked. Share in one click.",
+    tags: ["PDF & DOCX", "Action items", "Instant sharing"],
+    time: "Instant",
+  },
 ];
 
 const HowItWorksSection = () => {
+  const headingRef = useInView<HTMLDivElement>();
+
   return (
-    <section className="py-24 bg-subtle-gradient">
-      <div className="container mx-auto px-4">
-        {/* Header */}
-        <div className="text-center mb-16 animate-fade-up">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-medium mb-4">
-            <Cog className="w-4 h-4" />
-            Simple 3-Step Process
-          </div>
-          <h2 className="text-section-title mb-6">
-            Audio to Minutes
-            <span className="block text-primary">in 3 Simple Steps</span>
+    <section
+      className="py-32"
+      style={{ background: "var(--surface)" }}
+      aria-labelledby="how-it-works-heading"
+    >
+      <div className="max-w-7xl mx-auto px-6">
+
+        {/* ── Section header ─────────────────────────────── */}
+        <div ref={headingRef} className="reveal text-center mb-24">
+          <p className="label-caps mb-5">How It Works</p>
+          <h2
+            id="how-it-works-heading"
+            className="display-md mx-auto max-w-2xl"
+            style={{ color: "var(--text-primary)" }}
+          >
+            Audio to minutes{" "}
+            <span style={{ color: "#0071E3" }}>in three steps</span>
           </h2>
-          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Streamlined AI process transforms recordings into professional documentation automatically.
-          </p>
         </div>
 
-        {/* Process Steps */}
-        <div className="max-w-6xl mx-auto mb-20">
-          <div className="grid lg:grid-cols-3 gap-8 lg:gap-12">
-            {steps.map((step, index) => (
-              <div key={step.step} className="relative animate-fade-up" style={{ animationDelay: `${0.2 * index}s` }}>
-                {/* Connection Line */}
-                {index < steps.length - 1 && (
-                  <div className="hidden lg:block absolute top-16 left-full w-12 h-0.5 bg-gradient-to-r from-primary/50 to-primary/20 z-0">
-                    <ArrowRight className="absolute -right-2 -top-2 w-4 h-4 text-primary/50" />
-                  </div>
-                )}
-                
-                <div className="card-academic relative z-10">
-                  {/* Step Number */}
-                  <div className="absolute -top-4 -left-4 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
-                    {step.step}
-                  </div>
-                  
+        {/* ── Steps ──────────────────────────────────────── */}
+        <div className="flex flex-col gap-0">
+          {steps.map((step, index) => {
+            // eslint-disable-next-line react-hooks/rules-of-hooks
+            const ref = useInView<HTMLDivElement>();
+            const isRight = index % 2 === 1;
+
+            return (
+              <div
+                key={step.num}
+                ref={ref}
+                className={`reveal grid lg:grid-cols-2 gap-16 items-center py-16 border-b ${
+                  index === steps.length - 1 ? "border-transparent" : ""
+                }`}
+                style={{
+                  borderColor: "var(--border-subtle)",
+                  animationDelay: `${index * 120}ms`,
+                }}
+              >
+                {/* ── Editorial number (alternates sides on desktop) ─ */}
+                <div className={`flex items-center gap-10 ${isRight ? "lg:order-2" : ""}`}>
+                  {/* Giant step number */}
+                  <span
+                    className="hidden sm:block select-none flex-shrink-0"
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontSize: "clamp(5rem, 12vw, 9rem)",
+                      fontWeight: 700,
+                      lineHeight: 1,
+                      color: "rgba(255,255,255,0.04)",
+                      letterSpacing: "-0.04em",
+                    }}
+                    aria-hidden="true"
+                  >
+                    {step.num}
+                  </span>
+
                   {/* Content */}
-                  <div className="pt-4">
-                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                      <step.icon className="w-6 h-6 text-primary" />
-                    </div>
-                    
-                    <h3 className="text-feature-title mb-3">{step.title}</h3>
-                    <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
-                      {step.description}
-                    </p>
-                    
-                    {/* Features */}
-                    <div className="space-y-2 mb-4">
-                      {step.features.map((feature) => (
-                        <div key={feature} className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <CheckCircle2 className="w-3 h-3 text-primary" />
-                          {feature}
-                        </div>
+                  <div className="flex-1">
+                    {/* Mobile: show step number inline */}
+                    <span
+                      className="inline-block sm:hidden text-4xl font-bold mr-3 opacity-20 select-none"
+                      style={{ fontFamily: "var(--font-display)" }}
+                      aria-hidden="true"
+                    >
+                      {step.num}
+                    </span>
+
+                    <h3
+                      className="display-sm mb-4"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      {step.title}
+                    </h3>
+                    <p className="body-base mb-6 max-w-sm">{step.description}</p>
+
+                    {/* Tags */}
+                    <div className="flex flex-wrap gap-2">
+                      {step.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="badge badge-draft text-xs"
+                          style={{ fontFamily: "var(--font-body)" }}
+                        >
+                          {tag}
+                        </span>
                       ))}
-                    </div>
-                    
-                    {/* Time */}
-                    <div className="flex items-center gap-2 px-3 py-1 bg-secondary/20 text-secondary-foreground rounded-full text-xs font-medium w-fit">
-                      <Clock className="w-3 h-3" />
-                      {step.time}
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
 
-        {/* Dashboard Section - Image Removed */}
-        <div className="animate-fade-up" style={{ animationDelay: '0.6s' }}>
-          <div className="text-center mb-8">
-            <h3 className="text-2xl font-semibold text-foreground mb-4">
-              Meeting Management Dashboard
-            </h3>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Track meetings, monitor tasks, and access your institutional archive.
-            </p>
-          </div>
+                {/* ── Icon card ──────────────────────────────────── */}
+                <div className={`flex justify-center ${isRight ? "lg:order-1" : ""}`}>
+                  <div
+                    className="w-56 h-56 rounded-2xl flex flex-col items-center justify-center gap-5 glass hover-lift"
+                    style={{
+                      border: "1px solid var(--border-subtle)",
+                      background: "var(--surface-raised)",
+                    }}
+                  >
+                    <div
+                      className="w-16 h-16 rounded-xl flex items-center justify-center"
+                      style={{
+                        background: "rgba(0,113,227,0.12)",
+                        border: "1px solid rgba(0,113,227,0.2)",
+                      }}
+                    >
+                      <step.icon className="w-8 h-8" style={{ color: "#0071E3" }} />
+                    </div>
+                    <span
+                      className="text-sm font-medium px-4 py-1 rounded-pill"
+                      style={{
+                        fontFamily: "var(--font-body)",
+                        background: "rgba(0,113,227,0.1)",
+                        color: "#0071E3",
+                        border: "1px solid rgba(0,113,227,0.2)",
+                      }}
+                    >
+                      {step.time}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>

@@ -1,133 +1,155 @@
 import { TrendingUp, Clock, Target, Shield, Users, Archive } from "lucide-react";
+import { useInView } from "@/hooks/useInView";
+
+const stats = [
+  {
+    metric: "80%",
+    label: "Less Time",
+    desc: "From 3-hour manual effort to 15-minute review",
+    icon: Clock,
+  },
+  {
+    metric: "95%+",
+    label: "Accuracy",
+    desc: "Key point and action item extraction rate",
+    icon: Target,
+  },
+  {
+    metric: "5×",
+    label: "Productivity",
+    desc: "More strategic focus during your meetings",
+    icon: TrendingUp,
+  },
+];
 
 const benefits = [
   {
-    icon: Clock,
-    metric: "80%",
-    title: "Time Saved",
-    description: "Reduce documentation time from hours to minutes.",
-    comparison: "From 3 hours to 15 minutes"
-  },
-  {
-    icon: Target,
-    metric: "100%",
-    title: "Accuracy",
-    description: "Eliminate errors with consistent AI formatting.",
-    comparison: "Zero missed action items"
-  },
-  {
-    icon: TrendingUp,
-    metric: "5x",
-    title: "Productivity",
-    description: "Focus on discussions, not documentation.",
-    comparison: "More strategic meeting time"
-  },
-  {
     icon: Users,
-    metric: "24/7",
-    title: "Access",
-    description: "Searchable archives accessible to all members.",
-    comparison: "End document hunting"
+    title: "Role-Based Access",
+    description:
+      "Owner, participant, and viewer roles keep sensitive content in the right hands.",
   },
   {
     icon: Shield,
-    metric: "Secure",
-    title: "Protection",
-    description: "Enterprise-grade security for sensitive data.",
-    comparison: "Bank-level encryption"
+    title: "Enterprise Security",
+    description:
+      "Encrypted at rest and in transit. Designed for institutional compliance.",
   },
   {
     icon: Archive,
-    metric: "∞",
-    title: "Memory",
-    description: "Searchable knowledge base preserves context.",
-    comparison: "Never lose meeting history"
-  }
+    title: "Infinite Memory",
+    description:
+      "Searchable, indexed archive preserves every meeting's context forever.",
+  },
 ];
 
 const BenefitsSection = () => {
+  const headingRef = useInView<HTMLDivElement>();
+  const statsRef   = useInView<HTMLDivElement>(0.1);
+  const cardsRef   = useInView<HTMLDivElement>(0.1);
+
   return (
-    <section className="py-24 bg-background">
-      <div className="container mx-auto px-4">
-        {/* Header */}
-        <div className="text-center mb-16 animate-fade-up">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-secondary/10 text-secondary-foreground rounded-full text-sm font-medium mb-4">
-            <TrendingUp className="w-4 h-4" />
-            Quantified Impact
-          </div>
-          <h2 className="text-section-title mb-6">
-            Measurable Impact for
-            <span className="block text-primary">Academic Teams</span>
+    <section
+      className="py-32"
+      style={{ background: "var(--bg)" }}
+      aria-labelledby="benefits-heading"
+    >
+      <div className="max-w-7xl mx-auto px-6">
+
+        {/* ── Section header ─────────────────────────────── */}
+        <div ref={headingRef} className="reveal text-center mb-20">
+          <p className="label-caps mb-5">Benefits</p>
+          <h2
+            id="benefits-heading"
+            className="display-md mx-auto max-w-2xl mb-5"
+            style={{ color: "var(--text-primary)" }}
+          >
+            Measurable impact for{" "}
+            <span style={{ color: "#0071E3" }}>academic teams</span>
           </h2>
-          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Quantified improvements in efficiency, accuracy, and institutional knowledge management.
+          <p className="body-lg max-w-xl mx-auto">
+            Quantified improvements in efficiency, accuracy, and institutional
+            knowledge management.
           </p>
         </div>
 
-        {/* Benefits Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-          {benefits.map((benefit, index) => (
-            <div 
-              key={benefit.title}
-              className="card-academic group text-center animate-fade-up"
-              style={{ animationDelay: `${0.1 * index}s` }}
-            >
-              {/* Icon */}
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-primary/20 transition-colors">
-                <benefit.icon className="w-8 h-8 text-primary" />
+        {/* ── Big stat numbers ───────────────────────────── */}
+        <div
+          ref={statsRef}
+          className="reveal grid md:grid-cols-3 gap-5 mb-16"
+        >
+          {stats.map((stat, i) => {
+            return (
+              <div
+                key={stat.metric}
+                className="card-raised rounded-2xl p-8 text-center hover-lift hover-glow"
+                style={{ animationDelay: `${i * 80}ms` }}
+              >
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-6"
+                  style={{
+                    background: "rgba(0,113,227,0.12)",
+                    border: "1px solid rgba(0,113,227,0.2)",
+                  }}
+                >
+                  <stat.icon className="w-6 h-6" style={{ color: "#0071E3" }} />
+                </div>
+                <div
+                  className="mb-1"
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontSize: "clamp(2.5rem, 6vw, 3.5rem)",
+                    fontWeight: 700,
+                    lineHeight: 1,
+                    color: "#0071E3",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  {stat.metric}
+                </div>
+                <div
+                  className="text-lg font-semibold mb-2"
+                  style={{ fontFamily: "var(--font-display)", color: "var(--text-primary)" }}
+                >
+                  {stat.label}
+                </div>
+                <p className="body-sm">{stat.desc}</p>
               </div>
-              
-              {/* Metric */}
-              <div className="text-4xl font-bold text-primary mb-2">{benefit.metric}</div>
-              
-              {/* Title */}
-              <h3 className="text-feature-title mb-4">{benefit.title}</h3>
-              
-              {/* Description */}
-              <p className="text-muted-foreground text-sm mb-4 leading-relaxed">
-                {benefit.description}
-              </p>
-              
-              {/* Comparison */}
-              <div className="px-4 py-2 bg-secondary/10 text-secondary-foreground rounded-lg text-xs font-medium">
-                {benefit.comparison}
+            );
+          })}
+        </div>
+
+        {/* ── Benefit cards row ──────────────────────────── */}
+        <div
+          ref={cardsRef}
+          className="reveal grid md:grid-cols-3 gap-5"
+        >
+          {benefits.map((b, i) => (
+            <div
+              key={b.title}
+              className="card-surface p-6 flex gap-5 hover-lift"
+              style={{ animationDelay: `${i * 80}ms` }}
+            >
+              <div
+                className="w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center mt-0.5"
+                style={{
+                  background: "rgba(0,113,227,0.1)",
+                  border: "1px solid rgba(0,113,227,0.18)",
+                }}
+              >
+                <b.icon className="w-5 h-5" style={{ color: "#0071E3" }} />
+              </div>
+              <div>
+                <h3
+                  className="font-semibold mb-1.5"
+                  style={{ fontFamily: "var(--font-display)", color: "var(--text-primary)", fontSize: "1rem" }}
+                >
+                  {b.title}
+                </h3>
+                <p className="body-sm">{b.description}</p>
               </div>
             </div>
           ))}
-        </div>
-
-        {/* Impact Summary */}
-        <div className="max-w-4xl mx-auto animate-fade-up" style={{ animationDelay: '0.6s' }}>
-          <div className="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-2xl p-8 border border-primary/10">
-            <div className="text-center mb-8">
-              <h3 className="text-2xl font-semibold text-foreground mb-4">
-                Built for Academic Excellence
-              </h3>
-              <p className="text-muted-foreground">
-                Designed specifically for academic institutions and research teams.
-              </p>
-            </div>
-            
-            <div className="grid md:grid-cols-3 gap-8 text-center">
-              <div className="space-y-2">
-                <div className="text-sm text-muted-foreground">Processing Time</div>
-                <div className="text-3xl font-bold text-primary">2-5 min</div>
-                <div className="text-xs text-muted-foreground">Average duration</div>
-              </div>
-              
-              <div className="space-y-2">
-                <div className="text-sm text-muted-foreground">Accuracy Rate</div>
-                <div className="text-3xl font-bold text-secondary">95%+</div>
-                <div className="text-xs text-muted-foreground">Key point extraction</div>
-              </div>
-              
-              <div className="space-y-2">
-                <div className="text-sm text-muted-foreground">Supported Formats</div>
-                <div className="text-3xl font-bold text-foreground">10+</div>
-                <div className="text-xs text-muted-foreground">Audio & output formats</div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </section>

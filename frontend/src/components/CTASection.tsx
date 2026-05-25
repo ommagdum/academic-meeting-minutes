@@ -1,134 +1,103 @@
-import { Button } from "@/components/ui/button";
-import { ArrowRight, Mail, Calendar, Users, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { ArrowRight, Mail } from "lucide-react";
+import { useInView } from "@/hooks/useInView";
 
 const CTASection = () => {
   const navigate = useNavigate();
+  const ref = useInView<HTMLDivElement>(0.15);
 
   return (
-    <section className="py-24 bg-hero-gradient text-primary-foreground">
-      <div className="container mx-auto px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          {/* Main CTA */}
-          <div className="mb-16 animate-fade-up">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              Academic Meeting Minutes
-              <span className="block">Extractor Project</span>
-            </h2>
-            <p className="text-xl opacity-90 mb-8 max-w-3xl mx-auto leading-relaxed">
-              Final year engineering project demonstrating AI-powered meeting documentation 
-              for academic institutions.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                size="lg" 
-                variant="secondary" 
-                className="btn-secondary group"
-                onClick={() => navigate("/create-meeting")}
-              >
-                <Calendar className="w-5 h-5 mr-2" />
-                Create Meeting
-                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-              </Button>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="bg-white text-black border-white hover:bg-transparent hover:text-white"
-                onClick={() => {
-                  window.location.href = 'mailto:team.meetingminutes@gmail.com';
-                }}
-              >
-                <Mail className="w-5 h-5 mr-2" />
-                Contact Team
-              </Button>
-            </div>
+    <section
+      className="py-32 relative overflow-hidden"
+      style={{ background: "var(--surface)" }}
+      aria-labelledby="cta-heading"
+    >
+      {/* ── Accent border top ──────────────────────────── */}
+      <div
+        className="absolute top-0 left-0 right-0 h-px"
+        style={{
+          background:
+            "linear-gradient(90deg, transparent, rgba(0,113,227,0.5), transparent)",
+        }}
+        aria-hidden="true"
+      />
+
+      {/* ── Subtle radial glow from center ─────────────── */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(ellipse 60% 50% at 50% 100%, rgba(0,113,227,0.1), transparent)",
+        }}
+        aria-hidden="true"
+      />
+
+      <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
+        <div ref={ref} className="reveal">
+
+          {/* ── Headline ───────────────────────────────── */}
+          <p className="label-caps mb-6">Get Started</p>
+          <h2
+            id="cta-heading"
+            className="display-lg mb-6"
+            style={{ color: "var(--text-primary)" }}
+          >
+            Transform the way your
+            <br />
+            <span style={{ color: "#0071E3" }}>institution meets.</span>
+          </h2>
+
+          <p className="body-lg max-w-lg mx-auto mb-10">
+            Join hundreds of academic teams already saving hours every week
+            with AI-powered meeting minutes.
+          </p>
+
+          {/* ── CTAs ───────────────────────────────────── */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
+            <button
+              onClick={() => navigate("/auth")}
+              className="btn-accent text-base px-10 py-3.5 flex items-center gap-2"
+            >
+              Start for Free
+              <ArrowRight className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => { window.location.href = "mailto:team.meetingminutes@gmail.com"; }}
+              className="btn-ghost text-base px-10 py-3.5 flex items-center gap-2"
+            >
+              <Mail className="w-4 h-4" />
+              Contact Team
+            </button>
           </div>
 
-          {/* Features Grid */}
-          <div className="grid md:grid-cols-3 gap-8 mb-16 animate-fade-up" style={{ animationDelay: '0.2s' }}>
-            <div className="text-center">
-              <div className="w-12 h-12 bg-primary-foreground/10 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <Users className="w-6 h-6" />
-              </div>
-              <h3 className="font-semibold mb-2">Multi-User Access</h3>
-              <p className="text-sm opacity-80">Owner, participant, and viewer roles for secure collaboration</p>
-            </div>
-            <div className="text-center">
-              <div className="w-12 h-12 bg-primary-foreground/10 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <CheckCircle2 className="w-6 h-6" />
-              </div>
-              <h3 className="font-semibold mb-2">Task Tracking</h3>
-              <p className="text-sm opacity-80">Automatic action item detection and progress monitoring</p>
-            </div>
-            <div className="text-center">
-              <div className="w-12 h-12 bg-primary-foreground/10 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <ArrowRight className="w-6 h-6" />
-              </div>
-              <h3 className="font-semibold mb-2">Meeting Series</h3>
-              <p className="text-sm opacity-80">Organize related meetings and maintain institutional continuity</p>
-            </div>
-          </div>
-
-          {/* Project Details */}
-          <div className="bg-primary-foreground/10 rounded-2xl p-8 mb-12 animate-fade-up" style={{ animationDelay: '0.4s' }}>
-            <h3 className="text-2xl font-semibold mb-6">Project Capabilities</h3>
-            <div className="grid md:grid-cols-2 gap-6 text-left">
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-secondary" />
-                  <span>Multi-format audio processing</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-secondary" />
-                  <span>AI-powered content extraction</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-secondary" />
-                  <span>Professional document generation</span>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-secondary" />
-                  <span>Task tracking & management</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-secondary" />
-                  <span>Meeting series organization</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-secondary" />
-                  <span>Secure role-based access</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Contact Information */}
-          <div className="animate-fade-up" style={{ animationDelay: '0.6s' }}>
-            <div className="text-sm opacity-90 mb-4">
-              Final Year Project by 
-              {' '}
-              <a href="https://www.linkedin.com/in/om-ml-engg/" className="underline hover:opacity-80" target="_blank">Om</a>,
-              {' '}
-              <a href="https://www.linkedin.com/in/aniket-magdum-50187028a/" className="underline hover:opacity-80" target="_blank">Aniket</a>,
-              {' '}
-              <a href="https://www.linkedin.com/in/shreyash-kurade-b46004373/" className="underline hover:opacity-80" target="_blank">Shreyash</a>
-              {' '}
-              &
-              {' '}
-              <a href="https://www.linkedin.com/in/prasanna-bhosale-429b82395/" className="underline hover:opacity-80" target="_blank">Prassana</a>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center text-sm">
-              <div className="flex items-center gap-2">
-                <Mail className="w-4 h-4" />
-                Engineering Team Project
-              </div>
-              <div className="hidden sm:block">•</div>
-              <div>Academic Innovation in AI</div>
-            </div>
-          </div>
+          {/* ── Credits ────────────────────────────────── */}
+          <p
+            className="body-xs"
+            style={{ color: "var(--text-tertiary)" }}
+          >
+            A final-year engineering project by{" "}
+            {[
+              { name: "Om", url: "https://www.linkedin.com/in/om-ml-engg/" },
+              { name: "Aniket", url: "https://www.linkedin.com/in/aniket-magdum-50187028a/" },
+              { name: "Shreyash", url: "https://www.linkedin.com/in/shreyash-kurade-b46004373/" },
+              { name: "Prasanna", url: "https://www.linkedin.com/in/prasanna-bhosale-429b82395/" },
+            ].map((p, i, arr) => (
+              <span key={p.name}>
+                <a
+                  href={p.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="transition-colors duration-150 underline underline-offset-2"
+                  style={{ color: "var(--text-secondary)" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = "#0071E3")}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
+                >
+                  {p.name}
+                </a>
+                {i < arr.length - 1 ? ", " : ""}
+              </span>
+            ))}
+          </p>
         </div>
       </div>
     </section>

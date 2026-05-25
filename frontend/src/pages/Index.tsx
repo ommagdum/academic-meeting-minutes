@@ -7,9 +7,10 @@ import CTASection from "@/components/CTASection";
 
 const Index = () => {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" style={{ background: "var(--bg)" }}>
       <Header />
       <main>
+        {/* HeroSection accounts for its own top padding (pt-32) */}
         <HeroSection />
         <section id="features">
           <FeaturesSection />
