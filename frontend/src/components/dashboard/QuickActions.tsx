@@ -16,7 +16,7 @@ export const QuickActions = () => {
       title: "Search Meetings",
       description: "Find meetings, transcripts, and more",
       icon: Search,
-      onClick: () => navigate('/search'),
+      onClick: () => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true })),
       isAccent: false,
     },
     {
@@ -31,13 +31,6 @@ export const QuickActions = () => {
       description: "Browse your meeting history",
       icon: Users,
       onClick: () => navigate('/meetings'),
-      isAccent: false,
-    },
-    {
-      title: "Settings",
-      description: "Manage your preferences",
-      icon: Settings,
-      onClick: () => navigate('/settings'),
       isAccent: false,
     },
   ];

@@ -194,10 +194,14 @@ const Dashboard = () => {
                 style={{ background: "var(--surface-raised)", border: "1px solid var(--border-subtle)" }}
               >
                 <div 
-                  className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold"
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold overflow-hidden"
                   style={{ background: "rgba(0,113,227,0.15)", color: "#0071E3" }}
                 >
-                  {getUserInitials(user?.name)}
+                  {user?.profilePictureUrl ? (
+                    <img src={user.profilePictureUrl} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    getUserInitials(user?.name)
+                  )}
                 </div>
                 <span className="hidden sm:block text-sm font-medium" style={{ color: "var(--text-primary)" }}>
                   {user?.name || 'User'}
