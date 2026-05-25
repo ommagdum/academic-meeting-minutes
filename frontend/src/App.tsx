@@ -21,6 +21,8 @@ import JoinMeeting from "./pages/JoinMeeting";
 import Profile from "./pages/Profile";
 import CheckEmailPage from "./pages/CheckEmailPage";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +33,8 @@ const Root = () => (
       <Route path="/" element={<Index />} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/login" element={<Auth />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/oauth2/redirect" element={<OAuthRedirect />} />
       <Route
         path="/dashboard"

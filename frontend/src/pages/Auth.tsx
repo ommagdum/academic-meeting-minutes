@@ -164,8 +164,17 @@ const Auth = () => {
       setError("Please fill in all fields.");
       return;
     }
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
+    const passwordValidation = {
+      length: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /[0-9]/.test(password),
+      special: /[@$!%*?&#]/.test(password),
+    };
+    const isPasswordValid = Object.values(passwordValidation).every(Boolean);
+
+    if (!isPasswordValid) {
+      setError("Please ensure your password meets all requirements.");
       return;
     }
 
@@ -339,6 +348,16 @@ const Auth = () => {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                <div className="flex justify-end mt-1">
+                  <button
+                    type="button"
+                    onClick={() => navigate("/forgot-password")}
+                    className="text-xs text-primary font-medium hover:underline"
+                    tabIndex={-1}
+                  >
+                    Forgot password?
+                  </button>
+                </div>
               </div>
 
               {/* Email not verified banner — info style (amber/blue, not red) */}
@@ -474,6 +493,25 @@ const Auth = () => {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                {password.length > 0 && (
+                  <div className="text-xs space-y-1 mt-2">
+                    <p className={password.length >= 8 ? "text-green-600" : "text-muted-foreground"}>
+                      {password.length >= 8 ? "✓" : "○"} At least 8 characters
+                    </p>
+                    <p className={/[A-Z]/.test(password) ? "text-green-600" : "text-muted-foreground"}>
+                      {/[A-Z]/.test(password) ? "✓" : "○"} One uppercase letter
+                    </p>
+                    <p className={/[a-z]/.test(password) ? "text-green-600" : "text-muted-foreground"}>
+                      {/[a-z]/.test(password) ? "✓" : "○"} One lowercase letter
+                    </p>
+                    <p className={/[0-9]/.test(password) ? "text-green-600" : "text-muted-foreground"}>
+                      {/[0-9]/.test(password) ? "✓" : "○"} One number
+                    </p>
+                    <p className={/[@$!%*?&#]/.test(password) ? "text-green-600" : "text-muted-foreground"}>
+                      {/[@$!%*?&#]/.test(password) ? "✓" : "○"} One special character (@$!%*?&#)
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Error banner */}

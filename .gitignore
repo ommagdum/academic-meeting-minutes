@@ -50,3 +50,4 @@ Thumbs.db
 docker-compose.override.yml
 implementation_plan.md
 ai-service/services/__pycache__/transcription_service.cpython-312.pyc
+ai-service/services/__pycache__/transcription_service.cpython-312.pyc

@@ -243,6 +243,24 @@ export const authService = {
     await api.post('/api/auth/resend-verification', { email });
   },
 
+  /**
+   * Request a password reset link.
+   * POST /api/auth/forgot-password
+   */
+  forgotPassword: async (email: string): Promise<{ message: string }> => {
+    const response = await api.post('/api/auth/forgot-password', { email });
+    return { message: (response.data as any).message };
+  },
+
+  /**
+   * Reset the password using the token.
+   * POST /api/auth/reset-password
+   */
+  resetPassword: async (token: string, newPassword: string): Promise<{ message: string }> => {
+    const response = await api.post('/api/auth/reset-password', { token, newPassword });
+    return { message: (response.data as any).message };
+  },
+
   getToken: (): string | null => getToken(),
   getProvider: (): AuthProvider => getProvider(),
   isAuthenticated: (): boolean =>
