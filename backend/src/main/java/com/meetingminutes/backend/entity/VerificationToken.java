@@ -28,6 +28,10 @@ public class VerificationToken {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TokenType type;
+
     @Column(nullable = false)
     private LocalDateTime expiryDate;
 
@@ -35,10 +39,16 @@ public class VerificationToken {
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
-    public VerificationToken(String token, User user) {
+    public VerificationToken(String token, User user, TokenType type, int expiryMinutes) {
         this.token = token;
         this.user = user;
-        this.expiryDate = LocalDateTime.now().plusHours(24);
+        this.type = type;
+        this.expiryDate = LocalDateTime.now().plusMinutes(expiryMinutes);
+    }
+
+    public VerificationToken(String token, User user) {
+        // Default to VERIFICATION for backward compatibility
+        this(token, user, TokenType.VERIFICATION, 24 * 60);
     }
 
     public boolean isExpired() {

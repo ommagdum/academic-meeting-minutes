@@ -35,6 +35,8 @@ public class User extends BaseEntity{
     @Column(name = "password_hash")
     private String passwordHash;
 
+    private LocalDateTime passwordChangedAt;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "auth_provider")
     private AuthProvider authProvider = AuthProvider.LOCAL;

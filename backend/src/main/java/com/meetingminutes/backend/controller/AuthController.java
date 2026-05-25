@@ -32,6 +32,7 @@ public class AuthController {
     private final UserService userService;
     private final AuthService authService;
     private final VerificationService verificationService;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     @PostMapping("/register")
     @RateLimiter(name = "authEndpoints")
@@ -142,5 +143,50 @@ public class AuthController {
 
         // Always 200 for security — don't reveal whether email exists
         return ResponseEntity.ok(Map.of("message", "Verification email sent"));
+    }
+
+    /**
+     * POST /api/auth/forgot-password
+     * Sends a password reset link to the given email if it exists.
+     * Always returns 200 to avoid revealing whether an email exists.
+     */
+    @PostMapping("/forgot-password")
+    @RateLimiter(name = "forgotPassword")
+    public ResponseEntity<Map<String, String>> forgotPassword(@Valid @RequestBody com.meetingminutes.backend.dto.ForgotPasswordRequest request) {
+        log.info("Forgot password requested for email: {}", request.getEmail());
+        try {
+            verificationService.forgotPassword(request.getEmail());
+        } catch (ValidationException e) {
+            // e.g. "This account uses Google Sign-In."
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "OAUTH_ACCOUNT", "message", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error sending password reset email: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "EMAIL_SEND_FAILED", "message", "Failed to send password reset email. Please try again."));
+        }
+        
+        return ResponseEntity.ok(Map.of("message", "If an account exists with that email, a password reset link has been sent."));
+    }
+
+    /**
+     * POST /api/auth/reset-password
+     * Resets the password using the token provided in the request.
+     */
+    @PostMapping("/reset-password")
+    @RateLimiter(name = "authEndpoints")
+    public ResponseEntity<Map<String, String>> resetPassword(@Valid @RequestBody com.meetingminutes.backend.dto.ResetPasswordRequest request) {
+        log.info("Password reset attempt with token");
+        try {
+            // Need password encoder to hash the new password
+            verificationService.resetPassword(request.getToken(), request.getNewPassword(), passwordEncoder);
+            return ResponseEntity.ok(Map.of("message", "Password reset successfully. Please log in."));
+        } catch (com.meetingminutes.backend.exception.EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "INVALID_TOKEN", "message", "Invalid password reset link"));
+        } catch (ValidationException e) {
+            return ResponseEntity.status(HttpStatus.GONE)
+                    .body(Map.of("error", "TOKEN_EXPIRED", "message", e.getMessage()));
+        }
     }
 }

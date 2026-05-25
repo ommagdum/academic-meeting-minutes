@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 public class JwtFilterConfig {
 
     @Bean
-    public JwtAuthFilter jwtAuthenticationFilter(JwtService jwtService, CustomUserDetailsService userDetailsService) {
-        return new JwtAuthFilter(jwtService, userDetailsService);
+    public JwtAuthFilter jwtAuthenticationFilter(JwtService jwtService, CustomUserDetailsService userDetailsService, com.meetingminutes.backend.repository.UserRepo userRepo) {
+        return new JwtAuthFilter(jwtService, userDetailsService, userRepo);
     }
 }

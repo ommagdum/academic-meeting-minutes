@@ -87,7 +87,29 @@ public class EmailService {
             throw new RuntimeException("Failed to send verification email. Please try again.", e);
         }
     }
+    /**
+     * Sends a password reset link to a user.
+     */
+    public void sendPasswordResetEmail(User user, String token) {
+        try {
+            String subject = "Reset your password — Academic Meeting Minutes";
+            String resetLink = baseUrl + "/reset-password?token=" + token;
 
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("userName", user.getName());
+            variables.put("resetLink", resetLink);
+            variables.put("expiryMinutes", 15);
+
+            String htmlContent = renderTemplate("password-reset", variables);
+
+            sendEmail(user.getEmail(), subject, htmlContent);
+            logger.info("Password reset email sent to: {}", user.getEmail());
+
+        } catch (Exception e) {
+            logger.error("Failed to send password reset email to: {}", user.getEmail(), e);
+            throw new RuntimeException("Failed to send password reset email. Please try again.", e);
+        }
+    }
     @Async
     public void sendTaskAssignmentNotification(ActionItem actionItem) {
         if (actionItem.getAssignedToUser() != null) {

@@ -92,4 +92,56 @@ public class VerificationService {
         emailService.sendVerificationEmail(user, tokenValue);
         log.info("Verification email resent to: {}", email);
     }
+
+    /**
+     * Creates a password reset token (15 mins expiry) and sends the email.
+     */
+    @Transactional
+    public void forgotPassword(String email) {
+        User user = userRepo.findByEmail(email).orElse(null);
+        if (user == null) {
+            log.warn("Forgot password requested for non-existent email: {}", email);
+            return; // Prevent enumeration
+        }
+
+        if (user.getAuthProvider() == AuthProvider.GOOGLE && user.getPasswordHash() == null) {
+            throw new ValidationException("This account uses Google Sign-In. Please log in with Google instead.");
+        }
+
+        // Delete old password reset tokens
+        verificationTokenRepo.findByUserAndType(user, com.meetingminutes.backend.entity.TokenType.PASSWORD_RESET).ifPresent(existing -> {
+            verificationTokenRepo.delete(existing);
+            verificationTokenRepo.flush();
+        });
+
+        String tokenValue = UUID.randomUUID().toString();
+        VerificationToken token = new VerificationToken(tokenValue, user, com.meetingminutes.backend.entity.TokenType.PASSWORD_RESET, 15);
+        verificationTokenRepo.save(token);
+
+        emailService.sendPasswordResetEmail(user, tokenValue);
+        log.info("Password reset email sent to: {}", email);
+    }
+
+    /**
+     * Resets the password using a valid token.
+     */
+    @Transactional
+    public void resetPassword(String tokenValue, String newPassword, org.springframework.security.crypto.password.PasswordEncoder passwordEncoder) {
+        VerificationToken token = verificationTokenRepo.findByTokenAndType(tokenValue, com.meetingminutes.backend.entity.TokenType.PASSWORD_RESET)
+                .orElseThrow(() -> new EntityNotFoundException("Invalid password reset link"));
+
+        if (token.isExpired()) {
+            verificationTokenRepo.delete(token);
+            log.warn("Expired password reset token used for user: {}", token.getUser().getEmail());
+            throw new ValidationException("This link is invalid or has expired.");
+        }
+
+        User user = token.getUser();
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setPasswordChangedAt(java.time.LocalDateTime.now());
+        userRepo.save(user);
+
+        verificationTokenRepo.delete(token);
+        log.info("Password reset successfully for user: {}", user.getEmail());
+    }
 }

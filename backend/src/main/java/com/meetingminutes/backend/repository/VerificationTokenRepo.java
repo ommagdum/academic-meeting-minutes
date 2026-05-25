@@ -13,7 +13,11 @@ public interface VerificationTokenRepo extends JpaRepository<VerificationToken, 
 
     Optional<VerificationToken> findByToken(String token);
 
+    Optional<VerificationToken> findByTokenAndType(String token, com.meetingminutes.backend.entity.TokenType type);
+
     Optional<VerificationToken> findByUser(User user);
+
+    Optional<VerificationToken> findByUserAndType(User user, com.meetingminutes.backend.entity.TokenType type);
 
     void deleteByUser(User user);
 }
