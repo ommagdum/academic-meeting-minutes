@@ -59,6 +59,15 @@ public class DatabaseIndexConfig {
                 ON meetings(created_by, scheduled_time, created_at)
             """);
 
+            // ─── Data Migration: grandfather existing users as verified ─────────────
+            // Any user created before email verification was enforced is treated as verified.
+            int updatedCount = jdbcTemplate.update(
+                "UPDATE users SET email_verified = true WHERE email_verified = false OR email_verified IS NULL"
+            );
+            if (updatedCount > 0) {
+                log.info("Grandfathered {} existing user(s) as email-verified", updatedCount);
+            }
+
             log.info("PostgreSQL indexes created successfully");
         } catch (Exception e) {
             log.warn("Failed to create PostgreSQL indexes: {}", e.getMessage());

@@ -7,6 +7,7 @@ import com.meetingminutes.backend.dto.UserResponse;
 import com.meetingminutes.backend.entity.AuthProvider;
 import com.meetingminutes.backend.entity.User;
 import com.meetingminutes.backend.entity.UserRole;
+import com.meetingminutes.backend.exception.EmailNotVerifiedException;
 import com.meetingminutes.backend.repository.UserRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,8 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final VerificationService verificationService;
+    private final EmailService emailService;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -41,15 +44,17 @@ public class AuthService {
         user.setRole(UserRole.PARTICIPANT);
         user.setAuthProvider(AuthProvider.LOCAL);
         user.setEmailVerified(false);
-        user.setLastLogin(LocalDateTime.now());
 
         userRepo.save(user);
         log.info("New user registered: {}", user.getEmail());
 
-        String token = jwtService.generateToken(user);
+        // Generate verification token and send email — synchronous so registration fails if email fails
+        String token = verificationService.createVerificationToken(user);
+        emailService.sendVerificationEmail(user, token);
+
+        // Do NOT generate a JWT — user must verify email before logging in
         return AuthResponse.builder()
-                .accessToken(token)
-                .tokenType("Bearer")
+                .message("VERIFICATION_EMAIL_SENT")
                 .user(UserResponse.from(user))
                 .build();
     }
@@ -68,6 +73,11 @@ public class AuthService {
         // Reject Google-only accounts trying to use password login
         if (user.getAuthProvider() == AuthProvider.GOOGLE && user.getPasswordHash() == null) {
             throw new RuntimeException("This account uses Google login. Please sign in with Google.");
+        }
+
+        // Block unverified users from logging in
+        if (!Boolean.TRUE.equals(user.getEmailVerified())) {
+            throw new EmailNotVerifiedException("Please verify your email first. Check your inbox for the verification link.");
         }
 
         user.setLastLogin(LocalDateTime.now());

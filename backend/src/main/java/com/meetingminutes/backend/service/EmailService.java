@@ -63,6 +63,31 @@ public class EmailService {
         }
     }
 
+    /**
+     * Sends an email verification link to a newly registered user.
+     * This is intentionally NOT @Async so registration will fail if the email cannot be sent.
+     */
+    public void sendVerificationEmail(User user, String token) {
+        try {
+            String subject = "Verify your email address — Academic Meeting Minutes";
+            String verificationLink = baseUrl + "/verify-email?token=" + token;
+
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("userName", user.getName());
+            variables.put("verificationLink", verificationLink);
+            variables.put("expiryHours", 24);
+
+            String htmlContent = renderTemplate("email-verification", variables);
+
+            sendEmail(user.getEmail(), subject, htmlContent);
+            logger.info("Verification email sent to: {}", user.getEmail());
+
+        } catch (Exception e) {
+            logger.error("Failed to send verification email to: {}", user.getEmail(), e);
+            throw new RuntimeException("Failed to send verification email. Please try again.", e);
+        }
+    }
+
     @Async
     public void sendTaskAssignmentNotification(ActionItem actionItem) {
         if (actionItem.getAssignedToUser() != null) {

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your Email Address</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: hsl(220, 13%, 96%);
+            color: hsl(224, 15%, 15%);
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: hsl(0, 0%, 100%);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px -2px hsl(224, 76%, 48%, 0.1);
+        }
+
+        .header {
+            background: linear-gradient(135deg, hsl(224, 76%, 48%) 0%, hsl(224, 76%, 35%) 100%);
+            color: hsl(0, 0%, 100%);
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        .header-icon {
+            width: 64px;
+            height: 64px;
+            background-color: hsla(0, 0%, 100%, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px auto;
+        }
+
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 26px;
+            font-weight: 700;
+        }
+
+        .header p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 15px;
+        }
+
+        .content {
+            padding: 36px 30px;
+            line-height: 1.7;
+        }
+
+        .content p {
+            margin: 0 0 16px 0;
+            color: hsl(224, 10%, 35%);
+            font-size: 15px;
+        }
+
+        .highlight-box {
+            background-color: hsl(224, 76%, 97%);
+            border-left: 4px solid hsl(224, 76%, 48%);
+            border-radius: 6px;
+            padding: 16px 20px;
+            margin: 24px 0;
+        }
+
+        .highlight-box p {
+            margin: 0;
+            color: hsl(224, 76%, 35%);
+            font-size: 14px;
+        }
+
+        .cta-center {
+            text-align: center;
+            margin: 32px 0 20px;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, hsl(224, 76%, 48%) 0%, hsl(224, 76%, 35%) 100%);
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
+            text-decoration: none;
+            padding: 16px 40px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 16px;
+            box-shadow: 0 4px 20px -2px hsl(224, 76%, 48%, 0.35);
+        }
+
+        .link-fallback {
+            background-color: hsl(220, 13%, 96%);
+            border: 1px solid hsl(220, 13%, 91%);
+            border-radius: 6px;
+            padding: 14px 18px;
+            margin-top: 24px;
+        }
+
+        .link-fallback p {
+            margin: 0 0 6px 0;
+            font-size: 12px;
+            color: hsl(224, 10%, 45%);
+        }
+
+        .link-fallback a {
+            font-size: 12px;
+            color: hsl(224, 76%, 48%);
+            word-break: break-all;
+        }
+
+        .expiry-note {
+            font-size: 13px;
+            color: hsl(224, 10%, 55%);
+            text-align: center;
+            margin: 12px 0 0;
+        }
+
+        strong {
+            color: hsl(224, 15%, 15%);
+            font-weight: 600;
+        }
+
+        .footer {
+            background-color: hsl(220, 13%, 96%);
+            border-top: 1px solid hsl(220, 13%, 91%);
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: hsl(224, 10%, 45%);
+        }
+
+        .footer p {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <!-- Envelope icon -->
+        <div class="header-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M22 6L12 13L2 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <h1>Verify Your Email</h1>
+        <p>One step away from getting started</p>
+    </div>
+
+    <div class="content">
+        <p>Hello, <strong th:text="${userName}">User</strong>!</p>
+
+        <p>Welcome to <strong>Academic Meeting Minutes Extractor</strong>. To complete your registration and access all features, please verify your email address by clicking the button below.</p>
+
+        <div class="highlight-box">
+            <p>⏱️ This verification link will expire in <strong th:text="${expiryHours}">24</strong> hours. If it expires, you can request a new one from the login page.</p>
+        </div>
+
+        <div class="cta-center">
+            <a th:href="${verificationLink}" class="cta-button">Verify Email Address</a>
+        </div>
+
+        <p class="expiry-note">Link expires in <span th:text="${expiryHours}">24</span> hours</p>
+
+        <div class="link-fallback">
+            <p>If the button above doesn't work, copy and paste this link into your browser:</p>
+            <a th:href="${verificationLink}" th:text="${verificationLink}">Verification URL</a>
+        </div>
+
+        <p style="margin-top: 24px; font-size: 13px; color: hsl(224, 10%, 55%);">
+            If you did not create an account with Academic Meeting Minutes Extractor, you can safely ignore this email.
+        </p>
+    </div>
+
+    <div class="footer">
+        <p>© 2025 Academic Meeting Minutes Extractor. All rights reserved.</p>
+    </div>
+</div>
+</body>
+</html>

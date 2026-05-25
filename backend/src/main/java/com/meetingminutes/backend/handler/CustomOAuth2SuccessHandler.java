@@ -63,7 +63,8 @@ public class CustomOAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHa
 
         user.setGoogleId(googleId);
         user.setProfilePictureUrl(picture);
-        user.setEmailVerified(Boolean.TRUE.equals(emailVerified));
+        // Google OAuth users are always considered email-verified
+        user.setEmailVerified(true);
         user.setLastLogin(LocalDateTime.now());
 
         User savedUser = userRepo.save(user);
