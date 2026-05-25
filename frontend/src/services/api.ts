@@ -111,9 +111,16 @@ api.interceptors.response.use(
       // Only clear auth state for authentication-related endpoints
       // Resource endpoints (like /api/v1/meetings) should handle 401 gracefully
       // without clearing auth state, as they might be permission issues (should be 403)
-      const isAuthEndpoint = requestUrl.includes('/api/auth/') || 
-                             requestUrl.includes('/oauth2/') ||
-                             requestUrl === '/api/auth/me';
+      // /api/auth/login and /api/auth/register return 401 for bad credentials —
+      // that's a normal error response, NOT a session expiry.
+      // Only treat 401 as "session expired" for /api/auth/me and OAuth endpoints.
+      const isCredentialAuthEndpoint =
+        requestUrl === '/api/auth/login' || requestUrl === '/api/auth/register';
+      const isAuthEndpoint =
+        !isCredentialAuthEndpoint &&
+        (requestUrl.includes('/api/auth/') ||
+          requestUrl.includes('/oauth2/') ||
+          requestUrl === '/api/auth/me');
       
       // Only clear auth state if:
       // 1. We have a token (prevents clearing on first load)

@@ -1,145 +1,203 @@
 import api from './api';
 import { User, AuthResponse } from '../types/user';
+import { AuthProvider } from '../types/auth';
 
 const TOKEN_KEY = 'auth_token';
+const PROVIDER_KEY = 'auth_provider';
 
-// Get the current auth token from localStorage
+// ─── Token helpers ─────────────────────────────────────────────────────────────
+// Per backend docs: prefer sessionStorage over localStorage for JWTs.
+// We keep localStorage as fallback so existing Google-auth sessions survive a
+// hard reload — feel free to change both to sessionStorage if stricter security
+// is desired.
+
 export const getToken = (): string | null => {
   try {
-    return localStorage.getItem(TOKEN_KEY);
+    return sessionStorage.getItem(TOKEN_KEY) ?? localStorage.getItem(TOKEN_KEY);
   } catch (error) {
     console.error('Error getting auth token:', error);
     return null;
   }
 };
 
-// Set the auth token in localStorage and configure axios
-// Initialize auth state when the module loads
-const initializeAuth = () => {
-  const token = localStorage.getItem(TOKEN_KEY);
-  if (token) {
-    // Set the token in axios defaults
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-  } else {
-    delete api.defaults.headers.common['Authorization'];
+export const getProvider = (): AuthProvider => {
+  try {
+    const p = sessionStorage.getItem(PROVIDER_KEY) ?? localStorage.getItem(PROVIDER_KEY);
+    return (p as AuthProvider) ?? null;
+  } catch {
+    return null;
   }
 };
 
-// Initialize auth state
-initializeAuth();
-
-export const setAuthToken = (token: string | null): void => {
+export const setAuthToken = (token: string | null, provider: AuthProvider = null): void => {
   if (token) {
-    localStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem('isAuthenticated', 'true');
-    // Update axios defaults
+    sessionStorage.setItem(TOKEN_KEY, token);
+    sessionStorage.setItem('isAuthenticated', 'true');
+    if (provider) sessionStorage.setItem(PROVIDER_KEY, provider);
+    // Mirror to localStorage so Google-OAuth redirect survives the page reload
+    if (provider === 'google') {
+      localStorage.setItem(TOKEN_KEY, token);
+      localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem(PROVIDER_KEY, provider);
+    }
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   } else {
-    // Clear token from localStorage
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem('isAuthenticated');
-    delete api.defaults.headers.common['Authorization'];
+    clearAuthState();
   }
 };
 
 export const clearAuthState = (): void => {
+  sessionStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem('isAuthenticated');
+  sessionStorage.removeItem(PROVIDER_KEY);
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem('isAuthenticated');
+  localStorage.removeItem(PROVIDER_KEY);
+  delete api.defaults.headers.common['Authorization'];
 };
 
-// Get backend API base URL - OAuth endpoints must point to backend, not frontend
-const getBackendBaseUrl = () => {
-  return import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+// ─── Bootstrap ─────────────────────────────────────────────────────────────────
+const initializeAuth = () => {
+  const token = getToken();
+  if (token) {
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    delete api.defaults.headers.common['Authorization'];
+  }
 };
+initializeAuth();
 
+// ─── Backend URL ────────────────────────────────────────────────────────────────
+const getBackendBaseUrl = () =>
+  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+
+// ─── Shared user mapper ─────────────────────────────────────────────────────────
+const mapUser = (userData: any): User => ({
+  id: userData.id || userData.userId || '',
+  email: userData.email || '',
+  name: userData.name || userData.displayName || 'User',
+  profilePictureUrl: userData.profilePictureUrl ?? userData.profilePicture ?? userData.picture ?? null,
+  role: userData.role || 'PARTICIPANT',
+  lastLogin: userData.lastLogin || userData.lastLoginAt || new Date().toISOString(),
+  emailVerified: userData.emailVerified !== undefined ? userData.emailVerified : false,
+  createdAt: userData.createdAt || new Date().toISOString(),
+});
+
+// ─── In-flight dedup guard ──────────────────────────────────────────────────────
 let authCheckInProgress: Promise<User | null> | null = null;
 
+// ─── Auth service ───────────────────────────────────────────────────────────────
 export const authService = {
   /**
-   * Check current authentication status
+   * Register a new user with email + password.
+   * POST /api/auth/register  →  201 Created  →  AuthResponse
+   */
+  register: async (name: string, email: string, password: string): Promise<User> => {
+    const response = await api.post<AuthResponse>('/api/auth/register', { name, email, password });
+    const { accessToken, user } = response.data;
+    setAuthToken(accessToken, 'local');
+    return mapUser(user);
+  },
+
+  /**
+   * Login an existing credential-based user.
+   * POST /api/auth/login  →  200 OK  →  AuthResponse
+   */
+  loginWithCredentials: async (email: string, password: string): Promise<User> => {
+    const response = await api.post<AuthResponse>('/api/auth/login', { email, password });
+    const { accessToken, user } = response.data;
+    setAuthToken(accessToken, 'local');
+    return mapUser(user);
+  },
+
+  /**
+   * Initiate Google OAuth2 login (redirect).
+   */
+  login: (provider: 'google'): void => {
+    const baseUrl = getBackendBaseUrl();
+    if (!localStorage.getItem('redirectAfterLogin')) {
+      const pendingRedirect = localStorage.getItem('pendingRedirect');
+      localStorage.setItem('redirectAfterLogin', pendingRedirect || '/dashboard');
+    }
+    window.location.href = `${baseUrl}/oauth2/authorization/${provider}`;
+  },
+
+  /**
+   * Handle OAuth2 callback — validates and stores the token from the URL.
+   */
+  handleOAuthCallback: async (): Promise<boolean> => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
+      if (!token || !token.includes('.')) {
+        console.error('Invalid token format');
+        clearAuthState();
+        window.location.href = '/login';
+        return false;
+      }
+      setAuthToken(token, 'google');
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+      return true;
+    } catch (error) {
+      console.error('Error handling OAuth callback:', error);
+      clearAuthState();
+      window.location.href = '/login';
+      return false;
+    }
+  },
+
+  /**
+   * Check current authentication status via GET /api/auth/me.
    */
   checkAuth: async (force = false): Promise<User | null> => {
-    // If already checking, return the existing promise
     if (authCheckInProgress && !force) {
       return authCheckInProgress;
     }
-    
-    // First check if we have a token
+
     const token = getToken();
     if (!token) {
-      // Ensure we clear any existing auth state if no token
       clearAuthState();
       return null;
     }
-    
-    // Ensure the token is set in axios defaults
+
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-    // Create a new promise that will handle the auth check
     authCheckInProgress = (async (): Promise<User | null> => {
       try {
-        // Token exists, verify it with the server
         const response = await api.get<any>('/api/auth/me', {
-          headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          },
+          headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
           params: { _: new Date().getTime() },
-          timeout: 10000
+          timeout: 10000,
         });
-        
-        // Log the raw response to debug
+
         console.log('[Auth] Raw API response:', response.data);
-        
-        // Handle response that might be wrapped in a 'data' field
         const userData = (response.data as any)?.data || response.data;
-        
-        // Log the user data structure
         console.log('[Auth] User data:', userData);
-        console.log('[Auth] Profile picture URL:', userData?.profilePictureUrl || userData?.profilePicture || 'NOT FOUND');
-        
+
         if (userData) {
-          // Map the response to User type, handling different possible field names
-          const user: User = {
-            id: userData.id || userData.userId || '',
-            email: userData.email || '',
-            name: userData.name || userData.displayName || 'User',
-            profilePictureUrl: userData.profilePictureUrl || userData.profilePicture || userData.picture || userData.avatar || '',
-            role: userData.role || 'PARTICIPANT',
-            lastLogin: userData.lastLogin || userData.lastLoginAt || new Date().toISOString(),
-            emailVerified: userData.emailVerified !== undefined ? userData.emailVerified : false,
-          };
-          
+          const user = mapUser(userData);
           console.log('[Auth] Mapped user object:', user);
           return user;
         }
-        
-        // No user data in response
         throw new Error('No user data received');
       } catch (error) {
-        const axiosError = error as {
-          response?: { status: number };
-          code?: string;
-          message: string;
-        };
-        
-        // 401 is expected when user is not logged in - don't log as error
+        const axiosError = error as { response?: { status: number }; code?: string; message: string };
         const isUnauthorized = axiosError.response?.status === 401;
-        const isNetworkError = !axiosError.response || 
-                             axiosError.code === 'ECONNABORTED' || 
-                             axiosError.code === 'ERR_NETWORK';
-        
+        const isNetworkError =
+          !axiosError.response ||
+          axiosError.code === 'ECONNABORTED' ||
+          axiosError.code === 'ERR_NETWORK';
+
         if (isUnauthorized) {
           console.log('[Auth] User not authenticated (401)');
           clearAuthState();
         } else if (isNetworkError) {
           console.warn('[Auth] Network error during auth check:', axiosError.message || axiosError.code);
-          // Don't clear state on network errors - might be temporary
           return null;
         } else {
           console.error('[Auth] Check auth failed:', error);
         }
-        
         return null;
       } finally {
         authCheckInProgress = null;
@@ -150,61 +208,7 @@ export const authService = {
   },
 
   /**
-   * Initiate OAuth login
-   * OAuth endpoints must point to the backend, not the frontend
-   */
-  login: (provider: 'google'): void => {
-    const baseUrl = getBackendBaseUrl();
-    
-    // If no redirect intent has been set yet, default to dashboard
-    if (!localStorage.getItem('redirectAfterLogin')) {
-      const pendingRedirect = localStorage.getItem('pendingRedirect');
-      localStorage.setItem('redirectAfterLogin', pendingRedirect || '/dashboard');
-    }
-
-    // Redirect to OAuth provider
-    window.location.href = `${baseUrl}/oauth2/authorization/${provider}`;
-  },
-
-  /**
-   * Handle OAuth callback
-   * Validates and stores the token from URL
-   */
-  handleOAuthCallback: async (): Promise<boolean> => {
-    try {
-      // Get token from URL parameters
-      const urlParams = new URLSearchParams(window.location.search);
-      const token = urlParams.get('token');
-      
-      // Validate token format
-      if (!token || !token.includes('.')) {
-        console.error('Invalid token format');
-        // Clear any invalid tokens and redirect to login
-        clearAuthState();
-        window.location.href = '/login';
-        return false;
-      }
-      
-      // Store the validated token
-      setAuthToken(token);
-      
-      // Clean up the URL by removing the token
-      const cleanUrl = window.location.origin + window.location.pathname;
-      window.history.replaceState({}, document.title, cleanUrl);
-      
-      return true;
-    } catch (error) {
-      console.error('Error handling OAuth callback:', error);
-      // On error, clear auth state and redirect to login
-      clearAuthState();
-      window.location.href = '/login';
-      return false;
-    }
-  },
-
-  /**
-   * Logout user
-   * Clears all auth state including localStorage
+   * Logout — calls POST /api/auth/logout then clears local state.
    */
   logout: async (): Promise<void> => {
     try {
@@ -213,24 +217,12 @@ export const authService = {
       console.error('Logout failed:', error);
     } finally {
       clearAuthState();
-      // Redirect to home page after logout
       window.location.href = '/';
     }
   },
-  
-  /**
-   * Get current auth token
-   */
-  getToken: (): string | null => {
-    return getToken();
-  },
-  
-  /**
-   * Check if user is authenticated
-   * This is a quick check based on localStorage
-   * Use checkAuth() for a full server-side check
-   */
-  isAuthenticated: (): boolean => {
-    return !!localStorage.getItem('isAuthenticated');
-  }
+
+  getToken: (): string | null => getToken(),
+  getProvider: (): AuthProvider => getProvider(),
+  isAuthenticated: (): boolean =>
+    !!(sessionStorage.getItem('isAuthenticated') || localStorage.getItem('isAuthenticated')),
 };
