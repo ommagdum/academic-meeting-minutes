@@ -4,9 +4,6 @@ import { meetingService } from "@/services/meetingService";
 import { Meeting, ProcessingStatus, ActionItem, Attendee } from "@/types/meeting";
 import { TranscriptTab } from "@/components/meeting/TranscriptTab";
 import TaskItem from "@/components/meeting/TaskItem";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ProcessingStatusBanner } from "@/components/meeting/ProcessingStatusBanner";
@@ -25,16 +22,6 @@ const MeetingDetail = () => {
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
   
-  // Log URL parameters when component mounts or meetingId changes
-  useEffect(() => {
-    console.log('[MeetingDetail] Component mounted with URL:', {
-      pathname: window.location.pathname,
-      search: window.location.search,
-      hash: window.location.hash,
-      meetingIdFromParams: meetingId,
-      meetingIdFromURL: window.location.pathname.split('/').pop()
-    });
-  }, [meetingId]);
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [processingStatus, setProcessingStatus] = useState<ProcessingStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,43 +35,26 @@ const MeetingDetail = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
-  // Define loadMeeting first
   const loadMeeting = useCallback(async () => {
-    console.log('[MeetingDetail] loadMeeting called with meetingId:', meetingId);
-    
     if (!meetingId) {
-      console.error('[MeetingDetail] No meeting ID provided');
       setError('No meeting ID provided');
       setIsLoading(false);
       return;
     }
 
     try {
-      console.log('[MeetingDetail] Fetching meeting data...');
       setIsLoading(true);
       setError(null);
-      
-      // Add timestamp to prevent caching
       const timestamp = new Date().getTime();
       const data = await meetingService.getMeeting(`${meetingId}?t=${timestamp}`);
-      console.log('[MeetingDetail] Meeting data received:', data);
       
-      if (!data) {
-        throw new Error('No data received from server');
-      }
-      
+      if (!data) throw new Error('No data received from server');
       setMeeting(data);
-      console.log('[MeetingDetail] Meeting state updated');
 
-      // Always try to get processing status if status is PROCESSING or if we don't have a status yet
       if (data.status === 'PROCESSING' || data.status === 'DRAFT') {
-        console.log('[MeetingDetail] Meeting is processing or in draft, checking status...');
         try {
           const status = await meetingService.getProcessingStatus(meetingId);
-          console.log('[MeetingDetail] Processing status:', status);
           setProcessingStatus(status);
-          
-          // If the status from processing endpoint is different, update the meeting
           if (status.status !== data.status) {
             setMeeting(prev => prev ? { ...prev, status: status.status } : null);
           }
@@ -93,163 +63,88 @@ const MeetingDetail = () => {
         }
       }
     } catch (error) {
-      console.error('[MeetingDetail] Error in loadMeeting:', error);
       const axiosError = error as AxiosError<{ message?: string }>;
       const errorMessage = axiosError.response?.data?.message || axiosError.message || 'Failed to load meeting';
       setError(errorMessage);
       
       if (axiosError.response?.status === 403) {
-        toast({
-          title: "Access Denied",
-          description: "You don't have permission to view this meeting",
-          variant: "destructive",
-        });
+        toast({ title: "Access Denied", description: "You don't have permission to view this meeting", variant: "destructive" });
         navigate('/meetings');
       } else if (axiosError.response?.status === 404) {
-        toast({
-          title: "Meeting Not Found",
-          description: "The requested meeting does not exist or has been deleted",
-          variant: "destructive",
-        });
+        toast({ title: "Meeting Not Found", description: "The requested meeting does not exist or has been deleted", variant: "destructive" });
         navigate('/meetings');
       } else if (axiosError.response?.status === 401) {
-        toast({
-          title: "Session Expired",
-          description: "Please log in again to continue",
-          variant: "destructive",
-        });
+        toast({ title: "Session Expired", description: "Please log in again to continue", variant: "destructive" });
         navigate('/login');
       } else {
-        toast({
-          title: 'Error Loading Meeting',
-          description: errorMessage,
-          variant: 'destructive',
-        });
+        toast({ title: 'Error Loading Meeting', description: errorMessage, variant: 'destructive' });
       }
     } finally {
-      console.log('[MeetingDetail] Setting isLoading to false');
       setIsLoading(false);
     }
   }, [meetingId, navigate, toast]);
 
-  // Load attendees for the meeting
   const loadAttendees = useCallback(async () => {
     if (!meetingId) return;
-    
     try {
       setIsLoadingAttendees(true);
-      console.log(`[MeetingDetail] Loading attendees for meeting: ${meetingId}`);
-      
       const response = await meetingService.getMeetingAttendees(meetingId, { page: 0, size: 100 });
-      console.log('[MeetingDetail] Attendees loaded:', response);
       setAttendees(response.attendees);
     } catch (error) {
-      console.error('[MeetingDetail] Failed to load attendees:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to load attendees';
-      
-      toast({
-        title: "Error Loading Attendees",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast({ title: "Error Loading Attendees", description: errorMessage, variant: "destructive" });
     } finally {
       setIsLoadingAttendees(false);
     }
   }, [meetingId, toast]);
 
-  // Handle task updates
   const handleTaskUpdate = useCallback((updatedTask: ActionItem) => {
-    setActionItems(prev => 
-      prev ? prev.map(task => task.id === updatedTask.id ? updatedTask : task) : null
-    );
+    setActionItems(prev => prev ? prev.map(task => task.id === updatedTask.id ? updatedTask : task) : null);
   }, []);
 
-  // Handle edit meeting success
   const handleEditSuccess = useCallback((updatedMeeting: Meeting) => {
     setMeeting(updatedMeeting);
-    toast({
-      title: "Success",
-      description: "Meeting updated successfully.",
-    });
+    toast({ title: "Success", description: "Meeting updated successfully." });
   }, [toast]);
 
-  // Handle invite participants success
   const handleInviteSuccess = useCallback((invitedCount: number) => {
-    toast({
-      title: "Invitations Sent",
-      description: `Successfully sent invitations to ${invitedCount} participant(s).`,
-    });
-    // Refresh attendees list to show newly invited participants
+    toast({ title: "Invitations Sent", description: `Successfully sent invitations to ${invitedCount} participant(s).` });
     loadAttendees();
   }, [toast, loadAttendees]);
 
-  // Then define other functions that use loadMeeting
   const handleRetry = useCallback(async () => {
     if (!meetingId) return;
-
     try {
       await meetingService.startProcessing(meetingId);
-      toast({
-        title: "Processing Started",
-        description: "Your meeting is being reprocessed",
-      });
+      toast({ title: "Processing Started", description: "Your meeting is being reprocessed" });
       await loadMeeting();
     } catch (error) {
-      console.error('Failed to start processing:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to start processing';
-      toast({
-        title: "Failed to Start Processing",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast({ title: "Failed to Start Processing", description: errorMessage, variant: "destructive" });
     }
   }, [meetingId, toast, loadMeeting]);
 
-  // Then define useEffects
   useEffect(() => {
-    console.log('[MeetingDetail] useEffect - meetingId changed:', meetingId);
     if (meetingId) {
-      console.log('[MeetingDetail] Calling loadMeeting with meetingId:', meetingId);
-      loadMeeting().catch(error => {
-        console.error('[MeetingDetail] Error in loadMeeting:', error);
-      });
-      // Also load attendees
+      loadMeeting().catch(console.error);
       loadAttendees();
     } else {
-      console.error('[MeetingDetail] No meetingId provided in URL');
       setError('No meeting ID provided');
       setIsLoading(false);
     }
   }, [meetingId, loadMeeting, loadAttendees]);
 
-  // Poll for processing status if meeting is in DRAFT or PROCESSING state
   useEffect(() => {
     if (!meetingId || !meeting) return;
-    
-    // Only poll if meeting is in a state that might change
-    if (meeting.status !== 'DRAFT' && meeting.status !== 'PROCESSING') {
-      return;
-    }
+    if (meeting.status !== 'DRAFT' && meeting.status !== 'PROCESSING') return;
 
-    console.log(`[MeetingDetail] Starting status polling for meeting ${meetingId} (status: ${meeting.status})`);
-    
     const pollStatus = async () => {
       try {
-        console.log(`[MeetingDetail] Polling status for meeting ${meetingId}`);
         const status = await meetingService.getProcessingStatus(meetingId);
-        console.log(`[MeetingDetail] Received status update:`, status);
-        
-        // Update the processing status
         setProcessingStatus(status);
-        
-        // If the status has changed, update the meeting
         if (status.status !== meeting.status) {
-          console.log(`[MeetingDetail] Status changed from ${meeting.status} to ${status.status}, updating meeting...`);
           setMeeting(prev => prev ? { ...prev, status: status.status } : null);
-          
-          // If processing is complete, refresh the full meeting data
           if (status.status === 'PROCESSED' || status.status === 'FAILED') {
-            console.log(`[MeetingDetail] Processing complete, refreshing meeting data...`);
             await loadMeeting();
           }
         }
@@ -258,46 +153,27 @@ const MeetingDetail = () => {
       }
     };
 
-    // Initial poll
     pollStatus();
-    
-    // Poll every 3 seconds for faster updates
     const interval = setInterval(pollStatus, 3000);
-
-    return () => {
-      console.log(`[MeetingDetail] Cleaning up status polling for meeting ${meetingId}`);
-      clearInterval(interval);
-    };
+    return () => clearInterval(interval);
   }, [meetingId, meeting, loadMeeting]);
 
-  // Load action items when tab changes to tasks
   useEffect(() => {
     const loadActionItems = async () => {
       if (activeTab !== "tasks" || !meetingId) return;
-      
       try {
         setIsLoadingActionItems(true);
         setActionItemsError(null);
-        console.log(`[MeetingDetail] Loading action items for meeting: ${meetingId}`);
-        
         const items = await meetingService.getActionItems(meetingId);
-        console.log('[MeetingDetail] Action items loaded:', items);
         setActionItems(items);
       } catch (error) {
-        console.error('[MeetingDetail] Failed to load action items:', error);
         const errorMessage = error instanceof Error ? error.message : 'Failed to load action items';
         setActionItemsError(errorMessage);
-        
-        toast({
-          title: "Error Loading Action Items",
-          description: errorMessage,
-          variant: "destructive",
-        });
+        toast({ title: "Error Loading Action Items", description: errorMessage, variant: "destructive" });
       } finally {
         setIsLoadingActionItems(false);
       }
     };
-    
     loadActionItems();
   }, [activeTab, meetingId, toast]);
 
@@ -306,18 +182,10 @@ const MeetingDetail = () => {
     try {
       const filename = meeting?.title ? `${meeting.title.replace(/[^a-zA-Z0-9\s]/g, '_')}.pdf` : 'minutes.pdf';
       await meetingService.downloadLatestDocument(meetingId, 'pdf', filename);
-      toast({
-        title: 'Download Started',
-        description: 'PDF download started successfully.',
-      });
+      toast({ title: 'Download Started', description: 'PDF download started successfully.' });
     } catch (error) {
-      console.error('Failed to download PDF:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to download PDF';
-      toast({
-        title: 'Download Failed',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      toast({ title: 'Download Failed', description: errorMessage, variant: 'destructive' });
     }
   };
 
@@ -326,287 +194,261 @@ const MeetingDetail = () => {
     try {
       const filename = meeting?.title ? `${meeting.title.replace(/[^a-zA-Z0-9\s]/g, '_')}.docx` : 'minutes.docx';
       await meetingService.downloadLatestDocument(meetingId, 'docx', filename);
-      toast({
-        title: 'Download Started',
-        description: 'DOCX download started successfully.',
-      });
+      toast({ title: 'Download Started', description: 'DOCX download started successfully.' });
     } catch (error) {
-      console.error('Failed to download DOCX:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to download DOCX';
-      toast({
-        title: 'Download Failed',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      toast({ title: 'Download Failed', description: errorMessage, variant: 'destructive' });
     }
   };
 
-  const getStatusColor = (status: Meeting['status']) => {
-    switch (status) {
-      case 'PROCESSED':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'PROCESSING':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      case 'DRAFT':
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
-      case 'FAILED':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-      default:
-        return 'bg-gray-100 text-gray-800';
+  const getStatusStyles = (status?: string | null) => {
+    if (!status) return { bg: "rgba(255,255,255,0.1)", text: "var(--text-secondary)", border: "rgba(255,255,255,0.2)" };
+    switch (status.toUpperCase()) {
+      case 'PROCESSED': return { bg: "rgba(52,199,89,0.15)", text: "#34C759", border: "rgba(52,199,89,0.3)" };
+      case 'PROCESSING': return { bg: "rgba(0,113,227,0.15)", text: "#0071E3", border: "rgba(0,113,227,0.3)" };
+      case 'DRAFT': return { bg: "rgba(255,255,255,0.08)", text: "var(--text-secondary)", border: "rgba(255,255,255,0.15)" };
+      case 'FAILED': return { bg: "rgba(255,69,58,0.15)", text: "#FF453A", border: "rgba(255,69,58,0.3)" };
+      default: return { bg: "rgba(255,255,255,0.1)", text: "var(--text-secondary)", border: "rgba(255,255,255,0.2)" };
     }
   };
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading meeting...</p>
-          <p className="text-xs text-muted-foreground mt-2">Meeting ID: {meetingId}</p>
-        </div>
+        <div className="w-10 h-10 rounded-full border-2 border-transparent animate-spin" style={{ borderTopColor: "#0071E3" }} />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center space-y-4 max-w-md p-6 bg-card rounded-lg shadow">
-          <h2 className="text-2xl font-bold text-destructive">Error Loading Meeting</h2>
-          <p className="text-muted-foreground">{error}</p>
-          <div className="pt-4">
-            <Button 
-              onClick={() => loadMeeting()}
-              className="w-full"
-            >
-              Retry
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/meetings')}
-              className="w-full mt-2"
-            >
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
+        <div className="card-surface p-8 max-w-md w-full text-center">
+          <h2 className="text-xl font-bold mb-3" style={{ color: "#FF453A" }}>Error Loading Meeting</h2>
+          <p className="body-sm mb-6">{error}</p>
+          <div className="flex flex-col gap-3">
+            <button onClick={() => loadMeeting()} className="btn-accent py-2 rounded-lg">Retry</button>
+            <button onClick={() => navigate('/meetings')} className="py-2 rounded-lg transition-colors" style={{ background: "var(--surface-raised)", color: "var(--text-primary)" }}>
               Back to Meetings
-            </Button>
+            </button>
           </div>
         </div>
       </div>
     );
   }
 
-  if (!meeting) {
-    return null;
-  }
+  if (!meeting) return null;
 
-  // Check if current user is the meeting owner
   const isMeetingOwner = currentUser?.id === meeting.createdBy.id;
+  const statusStyles = getStatusStyles(meeting.status);
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        {/* Back Buttons */}
-        <div className="flex gap-2 mb-6">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/meetings')}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Meetings
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => navigate('/dashboard')}
-          >
-            Back to Dashboard
-          </Button>
-        </div>
-
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl font-bold text-foreground">{meeting.title}</h1>
-                <Badge className={getStatusColor(meeting.status)}>
-                  {meeting.status}
-                </Badge>
-              </div>
-              {meeting.description && (
-                <p className="text-muted-foreground">{meeting.description}</p>
-              )}
-            </div>
-            <div className="flex gap-2">
-              {isMeetingOwner && (
-                <Button variant="outline" size="sm" onClick={() => setIsEditModalOpen(true)}>
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit
-                </Button>
-              )}
-              {meeting.minutesDocumentUrl && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button size="sm">
-                      <Download className="w-4 h-4 mr-2" />
-                      Download Minutes
-                      <ChevronDown className="w-4 h-4 ml-2" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={handleDownloadPDF}>
-                      <FileText className="w-4 h-4 mr-2" />
-                      Download PDF
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleDownloadDOCX}>
-                      <FileText className="w-4 h-4 mr-2" />
-                      Download DOCX
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-            {meeting.scheduledTime && (
-              <div className="flex items-center gap-1">
-                <Calendar className="w-4 h-4" />
-                <span>{format(new Date(meeting.scheduledTime), 'MMMM dd, yyyy HH:mm')}</span>
-              </div>
-            )}
-            <div className="flex items-center gap-1">
-              <Users className="w-4 h-4" />
-              <span>{meeting.attendeeCount} participants</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <FileText className="w-4 h-4" />
-              <span>{meeting.actionItemCount} action items</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Processing Status */}
-        {(meeting.status === 'PROCESSING' || meeting.status === 'FAILED') && processingStatus && (
-          <div className="mb-6">
-            <ProcessingStatusBanner
-              status={processingStatus}
-              onRetry={meeting.status === 'FAILED' ? handleRetry : undefined}
-            />
-          </div>
-        )}
-
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="transcript" disabled={meeting.status !== 'PROCESSED'}>
-              Transcript
-            </TabsTrigger>
-            <TabsTrigger value="tasks" disabled={meeting.status !== 'PROCESSED'}>
-              Tasks
-            </TabsTrigger>
-            <TabsTrigger value="participants">Participants</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview">
-            <Card>
-              <CardHeader>
-                <CardTitle>Meeting Overview</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {meeting.agendaText && (
-                  <div>
-                    <h3 className="font-semibold mb-2">Agenda</h3>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                      {meeting.agendaText}
-                    </p>
-                  </div>
-                )}
-                
-                <div>
-                  <h3 className="font-semibold mb-2">Details</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Created by:</span>
-                      <span>{meeting.createdBy.name}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Created at:</span>
-                      <span>{format(new Date(meeting.createdAt), 'MMM dd, yyyy HH:mm')}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Last updated:</span>
-                      <span>{format(new Date(meeting.updatedAt), 'MMM dd, yyyy HH:mm')}</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="transcript">
-            <Card>
-              <CardHeader>
-                <CardTitle>Transcript</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {meetingId && <TranscriptTab meetingId={meetingId} />}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="tasks">
-            <Card>
-              <CardHeader>
-                <CardTitle>Action Items</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isLoadingActionItems ? (
-                  <div className="text-sm text-muted-foreground">Loading...</div>
-                ) : actionItemsError ? (
-                  <div className="text-sm text-destructive">{actionItemsError}</div>
-                ) : !actionItems || actionItems.length === 0 ? (
-                  <div className="text-sm text-muted-foreground">No action items found.</div>
-                ) : (
-                  <div className="space-y-4">
-                    {actionItems.map(item => (
-                      <TaskItem
-                        key={item.id}
-                        task={item}
-                        meetingId={meetingId!}
-                        isOrganizer={meeting?.createdBy?.id === currentUser?.id}
-                        currentUser={currentUser}
-                        attendees={attendees}
-                        onTaskUpdate={handleTaskUpdate}
-                      />
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="participants">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Participants</CardTitle>
-                  {isMeetingOwner && (
-                    <Button variant="outline" size="sm" onClick={() => setIsInviteModalOpen(true)}>
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      Invite
-                    </Button>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent>
-                {meetingId && <ParticipantsTab meetingId={meetingId} />}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+    <div className="max-w-5xl mx-auto px-6 py-10 animate-fade-in">
+      {/* ── Top Bar ───────────────────────────────────────────── */}
+      <div className="flex gap-3 mb-8">
+        <button
+          onClick={() => navigate('/meetings')}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors hover:bg-white/5"
+          style={{ color: "var(--text-secondary)" }}
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Meetings
+        </button>
       </div>
 
-      {/* Edit Meeting Modal */}
+      {/* ── Header ────────────────────────────────────────────── */}
+      <div className="mb-10">
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-5">
+          <div className="flex-1">
+            <div className="flex items-center gap-4 mb-3 flex-wrap">
+              <h1 className="display-sm" style={{ color: "var(--text-primary)" }}>{meeting.title}</h1>
+              <span 
+                className="text-[0.65rem] font-medium px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0"
+                style={{ background: statusStyles.bg, color: statusStyles.text, border: `1px solid ${statusStyles.border}` }}
+              >
+                {meeting.status?.toLowerCase() || 'unknown'}
+              </span>
+            </div>
+            {meeting.description && (
+              <p className="body-base max-w-3xl">{meeting.description}</p>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-3 shrink-0">
+            {isMeetingOwner && (
+              <button 
+                onClick={() => setIsEditModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                style={{ background: "var(--surface-raised)", border: "1px solid var(--border-subtle)", color: "var(--text-primary)" }}
+              >
+                <Edit className="w-4 h-4" />
+                Edit
+              </button>
+            )}
+            {meeting.minutesDocumentUrl && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="btn-accent flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium">
+                    <Download className="w-4 h-4" />
+                    Download Minutes
+                    <ChevronDown className="w-4 h-4 ml-1 opacity-70" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" style={{ background: "var(--surface)", border: "1px solid var(--border-strong)" }}>
+                  <DropdownMenuItem onClick={handleDownloadPDF} className="cursor-pointer hover:bg-white/5">
+                    <FileText className="w-4 h-4 mr-2" />
+                    Download PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleDownloadDOCX} className="cursor-pointer hover:bg-white/5">
+                    <FileText className="w-4 h-4 mr-2" />
+                    Download DOCX
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm font-body" style={{ color: "var(--text-tertiary)" }}>
+          {meeting.scheduledTime && (
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              <span>{format(new Date(meeting.scheduledTime), 'MMMM dd, yyyy HH:mm')}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            <span>{meeting.attendeeCount} participants</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <FileText className="w-4 h-4" />
+            <span>{meeting.actionItemCount} action items</span>
+          </div>
+        </div>
+      </div>
+
+      {(meeting.status === 'PROCESSING' || meeting.status === 'FAILED') && processingStatus && (
+        <div className="mb-8">
+          <ProcessingStatusBanner
+            status={processingStatus}
+            onRetry={meeting.status === 'FAILED' ? handleRetry : undefined}
+          />
+        </div>
+      )}
+
+      {/* ── Content Tabs ──────────────────────────────────────── */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+        <TabsList 
+          className="w-full flex justify-start h-auto p-1 bg-transparent border-b rounded-none"
+          style={{ borderColor: "var(--border-subtle)" }}
+        >
+          {['overview', 'transcript', 'tasks', 'participants'].map((tab) => {
+            const isDisabled = (tab === 'transcript' || tab === 'tasks') && meeting.status !== 'PROCESSED';
+            return (
+              <TabsTrigger 
+                key={tab}
+                value={tab} 
+                disabled={isDisabled}
+                className="px-6 py-3 text-sm font-medium transition-all data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 rounded-none bg-transparent hover:bg-white/5 disabled:opacity-30"
+                style={{ 
+                  color: activeTab === tab ? "var(--text-primary)" : "var(--text-secondary)",
+                  borderColor: activeTab === tab ? "#0071E3" : "transparent"
+                }}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
+
+        <TabsContent value="overview">
+          <div className="card-surface p-8 space-y-8">
+            <h2 className="text-xl font-semibold font-display" style={{ color: "var(--text-primary)" }}>Meeting Overview</h2>
+            
+            {meeting.agendaText && (
+              <div>
+                <h3 className="label-caps mb-3" style={{ color: "var(--text-secondary)" }}>Agenda</h3>
+                <p className="body-base whitespace-pre-wrap">{meeting.agendaText}</p>
+              </div>
+            )}
+            
+            <div>
+              <h3 className="label-caps mb-4" style={{ color: "var(--text-secondary)" }}>Details</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 rounded-lg" style={{ background: "var(--surface-raised)", border: "1px solid var(--border-subtle)" }}>
+                  <p className="text-xs mb-1" style={{ color: "var(--text-tertiary)" }}>Created by</p>
+                  <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{meeting.createdBy.name}</p>
+                </div>
+                <div className="p-4 rounded-lg" style={{ background: "var(--surface-raised)", border: "1px solid var(--border-subtle)" }}>
+                  <p className="text-xs mb-1" style={{ color: "var(--text-tertiary)" }}>Created at</p>
+                  <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{format(new Date(meeting.createdAt), 'MMM dd, yyyy HH:mm')}</p>
+                </div>
+                <div className="p-4 rounded-lg" style={{ background: "var(--surface-raised)", border: "1px solid var(--border-subtle)" }}>
+                  <p className="text-xs mb-1" style={{ color: "var(--text-tertiary)" }}>Last updated</p>
+                  <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{format(new Date(meeting.updatedAt), 'MMM dd, yyyy HH:mm')}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="transcript">
+          <div className="card-surface p-8">
+            <h2 className="text-xl font-semibold mb-6 font-display" style={{ color: "var(--text-primary)" }}>Transcript</h2>
+            {meetingId && <TranscriptTab meetingId={meetingId} />}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="tasks">
+          <div className="card-surface p-8">
+            <h2 className="text-xl font-semibold mb-6 font-display" style={{ color: "var(--text-primary)" }}>Action Items</h2>
+            {isLoadingActionItems ? (
+              <div className="animate-pulse space-y-4">
+                {[1,2,3].map(i => <div key={i} className="h-16 rounded-lg" style={{ background: "var(--surface-raised)" }} />)}
+              </div>
+            ) : actionItemsError ? (
+              <div className="text-sm" style={{ color: "#FF453A" }}>{actionItemsError}</div>
+            ) : !actionItems || actionItems.length === 0 ? (
+              <div className="text-sm" style={{ color: "var(--text-secondary)" }}>No action items found.</div>
+            ) : (
+              <div className="space-y-4">
+                {actionItems.map(item => (
+                  <TaskItem
+                    key={item.id}
+                    task={item}
+                    meetingId={meetingId!}
+                    isOrganizer={meeting?.createdBy?.id === currentUser?.id}
+                    currentUser={currentUser}
+                    attendees={attendees}
+                    onTaskUpdate={handleTaskUpdate}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="participants">
+          <div className="card-surface p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold font-display" style={{ color: "var(--text-primary)" }}>Participants</h2>
+              {isMeetingOwner && (
+                <button 
+                  onClick={() => setIsInviteModalOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-white/5"
+                  style={{ border: "1px solid var(--border-strong)", color: "var(--text-primary)" }}
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Invite
+                </button>
+              )}
+            </div>
+            {meetingId && <ParticipantsTab meetingId={meetingId} />}
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Modals */}
       {meeting && (
         <EditMeetingModal
           meeting={meeting}
@@ -615,8 +457,6 @@ const MeetingDetail = () => {
           onSuccess={handleEditSuccess}
         />
       )}
-
-      {/* Invite Participants Modal */}
       {meetingId && (
         <InviteParticipantsModal
           meetingId={meetingId}

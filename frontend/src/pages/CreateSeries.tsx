@@ -1,12 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { meetingService } from '@/services/meetingService';
 
 export default function CreateSeries() {
@@ -20,22 +16,17 @@ export default function CreateSeries() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!formData.title.trim()) {
       setError('Series title is required');
       return;
     }
-
     setIsLoading(true);
     setError(null);
-
     try {
       const series = await meetingService.createMeetingSeries({
         title: formData.title.trim(),
         description: formData.description.trim() || undefined,
       });
-      
-      // Navigate to the new series page
       navigate(`/series/${series.id}`);
     } catch (err: unknown) {
       const axiosError = err as { response?: { data?: { message?: string } } };
@@ -46,111 +37,90 @@ export default function CreateSeries() {
   };
 
   const handleInputChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: e.target.value
-    }));
+    setFormData(prev => ({ ...prev, [field]: e.target.value }));
     if (error) setError(null);
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        {/* Back Button */}
-        <Button variant="ghost" asChild className="mb-6">
-          <button onClick={() => navigate('/series')}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Series
-          </button>
-        </Button>
+    <div className="max-w-3xl mx-auto px-6 py-10 animate-fade-in">
+      <button 
+        onClick={() => navigate('/series')}
+        className="flex items-center gap-2 mb-8 text-sm font-medium hover:text-[#0071E3] transition-colors"
+        style={{ color: "var(--text-secondary)" }}
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to Series
+      </button>
 
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-foreground mb-2">Create New Series</h1>
-          <p className="text-muted-foreground">Create a new meeting series to organize recurring meetings</p>
-        </div>
+      <div className="mb-8">
+        <h1 className="display-sm mb-2" style={{ color: "var(--text-primary)" }}>Create New Series</h1>
+        <p className="body-base">Create a new meeting series to organize recurring meetings.</p>
+      </div>
 
-        {/* Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Series Details</CardTitle>
-            <CardDescription>
-              Provide the basic information for your meeting series. You can add meetings to this series later.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+      <div className="card-surface p-8 mb-8">
+        <h2 className="text-lg font-semibold font-display mb-1" style={{ color: "var(--text-primary)" }}>Series Details</h2>
+        <p className="text-sm mb-6" style={{ color: "var(--text-secondary)" }}>Provide the basic information for your meeting series.</p>
 
-              <div className="space-y-2">
-                <Label htmlFor="title">Series Title *</Label>
-                <Input
-                  id="title"
-                  placeholder="e.g., Weekly Team Sync, Project Alpha Meetings"
-                  value={formData.title}
-                  onChange={handleInputChange('title')}
-                  disabled={isLoading}
-                  required
-                />
-              </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {error && (
+            <div className="p-4 rounded-md text-sm font-medium mb-6" style={{ background: "rgba(255,69,58,0.1)", color: "#FF453A", border: "1px solid rgba(255,69,58,0.2)" }}>
+              {error}
+            </div>
+          )}
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Description (Optional)</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Describe the purpose and frequency of this meeting series..."
-                  value={formData.description}
-                  onChange={handleInputChange('description')}
-                  disabled={isLoading}
-                  rows={3}
-                />
-              </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium font-body" style={{ color: "var(--text-secondary)" }}>Series Title <span className="text-red-500">*</span></label>
+            <Input
+              placeholder="e.g., Weekly Team Sync, Project Alpha Meetings"
+              value={formData.title}
+              onChange={handleInputChange('title')}
+              disabled={isLoading}
+              className="input-dark w-full"
+              required
+            />
+          </div>
 
-              <div className="flex gap-3 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => navigate('/series')}
-                  disabled={isLoading}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isLoading} className="flex-1">
-                  {isLoading ? (
-                    'Creating...'
-                  ) : (
-                    <>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Create Series
-                    </>
-                  )}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+          <div className="space-y-2">
+            <label className="text-sm font-medium font-body" style={{ color: "var(--text-secondary)" }}>Description (Optional)</label>
+            <Textarea
+              placeholder="Describe the purpose and frequency of this meeting series..."
+              value={formData.description}
+              onChange={handleInputChange('description')}
+              disabled={isLoading}
+              rows={4}
+              className="input-dark w-full resize-none"
+            />
+          </div>
 
-        {/* Info Card */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle className="text-lg">What happens next?</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              After creating the series, you can:
-            </p>
-            <ul className="text-sm text-muted-foreground space-y-2 list-disc list-inside">
-              <li>Add individual meetings to the series</li>
-              <li>View all meetings in one place</li>
-              <li>Access previous context from past meetings</li>
-              <li>Track action items and decisions across the series</li>
-            </ul>
-          </CardContent>
-        </Card>
+          <div className="flex gap-4 pt-4 border-t" style={{ borderColor: "var(--border-subtle)" }}>
+            <button
+              type="button"
+              onClick={() => navigate('/series')}
+              disabled={isLoading}
+              className="px-6 py-2.5 rounded-lg text-sm font-medium transition-colors"
+              style={{ background: "var(--surface-raised)", color: "var(--text-primary)", border: "1px solid var(--border-subtle)" }}
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              disabled={isLoading} 
+              className="flex-1 btn-accent px-6 py-2.5 rounded-lg flex items-center justify-center gap-2"
+            >
+              {isLoading ? 'Creating...' : <><Plus className="w-4 h-4" /> Create Series</>}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div className="p-6 rounded-xl border" style={{ background: "var(--surface-raised)", borderColor: "var(--border-subtle)" }}>
+        <h3 className="font-semibold text-sm mb-2" style={{ color: "var(--text-primary)" }}>What happens next?</h3>
+        <ul className="text-sm space-y-2 list-disc list-inside font-body" style={{ color: "var(--text-secondary)" }}>
+          <li>Add individual meetings to the series</li>
+          <li>View all meetings in one place</li>
+          <li>Access previous context from past meetings</li>
+          <li>Track action items and decisions across the series</li>
+        </ul>
       </div>
     </div>
   );
