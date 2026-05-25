@@ -210,8 +210,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   return (
     <AuthContext.Provider value={contextValue}>
       {isLoading ? (
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="w-8 h-8 animate-spin" />
+        <div
+          className="flex items-center justify-center min-h-screen"
+          style={{ background: "var(--bg)" }}
+        >
+          <div
+            className="w-10 h-10 rounded-full border-2 border-transparent animate-spin"
+            style={{ borderTopColor: "#0071E3" }}
+            aria-label="Loading"
+          />
         </div>
       ) : (
         children
