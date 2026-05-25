@@ -17,8 +17,8 @@ public class RegisterRequest {
 
     @NotBlank(message = "Password is required")
     @jakarta.validation.constraints.Pattern(
-            regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&#])[A-Za-z\\d@$!%*?&#]{8,}$",
-            message = "Password must be at least 8 characters long, and contain at least one uppercase letter, one lowercase letter, one number, and one special character."
+            regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^a-zA-Z\\d\\s])[^\\s]{8,}$",
+            message = "Password must be at least 8 characters long, and contain at least one uppercase letter, one lowercase letter, one number, and one special character (no spaces allowed)."
     )
     private String password;
 }
