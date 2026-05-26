@@ -49,24 +49,24 @@ const Header = () => {
         }`}
         style={{ fontFamily: "var(--font-body)" }}
       >
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
+        <div className="relative max-w-7xl mx-auto px-6 flex items-center justify-between">
           {/* ── Logo ──────────────────────────────────────── */}
           <button
             onClick={() => navigate("/")}
             className="flex items-center gap-2.5 group outline-none"
-            aria-label="MinutesAI home"
+            aria-label="MinutesMinutes AI home"
           >
             <AsteriskMark />
             <span
               className="text-[1.125rem] font-semibold tracking-tight transition-colors"
               style={{ fontFamily: "var(--font-display)", color: "var(--text-primary)" }}
             >
-              MinutesAI
+              MinutesMinutes AI
             </span>
           </button>
 
-          {/* ── Desktop Nav ───────────────────────────────── */}
-          <nav className="hidden md:flex items-center gap-8" aria-label="Main navigation">
+          {/* ── Desktop Nav — absolutely centered ─────────── */}
+          <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2" aria-label="Main navigation">
             {NAV_LINKS.map((link) => (
               <button
                 key={link.href}

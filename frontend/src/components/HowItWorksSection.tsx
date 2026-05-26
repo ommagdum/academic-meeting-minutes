@@ -84,7 +84,7 @@ const HowItWorksSection = () => {
                       fontSize: "clamp(5rem, 12vw, 9rem)",
                       fontWeight: 700,
                       lineHeight: 1,
-                      color: "rgba(255,255,255,0.04)",
+                      color: "rgba(0,113,227,0.18)",
                       letterSpacing: "-0.04em",
                     }}
                     aria-hidden="true"
@@ -96,8 +96,8 @@ const HowItWorksSection = () => {
                   <div className="flex-1">
                     {/* Mobile: show step number inline */}
                     <span
-                      className="inline-block sm:hidden text-4xl font-bold mr-3 opacity-20 select-none"
-                      style={{ fontFamily: "var(--font-display)" }}
+                      className="inline-block sm:hidden text-4xl font-bold mr-3 select-none"
+                      style={{ fontFamily: "var(--font-display)", color: "rgba(0,113,227,0.35)" }}
                       aria-hidden="true"
                     >
                       {step.num}

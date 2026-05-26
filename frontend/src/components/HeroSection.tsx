@@ -110,7 +110,7 @@ const HeroSection = () => {
           )}
         </div>
 
-        {/* ── Social proof ─────────────────────────────────── */}
+        {/* ── Outcome proof ─────────────────────────────────── */}
         <div
           className="animate-fade-up"
           style={{ animationDelay: "320ms" }}
@@ -119,9 +119,9 @@ const HeroSection = () => {
             className="body-sm"
             style={{ color: "var(--text-tertiary)" }}
           >
-            Trusted by{" "}
-            <span style={{ color: "var(--text-secondary)" }}>500+ institutions</span>
-            {" "}— no credit card required
+            Zero missed action items.{" "}
+            <span style={{ color: "var(--text-secondary)" }}>Zero note-taking.</span>
+            {" "}100% focus on your meeting.
           </p>
         </div>
       </div>
