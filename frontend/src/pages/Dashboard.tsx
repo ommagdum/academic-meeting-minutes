@@ -100,7 +100,7 @@ const Dashboard = () => {
           []
         ),
         withTimeout(
-          searchService.getAnalytics('week',
+          searchService.getAnalytics('day',
             new Date(Date.now() - 27 * 24 * 60 * 60 * 1000).toISOString().slice(0, 19),
             new Date().toISOString().slice(0, 19)
           ).catch(() => ({})),
@@ -138,9 +138,25 @@ const Dashboard = () => {
       if (upcomingMeetingsResponse) {
         setUpcomingMeetings(upcomingMeetingsResponse);
       }
-      if (analyticsResponse && Object.keys(analyticsResponse).length > 0) {
-        setAnalyticsData(analyticsResponse);
+      
+      // Pad analytics with 0s for the last 28 days so the line chart always draws
+      const paddedAnalytics: Record<string, number> = {};
+      for (let i = 27; i >= 0; i--) {
+        const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+        paddedAnalytics[d.toISOString().split('T')[0]] = 0;
       }
+      
+      if (analyticsResponse) {
+        Object.entries(analyticsResponse).forEach(([k, v]) => {
+          const dateKey = k.split('T')[0];
+          if (paddedAnalytics[dateKey] !== undefined) {
+            paddedAnalytics[dateKey] += v as number;
+          } else {
+            paddedAnalytics[dateKey] = v as number;
+          }
+        });
+      }
+      setAnalyticsData(paddedAnalytics);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load dashboard data';
       setError(errorMessage);
