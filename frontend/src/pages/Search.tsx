@@ -148,11 +148,8 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
           )}
         </div>
         
-        <div className="px-4 py-2 border-t border-white/5 bg-white/[0.02] flex items-center justify-between text-[0.65rem] text-white/30">
-          <span>Search powered by AI</span>
-          <div className="flex gap-2">
-            <span><kbd className="px-1 py-0.5 rounded bg-white/10 font-sans">esc</kbd> to close</span>
-          </div>
+        <div className="px-4 py-2 border-t border-white/5 bg-white/[0.02] flex items-center justify-end text-[0.65rem] text-white/30">
+          <span><kbd className="px-1 py-0.5 rounded bg-white/10 font-sans">esc</kbd> to close</span>
         </div>
       </div>
     </div>
