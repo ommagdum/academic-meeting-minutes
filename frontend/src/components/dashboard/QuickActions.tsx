@@ -1,4 +1,4 @@
-import { Plus, Folder, Users, Settings, Search } from "lucide-react";
+import { Plus, Folder, Users, Settings, Search, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export const QuickActions = () => {
@@ -13,10 +13,10 @@ export const QuickActions = () => {
       isAccent: true,
     },
     {
-      title: "Search Meetings",
-      description: "Find meetings, transcripts, and more",
-      icon: Search,
-      onClick: () => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true })),
+      title: "My Tasks",
+      description: "View and manage your action items",
+      icon: CheckCircle,
+      onClick: () => navigate('/tasks'),
       isAccent: false,
     },
     {
@@ -36,7 +36,7 @@ export const QuickActions = () => {
   ];
 
   return (
-    <div className="card-surface p-6 flex flex-col h-full">
+    <div className="card-surface p-6 flex flex-col">
       <h2 className="text-base font-semibold mb-5 font-display" style={{ color: "var(--text-primary)" }}>
         Quick Actions
       </h2>
