@@ -36,7 +36,7 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
       setIsLoading(true);
       try {
         if (mode === 'meetings') {
-          const res = await searchService.advancedSearch({ query, size: 5 });
+          const res = await searchService.quickSearch(query, 0, 5);
           setResults(res.results);
         } else {
           const res = await searchService.searchTranscripts(query, 0, 5);

@@ -5,9 +5,10 @@ import { MeetingSearchResult } from "@/services/searchService";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { RecentMeetingsList } from "@/components/dashboard/RecentMeetingsList";
 import { QuickActions } from "@/components/dashboard/QuickActions";
-import { FileText, Clock, CheckCircle, AlertCircle, LogOut, ChevronDown, RefreshCw, User } from "lucide-react";
+import { FileText, Clock, CheckCircle, AlertCircle, LogOut, ChevronDown, RefreshCw, User, TrendingUp } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
+import MiniLineChart from "@/components/dashboard/MiniLineChart";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,6 +59,7 @@ const Dashboard = () => {
     monthlyTrend: {},
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [analyticsData, setAnalyticsData] = useState<Record<string, number>>({});
 
   const loadDashboard = async () => {
     try {
@@ -76,7 +78,7 @@ const Dashboard = () => {
         });
       };
       
-      const [statsResponse, recentMeetingsResponse, upcomingMeetingsResponse] = await Promise.all([
+      const [statsResponse, recentMeetingsResponse, upcomingMeetingsResponse, analyticsResponse] = await Promise.all([
         withTimeout(
           searchService.getDashboardStats().catch(err => {
             if (err.response?.status === 400) {
@@ -96,7 +98,15 @@ const Dashboard = () => {
           searchService.getUpcomingMeetings(5).catch(() => []),
           15000,
           []
-        )
+        ),
+        withTimeout(
+          searchService.getAnalytics('week',
+            new Date(Date.now() - 27 * 24 * 60 * 60 * 1000).toISOString().slice(0, 19),
+            new Date().toISOString().slice(0, 19)
+          ).catch(() => ({})),
+          15000,
+          {}
+        ),
       ]);
       
       const stats = statsResponse || { totalMeetings: 0, processedMeetings: 0, draftMeetings: 0, processingMeetings: 0, processingSuccessRate: 0, upcomingMeetings: 0, monthlyTrend: {} };
@@ -127,6 +137,9 @@ const Dashboard = () => {
       setMeetings(mappedMeetings);
       if (upcomingMeetingsResponse) {
         setUpcomingMeetings(upcomingMeetingsResponse);
+      }
+      if (analyticsResponse && Object.keys(analyticsResponse).length > 0) {
+        setAnalyticsData(analyticsResponse);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load dashboard data';
@@ -239,6 +252,15 @@ const Dashboard = () => {
           <StatsCard title="Completed" value={isLoading ? 0 : dashboardStats.processedMeetings} description="Successfully processed" icon={CheckCircle} />
           <StatsCard title="Upcoming" value={isLoading ? 0 : dashboardStats.upcomingMeetings} description="Meetings scheduled" icon={AlertCircle} />
         </div>
+        {Object.keys(analyticsData).length > 0 && (
+          <div className="card-surface p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp className="w-4 h-4" style={{ color: "#0071E3" }} />
+              <span className="text-sm font-semibold font-display" style={{ color: "var(--text-primary)" }}>Activity — Last 4 Weeks</span>
+            </div>
+            <MiniLineChart data={analyticsData} height={64} />
+          </div>
+        )}
         <RecentMeetingsList meetings={meetings} isLoading={isLoading} />
       </div>
 
@@ -255,7 +277,16 @@ const Dashboard = () => {
           <div className="col-span-2">
             <RecentMeetingsList meetings={meetings} isLoading={isLoading} />
           </div>
-          <div>
+          <div className="space-y-5">
+            {Object.keys(analyticsData).length > 0 && (
+              <div className="card-surface p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <TrendingUp className="w-4 h-4" style={{ color: "#0071E3" }} />
+                  <span className="text-sm font-semibold font-display" style={{ color: "var(--text-primary)" }}>Activity — Last 4 Weeks</span>
+                </div>
+                <MiniLineChart data={analyticsData} height={72} />
+              </div>
+            )}
             <QuickActions />
           </div>
         </div>

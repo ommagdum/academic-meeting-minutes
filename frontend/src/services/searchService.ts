@@ -20,6 +20,7 @@ export interface AdvancedSearchRequest {
   fromDate?: string;
   toDate?: string;
   statuses?: string[];
+  participantIds?: string[];
   seriesId?: string;
   hasActionItems?: boolean;
   hasTranscript?: boolean;
@@ -128,11 +129,17 @@ export const searchService = {
     const params: any = { q: query, page, size };
     if (sortBy) params.sortBy = sortBy;
     if (sortDirection) params.sortDirection = sortDirection;
-    
-    const response = await api.get<SearchResponse>('/api/v1/search/meetings/quick', {
-      params
-    });
-    return response.data;
+
+    const response = await api.get<SearchResponse>('/api/v1/search/meetings/quick', { params });
+    const responseData = (response.data as any)?.data || response.data;
+
+    if (responseData?.results) {
+      responseData.results = responseData.results.map((m: any) => ({
+        ...m,
+        id: m.id || m.meetingId || m._id,
+      }));
+    }
+    return responseData;
   },
 
   /**
@@ -203,11 +210,13 @@ export const searchService = {
   /**
    * Get analytics data
    */
-  getAnalytics: async (period: string, startDate?: string, endDate?: string): Promise<AnalyticsData> => {
-    const response = await api.get<AnalyticsData>('/api/v1/search/analytics/meetings', {
+  /** Returns a map of date-string -> meeting count, e.g. { "2026-05-01": 3, "2026-05-08": 7 } */
+  getAnalytics: async (period: string, startDate?: string, endDate?: string): Promise<Record<string, number>> => {
+    const response = await api.get<Record<string, number>>('/api/v1/search/analytics/meetings', {
       params: { period, startDate, endDate }
     });
-    return response.data;
+    const data = (response.data as any)?.data ?? response.data;
+    return data as Record<string, number>;
   },
 
   /**
