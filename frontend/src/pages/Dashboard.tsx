@@ -252,15 +252,13 @@ const Dashboard = () => {
           <StatsCard title="Completed" value={isLoading ? 0 : dashboardStats.processedMeetings} description="Successfully processed" icon={CheckCircle} />
           <StatsCard title="Upcoming" value={isLoading ? 0 : dashboardStats.upcomingMeetings} description="Meetings scheduled" icon={AlertCircle} />
         </div>
-        {Object.keys(analyticsData).length > 0 && (
-          <div className="card-surface p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="w-4 h-4" style={{ color: "#0071E3" }} />
-              <span className="text-sm font-semibold font-display" style={{ color: "var(--text-primary)" }}>Activity — Last 4 Weeks</span>
-            </div>
-            <MiniLineChart data={analyticsData} height={64} />
+        <div className="card-surface p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <TrendingUp className="w-4 h-4" style={{ color: "#0071E3" }} />
+            <span className="text-sm font-semibold font-display" style={{ color: "var(--text-primary)" }}>Activity — Last 4 Weeks</span>
           </div>
-        )}
+          <MiniLineChart data={analyticsData} height={64} />
+        </div>
         <RecentMeetingsList meetings={meetings} isLoading={isLoading} />
       </div>
 
@@ -278,15 +276,13 @@ const Dashboard = () => {
             <RecentMeetingsList meetings={meetings} isLoading={isLoading} />
           </div>
           <div className="space-y-5">
-            {Object.keys(analyticsData).length > 0 && (
-              <div className="card-surface p-5">
-                <div className="flex items-center gap-2 mb-4">
-                  <TrendingUp className="w-4 h-4" style={{ color: "#0071E3" }} />
-                  <span className="text-sm font-semibold font-display" style={{ color: "var(--text-primary)" }}>Activity — Last 4 Weeks</span>
-                </div>
-                <MiniLineChart data={analyticsData} height={72} />
+            <div className="card-surface p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <TrendingUp className="w-4 h-4" style={{ color: "#0071E3" }} />
+                <span className="text-sm font-semibold font-display" style={{ color: "var(--text-primary)" }}>Activity — Last 4 Weeks</span>
               </div>
-            )}
+              <MiniLineChart data={analyticsData} height={72} />
+            </div>
             <QuickActions />
           </div>
         </div>
