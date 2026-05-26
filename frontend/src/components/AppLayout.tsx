@@ -1,15 +1,17 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { LayoutDashboard, CalendarDays, Layers, Search as SearchIcon, User, Sun, Moon } from "lucide-react";
+import { LayoutDashboard, CalendarDays, Layers, Search as SearchIcon, User, Sun, Moon, CheckSquare } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
 import SearchOverlay from "@/pages/Search";
+import { taskService } from "@/services/taskService";
 
 /* ── Nav items ──────────────────────────────────────────── */
 const NAV_ITEMS = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
   { icon: CalendarDays,    label: "Meetings",  href: "/meetings"  },
   { icon: Layers,          label: "Series",    href: "/series"    },
+  { icon: CheckSquare,     label: "Tasks",     href: "/tasks"     },
   { icon: SearchIcon,      label: "Search",    href: "#search", action: 'search' },
   { icon: User,            label: "Profile",   href: "/profile"   },
 ] as const;
@@ -21,6 +23,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const { isDark, toggle } = useTheme();
   const { user }   = useAuth();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [unacknowledgedCount, setUnacknowledgedCount] = useState(0);
 
   // Global CMD+K / CTRL+K listener
   useEffect(() => {
@@ -33,6 +36,13 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Fetch unacknowledged task count for badge
+  useEffect(() => {
+    taskService.getUnacknowledgedTasks()
+      .then((tasks) => setUnacknowledgedCount(tasks.length))
+      .catch(() => {});
+  }, [location.pathname]);
 
   const isActive = (href: string) => location.pathname === href || location.pathname.startsWith(href + "/");
 
@@ -122,11 +132,20 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
                     {initial}
                   </span>
                 ) : (
-                  <Icon
-                    className="w-[18px] h-[18px]"
-                    style={{ color: active ? "#fff" : "var(--text-secondary)" }}
-                    strokeWidth={active ? 2.2 : 1.8}
-                  />
+                  <div className="relative">
+                    <Icon
+                      className="w-[18px] h-[18px]"
+                      style={{ color: active ? "#fff" : "var(--text-secondary)" }}
+                      strokeWidth={active ? 2.2 : 1.8}
+                    />
+                    {/* Unacknowledged badge for Tasks */}
+                    {label === "Tasks" && unacknowledgedCount > 0 && (
+                      <span
+                        className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#0071E3] border-2"
+                        style={{ borderColor: 'transparent' }}
+                      />
+                    )}
+                  </div>
                 )}
 
                 {/* Tooltip */}

@@ -21,6 +21,7 @@ import OAuthRedirect from "./pages/OAuthRedirect";
 import Search from "./pages/Search";
 import JoinMeeting from "./pages/JoinMeeting";
 import Profile from "./pages/Profile";
+import Tasks from "./pages/Tasks";
 import CheckEmailPage from "./pages/CheckEmailPage";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
@@ -59,6 +60,7 @@ const Root = () => (
         <Route path="/create-series" element={<AppPage><CreateSeries /></AppPage>} />
         <Route path="/series"       element={<AppPage><SeriesList /></AppPage>} />
         <Route path="/series/:id"   element={<AppPage><SeriesDetail /></AppPage>} />
+        <Route path="/tasks"       element={<AppPage><Tasks /></AppPage>} />
         <Route path="/profile"      element={<AppPage><Profile /></AppPage>} />
 
         <Route path="*" element={<NotFound />} />
