@@ -396,9 +396,7 @@ public class MeetingController {
         try {
             // Validate file size before processing
             if (file.getSize() > maxFileSize) {
-                throw new RuntimeException(
-                        String.format("File size too large. Maximum allowed: %dMB", maxFileSize / (1024 * 1024))
-                );
+                throw new org.springframework.web.multipart.MaxUploadSizeExceededException(maxFileSize);
             }
 
             // Upload file to temporary storage

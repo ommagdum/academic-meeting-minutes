@@ -80,7 +80,7 @@ public class MeetingService {
                 .orElseThrow(() -> new RuntimeException("Meeting not found"));
 
         if (!hasAccessToMeeting(meeting, user)) {
-            throw new RuntimeException("Access denied to this meeting");
+            throw new ForbiddenException("Access denied to this meeting");
         }
 
         return meeting;
@@ -96,7 +96,7 @@ public class MeetingService {
                 .orElseThrow(() -> new RuntimeException("Meeting series not found"));
 
         if(!series.getCreatedBy().getId().equals(user.getId())) {
-            throw new RuntimeException("Access denied to this meeting series");
+            throw new ForbiddenException("Access denied to this meeting series");
         }
 
         return meetingRepository.findBySeriesIdOrderByCreatedAtDesc(seriesId);
