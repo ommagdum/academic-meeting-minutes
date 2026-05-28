@@ -237,6 +237,13 @@ export function MultiStepMeetingForm({ onSubmit, onCancel, initialData }: MultiS
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8">
+      {/* Header */}
+      <div className="text-center space-y-2">
+        <h1 className="text-3xl font-bold text-foreground">Create New Meeting</h1>
+        <p className="text-muted-foreground">
+          Set up your meeting for AI-powered minutes extraction
+        </p>
+      </div>
 
       {/* Progress Indicator */}
       <div className="space-y-4">
