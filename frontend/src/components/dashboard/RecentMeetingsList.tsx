@@ -1,6 +1,6 @@
 import { useToast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
-import { Calendar, Users, CheckCircle, Clock, ChevronRight, FileText } from "lucide-react";
+import { Clock, Users, CheckCircle, ChevronRight, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { MeetingSearchResult } from "@/services/searchService";
 
@@ -30,10 +30,6 @@ export const RecentMeetingsList = ({ meetings, isLoading }: RecentMeetingsListPr
     }
   };
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'Not scheduled';
-    return format(new Date(dateString), 'MMM d, yyyy h:mm a');
-  };
 
   if (isLoading) {
     return (
@@ -127,8 +123,8 @@ export const RecentMeetingsList = ({ meetings, isLoading }: RecentMeetingsListPr
                   
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-body" style={{ color: "var(--text-tertiary)" }}>
                     <div className="flex items-center">
-                      <Calendar className="mr-1.5 h-3.5 w-3.5" />
-                      {formatDate(meeting.scheduledTime || meeting.createdAt)}
+                      <Clock className="mr-1.5 h-3.5 w-3.5" />
+                      {meeting.createdAt ? format(new Date(meeting.createdAt), 'MMM d, yyyy h:mm a') : '—'}
                     </div>
                     {meeting.attendeeCount > 0 && (
                       <div className="flex items-center">

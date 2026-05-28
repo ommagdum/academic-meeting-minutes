@@ -121,7 +121,7 @@ const Dashboard = () => {
         return {
           ...meeting,
           id: meetingId,
-          updatedAt: meeting.updatedAt || meeting.scheduledTime || meeting.createdAt,
+          updatedAt: meeting.updatedAt || meeting.createdAt,
           createdBy: {
             id: meeting.createdBy?.id || '',
             email: meeting.createdBy?.email || '',

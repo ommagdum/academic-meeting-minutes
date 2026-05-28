@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { searchService, MeetingSearchResult, AdvancedSearchRequest } from "@/services/searchService";
-import { Plus, Search, Calendar, Users, ChevronRight, CheckCircle, FileText, SlidersHorizontal, X } from "lucide-react";
+import { Plus, Search, Users, ChevronRight, CheckCircle, FileText, SlidersHorizontal, X } from "lucide-react";
 import { format } from "date-fns";
 
 // ── Filter tabs (use backend category endpoint where possible) ──────────────
@@ -23,7 +23,6 @@ const TABS: FilterTab[] = [
 
 const SORT_OPTIONS = [
   { value: "relevance",     label: "Relevance"      },
-  { value: "scheduledTime", label: "Scheduled Date" },
   { value: "createdAt",     label: "Created Date"   },
 ];
 
@@ -307,12 +306,6 @@ const MeetingList = () => {
                   )}
 
                   <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs font-body pt-0.5" style={{ color: "var(--text-tertiary)" }}>
-                    {meeting.scheduledTime && (
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="h-3.5 w-3.5" />
-                        {format(new Date(meeting.scheduledTime), 'MMM dd, yyyy · HH:mm')}
-                      </div>
-                    )}
                     {meeting.attendeeCount > 0 && (
                       <div className="flex items-center gap-1.5">
                         <Users className="h-3.5 w-3.5" />

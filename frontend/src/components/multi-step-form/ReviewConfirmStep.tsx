@@ -5,8 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Calendar, FileText, Music, Users, Clock, AlertCircle } from 'lucide-react';
-import { format } from 'date-fns';
+import { Edit, FileText, Music, Users, Clock, AlertCircle } from 'lucide-react';
 
 interface ReviewConfirmStepProps {
   data: MeetingFormData;
@@ -73,15 +72,6 @@ export function ReviewConfirmStep({ data, onUpdate, onEditStep }: ReviewConfirmS
             </div>
           </div>
 
-          {data.scheduledTime && (
-            <div>
-              <div className="text-sm text-muted-foreground">Scheduled</div>
-              <div className="text-base flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
-                {format(data.scheduledTime, "PPP p")}
-              </div>
-            </div>
-          )}
 
           {data.usePreviousContext && (
             <div className="flex items-center gap-2 text-sm text-primary">

@@ -3,7 +3,6 @@ import { MultiStepMeetingForm, MeetingFormData } from "@/components/MultiStepMee
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { meetingService } from "@/services/meetingService";
-import { format } from "date-fns";
 import type { CreateMeetingRequest } from "@/types/meeting";
 
 const CreateMeeting = () => {
@@ -25,7 +24,6 @@ const CreateMeeting = () => {
           estimatedDuration: item.estimatedDuration || 0,
           orderIndex: index,
         })),
-        ...(data.scheduledTime ? { scheduledTime: format(data.scheduledTime, "yyyy-MM-dd'T'HH:mm:ss") } : {}),
         usePreviousContext: data.usePreviousContext,
         status: 'PROCESSING' as const,
       };

@@ -5,12 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
-import { Calendar, Repeat, Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { Repeat, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { meetingService } from '@/services/meetingService';
 import { Meeting, MeetingSeries } from '@/types/meeting';
@@ -19,7 +15,6 @@ interface UpdateMeetingData {
   title: string;
   description?: string;
   agendaText?: string;
-  scheduledTime?: string;
   usePreviousContext?: boolean;
   seriesId?: string | null;
   newSeriesTitle?: string;
@@ -35,7 +30,6 @@ interface EditMeetingModalProps {
 interface EditFormData {
   title: string;
   description: string;
-  scheduledTime?: Date;
   agendaText: string;
   seriesOption: 'none' | 'existing' | 'new';
   seriesId?: string;
@@ -52,7 +46,6 @@ export function EditMeetingModal({ meeting, isOpen, onClose, onSuccess }: EditMe
   const [formData, setFormData] = useState<EditFormData>({
     title: '',
     description: '',
-    scheduledTime: undefined,
     agendaText: '',
     seriesOption: 'none',
     seriesId: undefined,
@@ -85,7 +78,6 @@ export function EditMeetingModal({ meeting, isOpen, onClose, onSuccess }: EditMe
       setFormData({
         title: meeting.title,
         description: meeting.description || '',
-        scheduledTime: meeting.scheduledTime ? new Date(meeting.scheduledTime) : undefined,
         agendaText: meeting.agendaText || '',
         seriesOption: meeting.seriesId ? 'existing' : 'none',
         seriesId: meeting.seriesId || undefined,
@@ -139,7 +131,6 @@ export function EditMeetingModal({ meeting, isOpen, onClose, onSuccess }: EditMe
         title: formData.title.trim(),
         description: formData.description.trim(),
         agendaText: formData.agendaText.trim(),
-        scheduledTime: formData.scheduledTime?.toISOString(),
         usePreviousContext: formData.usePreviousContext,
       };
 
@@ -339,64 +330,6 @@ export function EditMeetingModal({ meeting, isOpen, onClose, onSuccess }: EditMe
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Scheduled Time */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">
-              Scheduled Date & Time (Optional)
-            </Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !formData.scheduledTime && "text-muted-foreground"
-                  )}
-                  disabled={isLoading}
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  {formData.scheduledTime ? format(formData.scheduledTime, "PPP 'at' p") : "Select date and time"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <CalendarComponent
-                  mode="single"
-                  selected={formData.scheduledTime}
-                  onSelect={(date) => {
-                    if (date) {
-                      // Preserve time if already set, otherwise set to current time
-                      const newDate = formData.scheduledTime ? new Date(date) : new Date();
-                      if (formData.scheduledTime) {
-                        newDate.setHours(formData.scheduledTime.getHours());
-                        newDate.setMinutes(formData.scheduledTime.getMinutes());
-                      }
-                      updateFormData({ scheduledTime: newDate });
-                    }
-                  }}
-                  initialFocus
-                  className="pointer-events-auto"
-                />
-                <div className="p-3 border-t">
-                  <Input
-                    type="time"
-                    value={formData.scheduledTime ? format(formData.scheduledTime, "HH:mm") : ""}
-                    onChange={(e) => {
-                      const [hours, minutes] = e.target.value.split(':').map(Number);
-                      const newDate = formData.scheduledTime ? new Date(formData.scheduledTime) : new Date();
-                      newDate.setHours(hours);
-                      newDate.setMinutes(minutes);
-                      updateFormData({ scheduledTime: newDate });
-                    }}
-                    disabled={isLoading}
-                  />
-                </div>
-              </PopoverContent>
-            </Popover>
-            <p className="text-xs text-muted-foreground">
-              When was or will this meeting take place?
-            </p>
           </div>
 
           {/* Use Previous Context */}

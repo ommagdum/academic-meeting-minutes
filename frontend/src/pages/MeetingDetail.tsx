@@ -7,7 +7,7 @@ import TaskItem from "@/components/meeting/TaskItem";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ProcessingStatusBanner } from "@/components/meeting/ProcessingStatusBanner";
-import { ArrowLeft, Calendar, Users, FileText, Download, Edit, UserPlus, ChevronDown } from "lucide-react";
+import { ArrowLeft, Users, FileText, Download, Edit, UserPlus, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { AxiosError } from "axios";
@@ -310,12 +310,6 @@ const MeetingDetail = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm font-body" style={{ color: "var(--text-tertiary)" }}>
-          {meeting.scheduledTime && (
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              <span>{format(new Date(meeting.scheduledTime), 'MMMM dd, yyyy HH:mm')}</span>
-            </div>
-          )}
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4" />
             <span>{meeting.attendeeCount} participants</span>

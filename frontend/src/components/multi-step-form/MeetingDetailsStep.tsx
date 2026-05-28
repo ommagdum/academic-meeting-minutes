@@ -1,15 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Repeat } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Repeat } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
-import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
 import type { MeetingFormData } from '../MultiStepMeetingForm';
 import { meetingService } from '@/services/meetingService';
 import { MeetingSeries } from '@/types/meeting';
@@ -169,61 +164,6 @@ export function MeetingDetailsStep({ data, onUpdate }: MeetingDetailsStepProps) 
         </div>
       </div>
 
-      {/* Scheduled Time */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">
-          Scheduled Date & Time (Optional)
-        </Label>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "w-full justify-start text-left font-normal",
-                !data.scheduledTime && "text-muted-foreground"
-              )}
-            >
-              <Calendar className="mr-2 h-4 w-4" />
-              {data.scheduledTime ? format(data.scheduledTime, "PPP 'at' p") : "Select date and time"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <CalendarComponent
-              mode="single"
-              selected={data.scheduledTime}
-              onSelect={(date) => {
-                if (date) {
-                  // Preserve time if already set, otherwise set to current time
-                  const newDate = data.scheduledTime ? new Date(date) : new Date();
-                  if (data.scheduledTime) {
-                    newDate.setHours(data.scheduledTime.getHours());
-                    newDate.setMinutes(data.scheduledTime.getMinutes());
-                  }
-                  onUpdate({ scheduledTime: newDate });
-                }
-              }}
-              initialFocus
-              className="pointer-events-auto"
-            />
-            <div className="p-3 border-t">
-              <Input
-                type="time"
-                value={data.scheduledTime ? format(data.scheduledTime, "HH:mm") : ""}
-                onChange={(e) => {
-                  const [hours, minutes] = e.target.value.split(':').map(Number);
-                  const newDate = data.scheduledTime ? new Date(data.scheduledTime) : new Date();
-                  newDate.setHours(hours);
-                  newDate.setMinutes(minutes);
-                  onUpdate({ scheduledTime: newDate });
-                }}
-              />
-            </div>
-          </PopoverContent>
-        </Popover>
-        <p className="text-xs text-muted-foreground">
-          When was or will this meeting take place?
-        </p>
-      </div>
 
       {/* Use Previous Context */}
       {(data.seriesOption === 'existing' || data.seriesOption === 'new') && (
