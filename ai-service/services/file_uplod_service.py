@@ -66,7 +66,7 @@ class FileUploadService:
     def _allowed_file(self, filename: str) -> bool:
         """Check if file extension is allowed"""
         return '.' in filename and \
-               Path(filename).suffix.lower()[1:] in self.allowed_extensions
+               filename.rsplit('.', 1)[1].lower() in self.allowed_extensions
     
     def _validate_file_content(self, file_path: Path) -> Tuple[bool, Optional[str]]:
         """Validate file content using magic numbers"""
