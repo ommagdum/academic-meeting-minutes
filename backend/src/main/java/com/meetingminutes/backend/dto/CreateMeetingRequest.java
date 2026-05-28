@@ -2,7 +2,6 @@ package com.meetingminutes.backend.dto;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -35,7 +34,6 @@ public class CreateMeetingRequest {
 
     private Boolean usePreviousContext = false;
 
-    @Future(message = "Scheduled time must be in the future")
     private LocalDateTime scheduledTime;
 
     @Valid

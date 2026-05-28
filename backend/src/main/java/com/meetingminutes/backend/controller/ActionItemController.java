@@ -86,6 +86,43 @@ public class ActionItemController {
         return ResponseEntity.ok(convertToResponse(updatedTask));
     }
 
+    @GetMapping("/overdue")
+    public ResponseEntity<List<ActionItemResponse>> getOverdueTasks(Authentication authentication) {
+        String email = authentication.getName();
+        User user = userService.findByEmail(email);
+
+        List<ActionItemResponse> responses = actionItemService.getOverdueTasks(user)
+                .stream()
+                .map(this::convertToResponse)
+                .toList();
+
+        return ResponseEntity.ok(responses);
+    }
+
+    @GetMapping("/unacknowledged")
+    public ResponseEntity<List<ActionItemResponse>> getUnacknowledgedTasks(Authentication authentication) {
+        String email = authentication.getName();
+        User user = userService.findByEmail(email);
+
+        List<ActionItemResponse> responses = actionItemService.getUnacknowledgedTasks(user)
+                .stream()
+                .map(this::convertToResponse)
+                .toList();
+
+        return ResponseEntity.ok(responses);
+    }
+
+    @GetMapping("/count")
+    public ResponseEntity<Long> getTaskCountByStatus(
+            @RequestParam TaskStatus status,
+            Authentication authentication) {
+        String email = authentication.getName();
+        User user = userService.findByEmail(email);
+
+        long count = actionItemService.getUserTaskCountByStatus(user, status);
+        return ResponseEntity.ok(count);
+    }
+
     private ActionItemResponse convertToResponse(com.meetingminutes.backend.entity.ActionItem actionItem) {
         return ActionItemResponse.from(actionItem);
     }
