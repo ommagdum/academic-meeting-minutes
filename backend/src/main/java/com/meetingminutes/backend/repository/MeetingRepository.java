@@ -23,6 +23,9 @@ public interface MeetingRepository extends JpaRepository<Meeting, UUID>, Meeting
     List<Meeting> findBySeriesIdOrderByCreatedAtDesc(UUID seriesId);
     Optional<Meeting> findByIdAndCreatedBy(UUID id, User createdBy);
 
+    @Query("SELECT m FROM Meeting m LEFT JOIN FETCH m.agendaItems LEFT JOIN FETCH m.attendees LEFT JOIN FETCH m.series WHERE m.id = :id")
+    Optional<Meeting> findWithDetailsById(@Param("id") UUID id);
+
     @Query("SELECT m FROM Meeting m WHERE m.series.id = :seriesId AND m.status = 'PROCESSED' ORDER BY m.createdAt DESC")
     List<Meeting> findProcessedMeetingsInSeries(@Param("seriesId") UUID seriesId);
 

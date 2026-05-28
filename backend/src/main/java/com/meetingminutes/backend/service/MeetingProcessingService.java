@@ -22,6 +22,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.hibernate.Hibernate;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -31,7 +32,6 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-@Transactional
 public class MeetingProcessingService {
 
     private final MeetingRepository meetingRepository;
@@ -56,8 +56,8 @@ public class MeetingProcessingService {
         String audioFilePath = null;
 
         try {
-            meeting = meetingRepository.findById(meetingId)
-                    .orElseThrow(() -> new ProcessingException("Meeting not found"));
+            MeetingProcessingService proxy = applicationContext.getBean(MeetingProcessingService.class);
+            meeting = proxy.getMeetingWithDetails(meetingId);
 
             audioFilePath = meeting.getAudioFilePath();
             if (audioFilePath == null) {
@@ -85,7 +85,7 @@ public class MeetingProcessingService {
             log.info("Starting AI extraction for meeting: {}", meetingId);
             webSocketEventPublisher.sendProcessingUpdate(meetingId, MeetingStatus.PROCESSING,
                     50, "EXTRACTING", "Analyzing content and extracting key information");
-            AIExtraction extraction = extractInformation(meetingId, transcript.getRawText());
+            AIExtraction extraction = extractInformation(meeting, transcript.getRawText());
             validateProcessingStep("extraction", extraction);
             log.info("AI extraction completed for meeting: {}", meetingId);
 
@@ -208,7 +208,8 @@ public class MeetingProcessingService {
         throw new ProcessingException("Unexpected error in transcription");
     }
 
-    private AIExtraction extractInformation(UUID meetingId, String transcriptText) {
+    private AIExtraction extractInformation(Meeting meeting, String transcriptText) {
+        UUID meetingId = meeting.getId();
         log.debug("Extracting information from transcript for meeting: {}", meetingId);
 
         log.info("🔍 DEBUG - Transcript text parameter: {}",
@@ -217,10 +218,6 @@ public class MeetingProcessingService {
                 transcriptText != null ? transcriptText.substring(0, Math.min(100, transcriptText.length())) : "NULL");
 
         try {
-            // Get meeting and agenda items for context
-            Meeting meeting = meetingRepository.findById(meetingId)
-                    .orElseThrow(() -> new RuntimeException("Meeting not found"));
-
             // Prepare extraction request
             ExtractionRequest extractionRequest = new ExtractionRequest();
             extractionRequest.setTranscriptText(transcriptText);  // Explicitly set the text
@@ -715,5 +712,15 @@ public class MeetingProcessingService {
     private boolean hasGeneratedDocuments(UUID meetingId) {
         List<GeneratedDocument> documents = documentGenerationService.getMeetingDocuments(meetingId);
         return documents != null && !documents.isEmpty();
+    }
+
+    @Transactional(readOnly = true)
+    public Meeting getMeetingWithDetails(UUID meetingId) {
+        Meeting meeting = meetingRepository.findById(meetingId)
+                .orElseThrow(() -> new ProcessingException("Meeting not found"));
+        Hibernate.initialize(meeting.getAgendaItems());
+        Hibernate.initialize(meeting.getAttendees());
+        Hibernate.initialize(meeting.getSeries());
+        return meeting;
     }
 }

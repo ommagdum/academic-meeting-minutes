@@ -19,3 +19,7 @@ jwt:
 upload:
   dir: /tmp/test-uploads
   max-file-size: 52428800
+
+app:
+  oauth2:
+    redirect-uri: http://localhost:5173/auth/callback

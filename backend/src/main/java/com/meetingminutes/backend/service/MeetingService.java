@@ -8,6 +8,8 @@ import com.meetingminutes.backend.exception.ForbiddenException;
 import com.meetingminutes.backend.exception.EntityNotFoundException;
 import com.meetingminutes.backend.exception.ValidationException;
 import com.meetingminutes.backend.repository.*;
+import com.meetingminutes.backend.repository.mongo.AIExtractionRepository;
+import com.meetingminutes.backend.repository.mongo.TranscriptRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -34,6 +36,9 @@ public class MeetingService {
     private final AttendeeRepo attendeeRepo;
     private final AgendaService agendaService;
     private final MeetingAccessService meetingAccessService;
+    private final TranscriptRepository transcriptRepository;
+    private final AIExtractionRepository aiExtractionRepository;
+    private final DocumentGenerationService documentGenerationService;
 
     public Meeting createMeeting(CreateMeetingRequest request, User user) {
         if (request.getSeriesId() != null && request.getNewSeriesTitle() != null) {
@@ -102,6 +107,16 @@ public class MeetingService {
                 .orElseThrow(() -> new RuntimeException("Meeting not found or access denied"));
 
         meetingRepository.delete(meeting);
+
+        // Cascade delete to MongoDB to prevent orphan documents
+        try {
+            transcriptRepository.deleteByMeetingId(meetingId);
+            aiExtractionRepository.deleteByMeetingId(meetingId);
+            documentGenerationService.cleanupMeetingDocuments(meetingId);
+            log.info("Successfully deleted MongoDB records for meeting: {}", meetingId);
+        } catch (Exception e) {
+            log.error("Failed to delete MongoDB records for meeting: {}. They may be orphaned.", meetingId, e);
+        }
     }
 
     public Meeting updateMeetingStatus(UUID meetingId, MeetingStatus status, User user) {

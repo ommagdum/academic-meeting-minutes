@@ -28,6 +28,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -77,7 +79,8 @@ public class MeetingController {
     }
 
     @GetMapping("/{meetingId}")
-    public ResponseEntity<MeetingDetailResponse> getMeeting(
+    @Cacheable(value = "meetings", key = "#meetingId")
+    public MeetingDetailResponse getMeeting(
             @PathVariable UUID meetingId,
             Authentication authentication) {
 
@@ -104,10 +107,11 @@ public class MeetingController {
                 transcript.orElse(null), aiExtraction.orElse(null), minutesDocumentUrl
         );
 
-        return ResponseEntity.ok(response);
+        return response;
     }
 
     @PutMapping("/{meetingId}")
+    @CacheEvict(value = "meetings", key = "#meetingId")
     public ResponseEntity<MeetingDetailResponse> updateMeeting(
             @PathVariable UUID meetingId,
             @Valid @RequestBody UpdateMeetingRequest request,
@@ -152,6 +156,7 @@ public class MeetingController {
     }
 
     @PostMapping("/{meetingId}/agenda-items")
+    @CacheEvict(value = "meetings", key = "#meetingId")
     public ResponseEntity<List<AgendaItemResponse>> addAgendaItems(
             @PathVariable UUID meetingId,
             @Valid @RequestBody List<CreateAgendaItemRequest> agendaItems,
@@ -197,6 +202,7 @@ public class MeetingController {
     }
 
     @DeleteMapping("/{meetingId}/agenda-items/{agendaItemId}")
+    @CacheEvict(value = "meetings", key = "#meetingId")
     public ResponseEntity<ApiResponse> deleteAgendaItem(
             @PathVariable UUID meetingId,
             @PathVariable UUID agendaItemId,
@@ -377,6 +383,7 @@ public class MeetingController {
 
     @PostMapping(value = "/{meetingId}/upload-audio", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @RateLimiter(name = "fileUpload")
+    @CacheEvict(value = "meetings", key = "#meetingId")
     public ResponseEntity<AudioUploadResponse> uploadAudio(
             @PathVariable UUID meetingId,
             @RequestParam("file") MultipartFile file,
@@ -427,6 +434,7 @@ public class MeetingController {
 
     @PostMapping("/{meetingId}/process")
     @RateLimiter(name = "aiProcessing")
+    @CacheEvict(value = "meetings", key = "#meetingId")
     public ResponseEntity<ProcessingResponse> startProcessing(
             @PathVariable UUID meetingId,
             Authentication authentication) {
@@ -668,6 +676,7 @@ public class MeetingController {
     }
 
     @DeleteMapping("/{meetingId}")
+    @CacheEvict(value = "meetings", key = "#meetingId")
     public ResponseEntity<ApiResponse> deleteMeeting(
             @PathVariable UUID meetingId,
             Authentication authentication) {
@@ -699,6 +708,7 @@ public class MeetingController {
     }
 
     @PatchMapping("/{meetingId}")
+    @CacheEvict(value = "meetings", key = "#meetingId")
     public ResponseEntity<MeetingDetailResponse> partialUpdateMeeting(
             @PathVariable UUID meetingId,
             @RequestBody Map<String, Object> updates,
