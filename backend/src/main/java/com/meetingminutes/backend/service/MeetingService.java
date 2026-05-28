@@ -36,8 +36,12 @@ public class MeetingService {
     private final MeetingAccessService meetingAccessService;
 
     public Meeting createMeeting(CreateMeetingRequest request, User user) {
-        // Handling series creation or assignment
+        if (request.getSeriesId() != null && request.getNewSeriesTitle() != null) {
+            throw new IllegalArgumentException("Cannot specify both seriesId and newSeriesTitle");
+        }
+
         MeetingSeries series = null;
+
         if (request.getSeriesId() != null) {
             series = meetingSeriesRepo.findById(request.getSeriesId())
                     .orElseThrow(() -> new RuntimeException("Meeting series not found"));
