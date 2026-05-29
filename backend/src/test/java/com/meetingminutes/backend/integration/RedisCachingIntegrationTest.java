@@ -24,7 +24,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -35,16 +34,19 @@ import static org.junit.jupiter.api.Assertions.*;
 public class RedisCachingIntegrationTest {
 
     @Container
+    @SuppressWarnings("resource")
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine")
             .withDatabaseName("testdb")
             .withUsername("test")
             .withPassword("test");
 
     @Container
+    @SuppressWarnings("resource")
     static MongoDBContainer mongoDBContainer = new MongoDBContainer("mongo:6.0")
             .withExposedPorts(27017);
 
     @Container
+    @SuppressWarnings("resource")
     static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
             .withExposedPorts(6379);
 
@@ -75,10 +77,10 @@ public class RedisCachingIntegrationTest {
     @Autowired
     private CacheManager cacheManager;
 
-    @org.springframework.boot.test.mock.mockito.MockBean
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
     private com.meetingminutes.backend.service.EmailService emailService;
 
-    @org.springframework.boot.test.mock.mockito.MockBean
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
     private org.springframework.security.oauth2.client.registration.ClientRegistrationRepository clientRegistrationRepository;
     
     @Autowired

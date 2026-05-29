@@ -5,7 +5,7 @@ import com.meetingminutes.backend.entity.Meeting;
 import com.meetingminutes.backend.entity.MeetingStatus;
 import com.meetingminutes.backend.entity.User;
 import com.meetingminutes.backend.repository.MeetingRepository;
-import com.meetingminutes.backend.service.MeetingSearchService;
+
 import com.meetingminutes.backend.service.UserService;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import lombok.RequiredArgsConstructor;
@@ -37,7 +37,7 @@ public class DashboardController {
 
     private final MeetingRepository meetingRepository;
     private final UserService userService;
-    private final MeetingSearchService meetingSearchService;
+
 
     @GetMapping("/stats")
     @RateLimiter(name = "dashboardEndpoints")

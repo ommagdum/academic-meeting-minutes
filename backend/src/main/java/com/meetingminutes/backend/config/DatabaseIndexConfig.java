@@ -5,19 +5,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.index.TextIndexDefinition;
-import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
+
 import org.springframework.jdbc.core.JdbcTemplate;
 
 @Configuration
 @Slf4j
 public class DatabaseIndexConfig {
 
-    private final MongoMappingContext mongoMappingContext;
     private final JdbcTemplate jdbcTemplate;
     private final MongoTemplate mongoTemplate;
 
-    public DatabaseIndexConfig(MongoMappingContext mongoMappingContext, MongoTemplate mongoTemplate, JdbcTemplate jdbcTemplate) {
-        this.mongoMappingContext = mongoMappingContext;
+    public DatabaseIndexConfig(MongoTemplate mongoTemplate, JdbcTemplate jdbcTemplate) {
         this.mongoTemplate = mongoTemplate;
         this.jdbcTemplate = jdbcTemplate;
     }

@@ -88,7 +88,6 @@ public class WebSocketEventPublisher {
     }
 
     public void sendUserNotification(String userId, WebSocketMessage message) {
-        String destination = "/user/" + userId + "/queue/notifications";
         messagingTemplate.convertAndSendToUser(userId, "/queue/notifications", message);
         log.debug("User notification sent to {}: {}", userId, message.getType());
     }

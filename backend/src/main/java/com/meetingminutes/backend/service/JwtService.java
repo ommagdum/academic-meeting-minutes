@@ -10,7 +10,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
-import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -44,7 +43,7 @@ public class JwtService {
     }
 
     @Deprecated
-    public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails ) {
+    public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
         return buildToken(extraClaims, userDetails, jwtExpiration);
     }
 
@@ -60,7 +59,7 @@ public class JwtService {
                 .subject(userDetails.getUsername())
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(getSignInKey())   // no SignatureAlgorithm needed
+                .signWith(getSignInKey()) // no SignatureAlgorithm needed
                 .compact();
     }
 
@@ -71,7 +70,7 @@ public class JwtService {
                 .subject(subject)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(getSignInKey())   // no SignatureAlgorithm needed
+                .signWith(getSignInKey()) // no SignatureAlgorithm needed
                 .compact();
     }
 
@@ -83,8 +82,6 @@ public class JwtService {
 
         return buildToken(extractClaims, user.getEmail(), jwtExpiration);
     }
-
-
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);

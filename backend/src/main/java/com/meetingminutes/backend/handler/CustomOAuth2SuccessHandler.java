@@ -38,9 +38,8 @@ public class CustomOAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHa
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,
-                                        HttpServletResponse response,
-                                        Authentication authentication) throws
-            IOException, ServletException {
+            HttpServletResponse response,
+            Authentication authentication) throws IOException, ServletException {
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
         Map<String, Object> attributes = oAuth2User.getAttributes();
 
@@ -48,7 +47,6 @@ public class CustomOAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHa
         String name = (String) attributes.get("name");
         String picture = (String) attributes.get("picture");
         String googleId = (String) attributes.get("sub");
-        Boolean emailVerified = (Boolean) attributes.get("email_verified");
 
         log.info("OAuth2 login successful for user: {}", email);
 

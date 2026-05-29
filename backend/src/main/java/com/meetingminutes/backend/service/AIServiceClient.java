@@ -133,13 +133,13 @@ public class AIServiceClient {
     }
 
     // Fallback methods
-    private TranscriptionResponse fallbackTranscribe(String audioFilePath, UUID meetingId, Exception ex) {
+    public TranscriptionResponse fallbackTranscribe(String audioFilePath, UUID meetingId, Exception ex) {
         log.warn("Using fallback for transcription service for meeting: {}", meetingId);
         // Return a basic response or throw a specific exception
         throw new RuntimeException("Transcription service temporarily unavailable. Please try again later.");
     }
 
-    private ExtractionResponse fallbackExtract(ExtractionRequest extractionRequest, Exception ex) {
+    public ExtractionResponse fallbackExtract(ExtractionRequest extractionRequest, Exception ex) {
         log.warn("Using fallback for extraction service for meeting: {}", extractionRequest.getMeetingId());
         // Return a basic response or throw a specific exception
         throw new RuntimeException("Extraction service temporarily unavailable. Please try again later.");

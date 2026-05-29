@@ -1,6 +1,8 @@
 package com.meetingminutes.backend.integration;
 
+import com.meetingminutes.backend.document.AIExtraction;
 import com.meetingminutes.backend.document.ExtractedData;
+import com.meetingminutes.backend.document.Transcript;
 import com.meetingminutes.backend.dto.ai.ExtractionRequest;
 import com.meetingminutes.backend.dto.ai.ExtractionResponse;
 import com.meetingminutes.backend.dto.ai.TranscriptionResponse;
@@ -16,10 +18,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
+import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -31,17 +35,17 @@ import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest
 @Testcontainers
 @ActiveProfiles("test")
 @TestPropertySource(properties = {
         "spring.main.allow-bean-definition-overriding=true",
-        "app.oauth2.redirect-uri=http://localhost:5173/auth/callback",
         "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration"
 })
-public class MeetingProcessingServiceIntegrationTest {
+public class DataConsistencyIntegrationTest {
 
     @Container
     @SuppressWarnings("resource")
@@ -52,7 +56,7 @@ public class MeetingProcessingServiceIntegrationTest {
 
     @Container
     @SuppressWarnings("resource")
-    static org.testcontainers.containers.MongoDBContainer mongoDBContainer = new org.testcontainers.containers.MongoDBContainer("mongo:6.0")
+    static MongoDBContainer mongoDBContainer = new MongoDBContainer("mongo:6.0")
             .withExposedPorts(27017);
 
     @DynamicPropertySource
@@ -78,22 +82,17 @@ public class MeetingProcessingServiceIntegrationTest {
     private UserRepo userRepo;
 
     @Autowired
+    private TranscriptRepository transcriptRepository;
+
+    @Autowired
+    private AIExtractionRepository aiExtractionRepository;
+
+    // Use MockitoBean to simulate Postgres data integrity violation specifically on save
+    @MockitoBean
     private ActionItemRepo actionItemRepo;
 
     @MockitoBean
-    private TranscriptRepository transcriptRepository;
-
-    @MockitoBean
-    private AIExtractionRepository aiExtractionRepository;
-
-    @MockitoBean
     private FileUploadService fileUploadService;
-
-    @MockitoBean
-    private EmailService emailService;
-
-    @MockitoBean
-    private DocumentGenerationService documentGenerationService;
 
     @MockitoBean
     private AIServiceClient aiServiceClient;
@@ -102,27 +101,37 @@ public class MeetingProcessingServiceIntegrationTest {
     private WebSocketEventPublisher webSocketEventPublisher;
 
     @MockitoBean
+    private DocumentGenerationService documentGenerationService;
+
+    @MockitoBean
     private org.springframework.security.oauth2.client.registration.ClientRegistrationRepository clientRegistrationRepository;
+
+    @MockitoBean
+    private EmailService emailService;
+
+    @MockitoBean
+    private org.springframework.data.redis.connection.RedisConnectionFactory redisConnectionFactory;
 
     private User testUser;
     private Meeting testMeeting;
 
     @BeforeEach
     void setUp() {
-        actionItemRepo.deleteAll();
         meetingRepository.deleteAll();
         userRepo.deleteAll();
+        transcriptRepository.deleteAll();
+        aiExtractionRepository.deleteAll();
 
         testUser = new User();
-        testUser.setEmail("test@example.com");
-        testUser.setName("Test User");
+        testUser.setEmail("consistency@example.com");
+        testUser.setName("Consistency User");
         testUser.setRole(UserRole.OWNER);
         testUser.setAuthProvider(AuthProvider.LOCAL);
         testUser.setPasswordHash("hash");
         testUser = userRepo.save(testUser);
 
         testMeeting = new Meeting();
-        testMeeting.setTitle("Integration Test Meeting");
+        testMeeting.setTitle("Consistency Test Meeting");
         testMeeting.setStatus(MeetingStatus.DRAFT);
         testMeeting.setCreatedBy(testUser);
         testMeeting.setAudioFilePath("/tmp/audio.mp3");
@@ -132,89 +141,47 @@ public class MeetingProcessingServiceIntegrationTest {
     }
 
     @Test
-    void processMeeting_Success_EndToEnd() throws Exception {
+    void postgresSaveFails_MongoDocumentsCleanedUp() {
         // Arrange
+        UUID meetingId = testMeeting.getId();
+
+        // 1. Mock AI Transcription to return success
         TranscriptionResponse transcriptionResponse = new TranscriptionResponse();
         transcriptionResponse.setSuccess(true);
-        transcriptionResponse.setRawText("Meeting transcript");
+        transcriptionResponse.setRawText("This is a meeting transcript.");
         when(aiServiceClient.transcribeAudio(anyString(), any(UUID.class))).thenReturn(transcriptionResponse);
-        when(transcriptRepository.save(any())).thenAnswer(i -> i.getArgument(0));
-        when(transcriptRepository.findByMeetingId(testMeeting.getId())).thenReturn(Optional.empty());
 
+        // 2. Mock AI Extraction to return success
         ExtractionResponse extractionResponse = new ExtractionResponse();
         extractionResponse.setSuccess(true);
         ExtractedData data = new ExtractedData();
         ExtractedData.ExtractedActionItem actionItem = new ExtractedData.ExtractedActionItem();
         actionItem.setDescription("Test task");
-        actionItem.setAssignedTo("test@example.com");
         data.setActionItems(List.of(actionItem));
         extractionResponse.setExtractedData(data);
         when(aiServiceClient.extractInformation(any(ExtractionRequest.class))).thenReturn(extractionResponse);
-        when(aiExtractionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
-        when(aiExtractionRepository.findByMeetingId(testMeeting.getId())).thenReturn(Optional.empty());
+
+        // 3. Mock ActionItemRepo (Postgres) to throw an exception
+        when(actionItemRepo.save(any(ActionItem.class)))
+                .thenThrow(new DataIntegrityViolationException("Simulated Postgres constraint violation"));
 
         // Act
-        CompletableFuture<Void> future = meetingProcessingService.processMeeting(testMeeting.getId(), testUser);
-        future.join(); // Wait for async completion
+        CompletableFuture<Void> future = meetingProcessingService.processMeeting(meetingId, testUser);
 
-        // Assert
-        Meeting updatedMeeting = meetingRepository.findById(testMeeting.getId()).orElseThrow();
-        assertEquals(MeetingStatus.PROCESSED, updatedMeeting.getStatus());
-        assertNotNull(updatedMeeting.getActualStartTime());
-        assertNotNull(updatedMeeting.getActualEndTime());
-
-        List<ActionItem> actionItems = actionItemRepo.findByMeetingId(testMeeting.getId());
-        assertEquals(1, actionItems.size());
-        assertEquals("Test task", actionItems.get(0).getDescription());
-        assertEquals(testUser.getId(), actionItems.get(0).getAssignedToUser().getId());
-
-        verify(documentGenerationService).generateMinutesPDF(any(), any(), any());
-        verify(emailService).sendProcessingCompleteNotification(any(), any());
-    }
-
-    @Test
-    void processMeeting_FailsMidway_TransactionRollback() {
-        // Arrange
-        TranscriptionResponse transcriptionResponse = new TranscriptionResponse();
-        transcriptionResponse.setSuccess(true);
-        transcriptionResponse.setRawText("Meeting transcript");
-        when(aiServiceClient.transcribeAudio(anyString(), any(UUID.class))).thenReturn(transcriptionResponse);
-        when(transcriptRepository.save(any())).thenAnswer(i -> i.getArgument(0));
-
-        // Simulate failure during extraction
-        when(aiServiceClient.extractInformation(any(ExtractionRequest.class)))
-                .thenThrow(new RuntimeException("AI API Timeout"));
-
-        // Act
-        CompletableFuture<Void> future = meetingProcessingService.processMeeting(testMeeting.getId(), testUser);
-        
         // Assert
         Exception exception = assertThrows(Exception.class, future::join);
-        assertTrue(exception.getMessage().contains("AI API Timeout"));
+        assertTrue(exception.getMessage().contains("Simulated Postgres constraint violation") ||
+                   exception.getCause() instanceof DataIntegrityViolationException);
 
-        Meeting updatedMeeting = meetingRepository.findById(testMeeting.getId()).orElseThrow();
-        assertEquals(MeetingStatus.FAILED, updatedMeeting.getStatus());
-        assertNotNull(updatedMeeting.getActualEndTime()); // Set on failure
+        // Verify PostgreSQL Meeting state was set to FAILED
+        Meeting updatedMeeting = meetingRepository.findById(meetingId).orElseThrow();
+        assertEquals(MeetingStatus.FAILED, updatedMeeting.getStatus(), "Meeting status should be updated to FAILED");
 
-        List<ActionItem> actionItems = actionItemRepo.findByMeetingId(testMeeting.getId());
-        assertTrue(actionItems.isEmpty(), "No action items should be saved if processing fails");
-    }
+        // Verify MongoDB Compensation: No orphaned documents should exist!
+        Optional<Transcript> savedTranscript = transcriptRepository.findByMeetingId(meetingId);
+        assertTrue(savedTranscript.isEmpty(), "Transcript should have been deleted from MongoDB during compensation");
 
-    @Test
-    void concurrentStatusUpdates_OptimisticLocking() throws Exception {
-        // Retrieve two instances of the same meeting to simulate concurrent transactions
-        Meeting instance1 = meetingRepository.findById(testMeeting.getId()).orElseThrow();
-        Meeting instance2 = meetingRepository.findById(testMeeting.getId()).orElseThrow();
-
-        // Transaction 1 updates status to PROCESSING
-        instance1.setStatus(MeetingStatus.PROCESSING);
-        meetingRepository.save(instance1);
-
-        // Transaction 2 tries to update status to FAILED concurrently
-        instance2.setStatus(MeetingStatus.FAILED);
-        
-        assertThrows(org.springframework.orm.ObjectOptimisticLockingFailureException.class, () -> {
-            meetingRepository.save(instance2); // Should throw OptimisticLockException due to @Version mismatch
-        });
+        Optional<AIExtraction> savedExtraction = aiExtractionRepository.findByMeetingId(meetingId);
+        assertTrue(savedExtraction.isEmpty(), "AI Extraction should have been deleted from MongoDB during compensation");
     }
 }

@@ -28,7 +28,6 @@ import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oauth2Login;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -41,16 +40,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class RestApiSecurityIntegrationTest {
 
     @Container
+    @SuppressWarnings("resource")
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine")
             .withDatabaseName("testdb")
             .withUsername("test")
             .withPassword("test");
 
     @Container
+    @SuppressWarnings("resource")
     static MongoDBContainer mongoDBContainer = new MongoDBContainer("mongo:6.0")
             .withExposedPorts(27017);
 
     @Container
+    @SuppressWarnings("resource")
     static GenericContainer<?> redis = new GenericContainer<>("redis:7-alpine")
             .withExposedPorts(6379);
 
@@ -84,10 +86,10 @@ public class RestApiSecurityIntegrationTest {
     @Autowired
     private JwtService jwtService;
 
-    @org.springframework.boot.test.mock.mockito.MockBean
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
     private com.meetingminutes.backend.service.EmailService emailService;
     
-    @org.springframework.boot.test.mock.mockito.MockBean
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
     private org.springframework.security.oauth2.client.registration.ClientRegistrationRepository clientRegistrationRepository;
 
     private User owner;

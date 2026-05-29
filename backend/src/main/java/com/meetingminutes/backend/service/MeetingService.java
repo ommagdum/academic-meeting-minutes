@@ -14,11 +14,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -31,7 +31,6 @@ public class MeetingService {
 
     private final MeetingRepository meetingRepository;
     private final MeetingSeriesRepo meetingSeriesRepo;
-    private final UserRepo userRepo;
     private final AgendaItemRepo agendaItemRepo;
     private final AttendeeRepo attendeeRepo;
     private final AgendaService agendaService;
@@ -39,6 +38,7 @@ public class MeetingService {
     private final TranscriptRepository transcriptRepository;
     private final AIExtractionRepository aiExtractionRepository;
     private final DocumentGenerationService documentGenerationService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public Meeting createMeeting(CreateMeetingRequest request, User user) {
         if (request.getSeriesId() != null && request.getNewSeriesTitle() != null) {
@@ -95,7 +95,7 @@ public class MeetingService {
         MeetingSeries series = meetingSeriesRepo.findById(seriesId)
                 .orElseThrow(() -> new RuntimeException("Meeting series not found"));
 
-        if(!series.getCreatedBy().getId().equals(user.getId())) {
+        if (!series.getCreatedBy().getId().equals(user.getId())) {
             throw new ForbiddenException("Access denied to this meeting series");
         }
 
@@ -131,7 +131,17 @@ public class MeetingService {
             meeting.setActualEndTime(LocalDateTime.now());
         }
 
-        return meetingRepository.save(meeting);
+        Meeting savedMeeting = meetingRepository.save(meeting);
+
+        // Broadcast the status update via WebSockets
+        try {
+            messagingTemplate.convertAndSend("/topic/meeting/" + meetingId,
+                    "{\"meetingId\":\"" + meetingId + "\", \"status\":\"" + status.name() + "\"}");
+        } catch (Exception e) {
+            log.error("Failed to broadcast meeting status update for meeting {}", meetingId, e);
+        }
+
+        return savedMeeting;
     }
 
     private MeetingSeries createMeetingSeries(String title, User user) {

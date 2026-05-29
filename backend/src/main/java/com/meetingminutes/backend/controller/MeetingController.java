@@ -14,7 +14,6 @@ import com.meetingminutes.backend.repository.mongo.TranscriptRepository;
 import com.meetingminutes.backend.service.*;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,13 +30,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @RestController
@@ -67,8 +64,7 @@ public class MeetingController {
     @PostMapping
     public ResponseEntity<MeetingDetailResponse> createMeeting(
             @Valid @RequestBody CreateMeetingRequest request,
-            Authentication authentication
-            ) {
+            Authentication authentication) {
         String email = authentication.getName();
         User user = userService.findByEmail(email);
         log.info("Creating new meeting for user: {}, title: {}", user.getEmail(), request.getTitle());
@@ -99,13 +95,12 @@ public class MeetingController {
         Optional<Transcript> transcript = transcriptRepository.findByMeetingId(meetingId);
         Optional<AIExtraction> aiExtraction = aiExtractionRepository.findByMeetingId(meetingId);
 
-        // Fetch document URL 
+        // Fetch document URL
         String minutesDocumentUrl = documentGenerationService.getDocumentUrl(meetingId);
 
         MeetingDetailResponse response = convertToDetailResponse(
                 meeting, agendaItems, attendees, actionItems,
-                transcript.orElse(null), aiExtraction.orElse(null), minutesDocumentUrl
-        );
+                transcript.orElse(null), aiExtraction.orElse(null), minutesDocumentUrl);
 
         return response;
     }
@@ -135,8 +130,7 @@ public class MeetingController {
 
             MeetingDetailResponse response = convertToDetailResponse(
                     updatedMeeting, agendaItems, attendees, actionItems,
-                    transcript.orElse(null), aiExtraction.orElse(null), minutesDocumentUrl
-            );
+                    transcript.orElse(null), aiExtraction.orElse(null), minutesDocumentUrl);
 
             return ResponseEntity.ok(response);
 
@@ -203,7 +197,7 @@ public class MeetingController {
 
     @DeleteMapping("/{meetingId}/agenda-items/{agendaItemId}")
     @CacheEvict(value = "meetings", key = "#meetingId")
-    public ResponseEntity<ApiResponse> deleteAgendaItem(
+    public ResponseEntity<ApiResponse<Void>> deleteAgendaItem(
             @PathVariable UUID meetingId,
             @PathVariable UUID agendaItemId,
             Authentication authentication) {
@@ -228,7 +222,7 @@ public class MeetingController {
 
             agendaItemRepo.delete(agendaItem);
 
-            ApiResponse response = ApiResponse.builder()
+            ApiResponse<Void> response = ApiResponse.<Void>builder()
                     .success(true)
                     .message("Agenda item deleted successfully")
                     .build();
@@ -256,7 +250,7 @@ public class MeetingController {
 
         try {
             // Verify user has access to the meeting
-            Meeting meeting = meetingService.getMeeting(meetingId, user);
+            meetingService.getMeeting(meetingId, user);
 
             log.info("Total transcripts in DB: {}", transcriptRepository.count());
             log.info("Looking for transcript with meetingId type: {}, value: {}",
@@ -267,7 +261,8 @@ public class MeetingController {
 
             log.info("Looking for transcript with meetingId: {}", meetingId);
             log.info("Transcript found: {}", transcriptOpt.isPresent());
-            transcriptOpt.ifPresent(t -> log.info("Transcript id: {}, meetingId stored: {}", t.getId(), t.getMeetingId()));
+            transcriptOpt
+                    .ifPresent(t -> log.info("Transcript id: {}, meetingId stored: {}", t.getId(), t.getMeetingId()));
 
             if (transcriptOpt.isEmpty()) {
                 ApiResponse<TranscriptResponse> response = ApiResponse.<TranscriptResponse>builder()
@@ -322,20 +317,17 @@ public class MeetingController {
                 .series(MeetingSeriesResponse.simpleFrom(meeting.getSeries()))
 
                 // Populate the previously null fields
-                .agendaItems(agendaItems != null ?
-                        agendaItems.stream()
-                                .map(AgendaItemResponse::from)
-                                .collect(Collectors.toList())
+                .agendaItems(agendaItems != null ? agendaItems.stream()
+                        .map(AgendaItemResponse::from)
+                        .collect(Collectors.toList())
                         : null)
-                .attendees(attendees != null ?
-                        attendees.stream()
-                                .map(AttendeeResponse::from)
-                                .collect(Collectors.toList())
+                .attendees(attendees != null ? attendees.stream()
+                        .map(AttendeeResponse::from)
+                        .collect(Collectors.toList())
                         : null)
-                .actionItems(actionItems != null ?
-                        actionItems.stream()
-                                .map(ActionItemResponse::from)
-                                .collect(Collectors.toList())
+                .actionItems(actionItems != null ? actionItems.stream()
+                        .map(ActionItemResponse::from)
+                        .collect(Collectors.toList())
                         : null)
                 .transcriptId(transcript != null ? transcript.getId() : null)
                 .aiExtractionId(aiExtraction != null ? aiExtraction.getId() : null)
@@ -358,8 +350,7 @@ public class MeetingController {
         User user = userService.findByEmail(email);
         log.debug("Fetching meetings for user: {}, page: {}, size: {}", user.getEmail(), page, size);
 
-        Sort sort = direction.equalsIgnoreCase("desc") ?
-                Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        Sort sort = direction.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
         // Use repository with proper pagination
@@ -443,7 +434,7 @@ public class MeetingController {
 
         try {
             // Start async processing - no file path needed, it's stored in the meeting
-            CompletableFuture<Void> processingFuture = meetingProcessingService.processMeeting(meetingId, user);
+            meetingProcessingService.processMeeting(meetingId, user);
 
             ProcessingResponse response = ProcessingResponse.builder()
                     .success(true)
@@ -499,7 +490,7 @@ public class MeetingController {
     }
 
     @PostMapping("/{meetingId}/invite")
-    public ResponseEntity<ApiResponse> inviteParticipants(
+    public ResponseEntity<ApiResponse<Map<String, Integer>>> inviteParticipants(
             @PathVariable UUID meetingId,
             @Valid @RequestBody InviteParticipantRequest request,
             Authentication authentication) {
@@ -512,7 +503,7 @@ public class MeetingController {
             // ✅ FIX: Pass request directly, not cast
             attendeeService.inviteParticipants(meetingId, request, user);
 
-            ApiResponse response = ApiResponse.builder()
+            ApiResponse<Map<String, Integer>> response = ApiResponse.<Map<String, Integer>>builder()
                     .success(true)
                     .message("Participants invited successfully")
                     .data(Map.of("invitedCount", request.getEmails().size()))
@@ -523,7 +514,7 @@ public class MeetingController {
         } catch (Exception e) {
             log.error("Failed to invite participants for meeting: {}", meetingId, e);
 
-            ApiResponse response = ApiResponse.builder()
+            ApiResponse<Map<String, Integer>> response = ApiResponse.<Map<String, Integer>>builder()
                     .success(false)
                     .message("Failed to invite participants: " + e.getMessage())
                     .build();
@@ -531,7 +522,6 @@ public class MeetingController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
     }
-
 
     @GetMapping("/{meetingId}/documents/{documentId}/download")
     public ResponseEntity<Resource> downloadDocument(
@@ -541,9 +531,8 @@ public class MeetingController {
             Authentication authentication) {
 
         String email = authentication.getName();
-        User user = userService.findByEmail(email);
-        log.info("Downloading document for meeting: {}, document: {}, format: {}",
-                meetingId, documentId, format);
+        log.info("Downloading document for meeting: {}, document: {}, format: {} by user: {}",
+                meetingId, documentId, format, email);
 
         try {
             // ✅ FIXED: Get the document from GridFS
@@ -633,8 +622,7 @@ public class MeetingController {
             Authentication authentication) {
 
         String email = authentication.getName();
-        User user = userService.findByEmail(email);
-        log.info("Downloading latest document for meeting: {}, format: {}", meetingId, format);
+        log.info("Downloading latest document for meeting: {}, format: {} by user: {}", meetingId, format, email);
 
         try {
             // Get all documents for the meeting
@@ -675,7 +663,7 @@ public class MeetingController {
 
     @DeleteMapping("/{meetingId}")
     @CacheEvict(value = "meetings", key = "#meetingId")
-    public ResponseEntity<ApiResponse> deleteMeeting(
+    public ResponseEntity<ApiResponse<Void>> deleteMeeting(
             @PathVariable UUID meetingId,
             Authentication authentication) {
 
@@ -686,7 +674,7 @@ public class MeetingController {
         try {
             meetingService.deleteMeeting(meetingId, user);
 
-            ApiResponse response = ApiResponse.builder()
+            ApiResponse<Void> response = ApiResponse.<Void>builder()
                     .success(true)
                     .message("Meeting deleted successfully")
                     .build();
@@ -696,7 +684,7 @@ public class MeetingController {
         } catch (Exception e) {
             log.error("Failed to delete meeting: {}", meetingId, e);
 
-            ApiResponse response = ApiResponse.builder()
+            ApiResponse<Void> response = ApiResponse.<Void>builder()
                     .success(false)
                     .message("Failed to delete meeting: " + e.getMessage())
                     .build();
@@ -771,8 +759,7 @@ public class MeetingController {
 
             MeetingDetailResponse response = convertToDetailResponse(
                     updatedMeeting, agendaItems, attendees, actionItems,
-                    transcript.orElse(null), aiExtraction.orElse(null), minutesDocumentUrl
-            );
+                    transcript.orElse(null), aiExtraction.orElse(null), minutesDocumentUrl);
 
             return ResponseEntity.ok(response);
 
@@ -911,14 +898,9 @@ public class MeetingController {
         return ActionItemResponse.from(actionItem);
     }
 
-    private String getAudioFilePathForMeeting(UUID meetingId) {
-        return "/tmp/uploads/" + meetingId + "_audio.mp3";
-    }
-
     private User getUserFromAuthentication(Authentication authentication) {
         String email = authentication.getName();
         return userService.findByEmail(email);
     }
-
 
 }

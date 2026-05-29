@@ -197,43 +197,6 @@ public class MeetingSearchService {
         return meetingRepository.fullTextSearchWithDynamicSort(user.getId(), query, sortField, sortDirection, unsortedPageable);
     }
 
-    // Filter methods (no changes needed here)
-    private boolean filterByStatus(Meeting meeting, List<MeetingStatus> statuses) {
-        return statuses == null || statuses.isEmpty() || statuses.contains(meeting.getStatus());
-    }
-
-    private boolean filterBySeries(Meeting meeting, UUID seriesId) {
-        return seriesId == null ||
-                (meeting.getSeries() != null && meeting.getSeries().getId().equals(seriesId));
-    }
-
-    private boolean filterByDateRange(Meeting meeting, LocalDateTime fromDate, LocalDateTime toDate) {
-        if (fromDate == null && toDate == null) return true;
-
-        LocalDateTime meetingDate = meeting.getScheduledTime() != null ?
-                meeting.getScheduledTime() : meeting.getCreatedAt();
-
-        if (meetingDate == null) return false;
-
-        boolean afterFrom = fromDate == null || !meetingDate.isBefore(fromDate);
-        boolean beforeTo = toDate == null || !meetingDate.isAfter(toDate);
-
-        return afterFrom && beforeTo;
-    }
-
-    private boolean filterByActionItems(Meeting meeting, Boolean hasActionItems) {
-        return hasActionItems == null ||
-                (hasActionItems && meeting.getActionItems() != null && !meeting.getActionItems().isEmpty()) ||
-                (!hasActionItems && (meeting.getActionItems() == null || meeting.getActionItems().isEmpty()));
-    }
-
-    private boolean filterByTranscript(Meeting meeting, Boolean hasTranscript) {
-        if (hasTranscript == null) return true;
-
-        boolean actualHasTranscript = hasTranscript(meeting.getId());
-        return hasTranscript == actualHasTranscript;
-    }
-
     // Date-based search implementations - ✅ FIXED: All use userOrAttendee methods
     private Page<Meeting> findMeetingsForDate(User user, LocalDate date, Pageable pageable) {
         LocalDateTime startOfDay = date.atStartOfDay();
@@ -544,20 +507,6 @@ public class MeetingSearchService {
         };
     }
 
-    private String formatAnalyticsPeriod(java.sql.Timestamp timestamp, String periodType) {
-        LocalDateTime dateTime = timestamp.toLocalDateTime();
-        return switch (periodType) {
-            case "day" -> dateTime.toLocalDate().format(DateTimeFormatter.ISO_LOCAL_DATE);
-            case "week" -> dateTime.toLocalDate().format(DateTimeFormatter.ofPattern("yyyy-'W'ww"));
-            case "month" -> YearMonth.from(dateTime).format(DateTimeFormatter.ofPattern("yyyy-MM"));
-            case "quarter" -> {
-                int quarter = (dateTime.getMonthValue() - 1) / 3 + 1;
-                yield dateTime.getYear() + "-Q" + quarter;
-            }
-            case "year" -> String.valueOf(dateTime.getYear());
-            default -> dateTime.toLocalDate().format(DateTimeFormatter.ISO_LOCAL_DATE);
-        };
-    }
 
     private Page<Meeting> searchByCategoryAndQuery(String category, String query, User user, Pageable pageable) {
         LocalDateTime[] range = getDateRangeForCategory(category);
@@ -590,10 +539,8 @@ public class MeetingSearchService {
     }
 
     private LocalDateTime[] getDateRangeForCategory(String category) {
-        LocalDateTime now = LocalDateTime.now();
         LocalDate today = LocalDate.now();
         YearMonth currentMonth = YearMonth.now();
-        Year currentYear = Year.now();
 
         return switch (category.toLowerCase()) {
             case "thismonth" -> {

@@ -5,7 +5,6 @@ import com.meetingminutes.backend.document.GeneratedDocument;
 import com.meetingminutes.backend.entity.Attendee;
 import com.meetingminutes.backend.entity.Meeting;
 import com.meetingminutes.backend.entity.User;
-import com.meetingminutes.backend.repository.MeetingRepository;
 import com.meetingminutes.backend.repository.mongo.GeneratedDocumentRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,12 +35,10 @@ import java.util.stream.Collectors;
 @Slf4j
 public class DocumentGenerationService {
 
-
     private final TemplateEngine templateEngine;
     private final GridFsTemplate gridFsTemplate;
     private final GridFsOperations gridFsOperations;
     private final GeneratedDocumentRepo generatedDocumentRepository;
-    private final MeetingRepository meetingRepository;
 
     /**
      * Generates meeting minutes in PDF format and stores in GridFS
@@ -161,9 +158,10 @@ public class DocumentGenerationService {
     /**
      * Generates DOCX content using Apache POI
      */
+    @SuppressWarnings("unchecked")
     private byte[] generateDOCXContent(Map<String, Object> templateData) throws Exception {
         try (XWPFDocument document = new XWPFDocument();
-             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+                ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
 
             Meeting meeting = (Meeting) templateData.get("meeting");
             List<Attendee> attendees = (List<Attendee>) templateData.get("attendees");
@@ -187,9 +185,10 @@ public class DocumentGenerationService {
             for (Attendee attendee : attendees) {
                 XWPFParagraph attendeePara = document.createParagraph();
                 XWPFRun attendeeRun = attendeePara.createRun();
-                String attendeeName = attendee.getUser() != null ?
-                        attendee.getUser().getName() : "External Participant";
-                attendeeRun.setText("• " + attendeeName + " - " + attendee.getInviteEmail() + " (" + attendee.getStatus() + ")");
+                String attendeeName = attendee.getUser() != null ? attendee.getUser().getName()
+                        : "External Participant";
+                attendeeRun.setText(
+                        "• " + attendeeName + " - " + attendee.getInviteEmail() + " (" + attendee.getStatus() + ")");
             }
             document.createParagraph().createRun().addBreak();
 
@@ -238,15 +237,11 @@ public class DocumentGenerationService {
                     var actionItem = meeting.getActionItems().get(i);
                     table.getRow(i + 1).getCell(0).setText(actionItem.getDescription());
                     table.getRow(i + 1).getCell(1).setText(
-                            actionItem.getAssignedToUser() != null ?
-                                    actionItem.getAssignedToUser().getName() :
-                                    actionItem.getAssignedToEmail() != null ?
-                                            actionItem.getAssignedToEmail() : "Unassigned"
-                    );
+                            actionItem.getAssignedToUser() != null ? actionItem.getAssignedToUser().getName()
+                                    : actionItem.getAssignedToEmail() != null ? actionItem.getAssignedToEmail()
+                                            : "Unassigned");
                     table.getRow(i + 1).getCell(2).setText(
-                            actionItem.getDeadline() != null ?
-                                    formatDateTime(actionItem.getDeadline()) : "Not set"
-                    );
+                            actionItem.getDeadline() != null ? formatDateTime(actionItem.getDeadline()) : "Not set");
                     table.getRow(i + 1).getCell(3).setText(actionItem.getStatus().toString());
                 }
             }
@@ -269,7 +264,7 @@ public class DocumentGenerationService {
      * Stores file in GridFS and returns file ID
      */
     private String storeInGridFS(byte[] content, String filename, String contentType,
-                                 UUID meetingId, String documentType) {
+            UUID meetingId, String documentType) {
         try (InputStream inputStream = new ByteArrayInputStream(content)) {
             Document metadata = new Document();
             metadata.put("meetingId", meetingId.toString());
@@ -285,17 +280,16 @@ public class DocumentGenerationService {
      * Saves document metadata in our collection
      */
     private void saveDocumentMetadata(Meeting meeting, String fileId, String filename,
-                                      GeneratedDocument.DocumentType documentType, long fileSize,
-                                      Map<String, Object> templateData) {
+            GeneratedDocument.DocumentType documentType, long fileSize,
+            Map<String, Object> templateData) {
 
         GeneratedDocument document = GeneratedDocument.builder()
                 .id(fileId)
                 .filename(filename)
                 .meetingId(meeting.getId())
                 .documentType(documentType)
-                .contentType(documentType == GeneratedDocument.DocumentType.MINUTES_PDF ?
-                        "application/pdf" :
-                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+                .contentType(documentType == GeneratedDocument.DocumentType.MINUTES_PDF ? "application/pdf"
+                        : "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
                 .fileSize(fileSize)
                 .version((Integer) templateData.get("version"))
                 .generatedAt(LocalDateTime.now())
@@ -325,9 +319,8 @@ public class DocumentGenerationService {
                     .max(Comparator.comparing(GeneratedDocument::getGeneratedAt)
                             .thenComparing(GeneratedDocument::getVersion));
 
-            return latestPdf.map(doc ->
-                    "/api/v1/meetings/" + meetingId + "/documents/" + doc.getId() + "/download"
-            ).orElse(null);
+            return latestPdf.map(doc -> "/api/v1/meetings/" + meetingId + "/documents/" + doc.getId() + "/download")
+                    .orElse(null);
 
         } catch (Exception e) {
             log.warn("Failed to generate document URL for meeting: {}", meetingId, e);
@@ -379,7 +372,8 @@ public class DocumentGenerationService {
     }
 
     private String formatDateTime(LocalDateTime dateTime) {
-        if (dateTime == null) return "Not specified";
+        if (dateTime == null)
+            return "Not specified";
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM dd, yyyy 'at' hh:mm a");
         return dateTime.format(formatter);
     }
@@ -405,8 +399,7 @@ public class DocumentGenerationService {
      */
     public GridFsResource getDocumentById(String fileId) {
         return gridFsOperations.getResource(
-                gridFsOperations.findOne(new Query(Criteria.where("_id").is(fileId)))
-        );
+                gridFsOperations.findOne(new Query(Criteria.where("_id").is(fileId))));
     }
 
     /**

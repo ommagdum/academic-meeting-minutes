@@ -54,6 +54,7 @@ public class MeetingRepositoryImpl implements MeetingRepositoryCustom {
         queryObj.setFirstResult((int) pageable.getOffset());
         queryObj.setMaxResults(pageable.getPageSize());
 
+        @SuppressWarnings("unchecked")
         List<Meeting> content = queryObj.getResultList();
 
         // Get total count

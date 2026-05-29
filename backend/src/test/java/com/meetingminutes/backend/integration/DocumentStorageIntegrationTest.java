@@ -14,14 +14,11 @@ import com.meetingminutes.backend.repository.mongo.TranscriptRepository;
 import com.meetingminutes.backend.service.DocumentGenerationService;
 import com.meetingminutes.backend.service.EmailService;
 import com.meetingminutes.backend.service.MeetingService;
-import org.bson.types.ObjectId;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.data.mongodb.gridfs.GridFsTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -31,10 +28,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -49,12 +43,14 @@ import static org.junit.jupiter.api.Assertions.*;
 public class DocumentStorageIntegrationTest {
 
     @Container
+    @SuppressWarnings("resource")
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine")
             .withDatabaseName("testdb")
             .withUsername("test")
             .withPassword("test");
 
     @Container
+    @SuppressWarnings("resource")
     static MongoDBContainer mongoDBContainer = new MongoDBContainer("mongo:6.0")
             .withExposedPorts(27017);
 
@@ -78,9 +74,6 @@ public class DocumentStorageIntegrationTest {
     private AIExtractionRepository aiExtractionRepository;
 
     @Autowired
-    private GridFsTemplate gridFsTemplate;
-
-    @Autowired
     private MeetingService meetingService;
 
     @Autowired
@@ -92,11 +85,11 @@ public class DocumentStorageIntegrationTest {
     @Autowired
     private DocumentGenerationService documentGenerationService;
 
-    @MockBean
+    @MockitoBean
     private EmailService emailService;
 
     // We mock OAuth2 because it's required for context loading
-    @MockBean
+    @MockitoBean
     private org.springframework.security.oauth2.client.registration.ClientRegistrationRepository clientRegistrationRepository;
 
     private User testUser;
@@ -133,20 +126,20 @@ public class DocumentStorageIntegrationTest {
         for (int i = 0; i < 100000; i++) {
             hugeText.append("This is a line of transcript text. ");
         }
-        
+
         Transcript transcript = new Transcript();
         transcript.setMeetingId(testMeeting.getId());
         transcript.setRawText(hugeText.toString());
         transcript.setCreatedAt(LocalDateTime.now());
-        
+
         // Act
         transcript = transcriptRepository.save(transcript);
-        
+
         // Assert
         Transcript retrieved = transcriptRepository.findByMeetingId(testMeeting.getId()).orElseThrow();
         assertEquals(hugeText.toString(), retrieved.getRawText());
     }
-    
+
     @Test
     void deleteMeeting_CascadesToMongoDB() {
         // Arrange
@@ -154,21 +147,24 @@ public class DocumentStorageIntegrationTest {
         transcript.setMeetingId(testMeeting.getId());
         transcript.setRawText("Hello");
         transcriptRepository.save(transcript);
-        
+
         AIExtraction extraction = new AIExtraction();
         extraction.setMeetingId(testMeeting.getId());
         extraction.setSuccess(true);
         aiExtractionRepository.save(extraction);
-        
+
         assertTrue(transcriptRepository.existsByMeetingId(testMeeting.getId()));
-        
+
         // Act
         meetingService.deleteMeeting(testMeeting.getId(), testUser);
-        
+
         // Assert
-        assertFalse(meetingRepository.findById(testMeeting.getId()).isPresent(), "Meeting should be deleted in PostgreSQL");
-        assertFalse(transcriptRepository.existsByMeetingId(testMeeting.getId()), "Transcript should be deleted in MongoDB");
-        assertFalse(aiExtractionRepository.findByMeetingId(testMeeting.getId()).isPresent(), "Extraction should be deleted in MongoDB");
+        assertFalse(meetingRepository.findById(testMeeting.getId()).isPresent(),
+                "Meeting should be deleted in PostgreSQL");
+        assertFalse(transcriptRepository.existsByMeetingId(testMeeting.getId()),
+                "Transcript should be deleted in MongoDB");
+        assertFalse(aiExtractionRepository.findByMeetingId(testMeeting.getId()).isPresent(),
+                "Extraction should be deleted in MongoDB");
     }
 
     @Test
@@ -177,22 +173,23 @@ public class DocumentStorageIntegrationTest {
         // (Create some mock data or pass minimal extraction)
         AIExtraction extraction = new AIExtraction();
         extraction.setMeetingId(testMeeting.getId());
-        // Since DocumentGenerationService actually uses Thymeleaf and FlyingSaucer, 
+        // Since DocumentGenerationService actually uses Thymeleaf and FlyingSaucer,
         // we can just call generateMinutesPDF and verify it stores bytes in GridFS.
-        
+
         // Act
         String fileId = documentGenerationService.generateMinutesPDF(testMeeting, extraction, testUser);
-        
+
         // Assert
         assertNotNull(fileId, "GridFS fileId should not be null");
-        
+
         // Retrieve from GridFS
-        org.springframework.data.mongodb.gridfs.GridFsResource resource = documentGenerationService.getDocumentById(fileId);
+        org.springframework.data.mongodb.gridfs.GridFsResource resource = documentGenerationService
+                .getDocumentById(fileId);
         assertNotNull(resource, "Resource should exist in GridFS");
-        
+
         byte[] pdfBytes = resource.getInputStream().readAllBytes();
         assertTrue(pdfBytes.length > 0, "PDF byte array should not be empty");
-        
+
         // Also verify metadata
         java.util.List<GeneratedDocument> docs = documentGenerationService.getMeetingDocuments(testMeeting.getId());
         assertEquals(1, docs.size(), "Should have exactly 1 generated document metadata record");

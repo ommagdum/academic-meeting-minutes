@@ -1,7 +1,6 @@
 package com.meetingminutes.backend.integration;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
-import com.meetingminutes.backend.dto.ai.ExtractionRequest;
 import com.meetingminutes.backend.dto.ai.TranscriptionResponse;
 import com.meetingminutes.backend.service.AIServiceClient;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,12 +32,14 @@ import static org.junit.jupiter.api.Assertions.*;
 public class AIServiceClientIntegrationTest {
 
     @Container
+    @SuppressWarnings("resource")
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine")
             .withDatabaseName("testdb")
             .withUsername("test")
             .withPassword("test");
 
     @Container
+    @SuppressWarnings("resource")
     static MongoDBContainer mongoDBContainer = new MongoDBContainer("mongo:6.0")
             .withExposedPorts(27017);
 
@@ -66,10 +67,10 @@ public class AIServiceClientIntegrationTest {
             "org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration");
     }
 
-    @org.springframework.boot.test.mock.mockito.MockBean
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
     private com.meetingminutes.backend.service.EmailService emailService;
     
-    @org.springframework.boot.test.mock.mockito.MockBean
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
     private org.springframework.security.oauth2.client.registration.ClientRegistrationRepository clientRegistrationRepository;
 
     @Autowired
@@ -133,8 +134,6 @@ public class AIServiceClientIntegrationTest {
 
     @Test
     void transcribeAudio_Timeout_TriggersRetryAndFallback() {
-        // Arrange
-        UUID meetingId = UUID.randomUUID();
         // Simulate a timeout by delaying the response longer than the RestTemplate timeout
         wireMockServer.stubFor(post(urlEqualTo("/ai/transcribe"))
                 .willReturn(aResponse()

@@ -2,7 +2,6 @@ package com.meetingminutes.backend.dto;
 
 import com.meetingminutes.backend.document.Transcript;
 import com.meetingminutes.backend.document.WordTimestamp;
-import com.meetingminutes.backend.dto.ai.TranscriptionResponse;
 import lombok.Builder;
 import lombok.Data;
 

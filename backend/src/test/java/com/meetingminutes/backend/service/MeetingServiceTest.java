@@ -4,7 +4,6 @@ import com.meetingminutes.backend.dto.CreateAgendaItemRequest;
 import com.meetingminutes.backend.dto.CreateMeetingRequest;
 import com.meetingminutes.backend.dto.UpdateMeetingRequest;
 import com.meetingminutes.backend.entity.*;
-import com.meetingminutes.backend.exception.EntityNotFoundException;
 import com.meetingminutes.backend.exception.ForbiddenException;
 import com.meetingminutes.backend.exception.ValidationException;
 import com.meetingminutes.backend.repository.*;

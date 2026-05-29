@@ -16,9 +16,7 @@ import com.meetingminutes.backend.repository.mongo.AIExtractionRepository;
 import com.meetingminutes.backend.repository.mongo.TranscriptRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -100,6 +98,10 @@ public class MeetingProcessingService {
             log.info("Starting document generation for meeting: {}", meetingId);
             webSocketEventPublisher.sendProcessingUpdate(meetingId, MeetingStatus.PROCESSING,
                     90, "GENERATING_DOCUMENTS", "Creating PDF and DOCX minutes");
+            
+            // Fix LazyInitializationException: Load and set action items before passing to Thymeleaf
+            meeting.setActionItems(actionItemRepo.findByMeetingId(meetingId));
+            
             generateMeetingMinutes(meeting, extraction, user);
             log.info("Document generation completed for meeting: {}", meetingId);
 
@@ -130,6 +132,15 @@ public class MeetingProcessingService {
                 } catch (Exception cleanupEx) {
                     log.warn("Failed to cleanup temp file on processing failure", cleanupEx);
                 }
+            }
+
+            // Compensation transaction: Delete orphaned MongoDB documents
+            try {
+                transcriptRepository.deleteByMeetingId(meetingId);
+                aiExtractionRepository.deleteByMeetingId(meetingId);
+                log.info("Compensation successful: Deleted MongoDB records for failed meeting: {}", meetingId);
+            } catch (Exception mongoEx) {
+                log.error("Compensation failed: Could not delete MongoDB records for failed meeting: {}", meetingId, mongoEx);
             }
 
             return CompletableFuture.failedFuture(e);
@@ -575,15 +586,7 @@ public class MeetingProcessingService {
         };
     }
 
-    private int calculateProgress(MeetingStatus status) {
-        return switch (status) {
-            case DRAFT -> 0;
-            case SCHEDULED -> 0;
-            case PROCESSING -> 50; // In progress
-            case PROCESSED -> 100; // Completed
-            case FAILED -> 0; // Reset on failure
-        };
-    }
+
 
     private boolean hasAccessToMeeting(Meeting meeting, User user) {
         return meetingAccessService.hasAccessToMeeting(meeting, user);
