@@ -188,8 +188,8 @@ const TaskItem: React.FC<TaskItemProps> = ({
   return (
     <Card className="mb-4">
       <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
+        <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+          <div className="flex-1 w-full">
             <div className="font-medium text-sm mb-2">{task.description}</div>
             
             <div className="flex items-center gap-2 mb-2">
@@ -206,7 +206,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
             {/* Status Badge */}
             <Badge className={getStatusColor(task.status)}>
               {task.status}

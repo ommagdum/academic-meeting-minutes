@@ -55,9 +55,7 @@ const MeetingDetail = () => {
         try {
           const status = await meetingService.getProcessingStatus(meetingId);
           setProcessingStatus(status);
-          if (status.status !== data.status) {
-            setMeeting(prev => prev ? { ...prev, status: status.status } : null);
-          }
+          // Do not update meeting status here to avoid race conditions with loadMeeting
         } catch (statusError) {
           console.error('[MeetingDetail] Error getting processing status:', statusError);
         }
@@ -142,11 +140,9 @@ const MeetingDetail = () => {
       try {
         const status = await meetingService.getProcessingStatus(meetingId);
         setProcessingStatus(status);
-        if (status.status !== meeting.status) {
-          setMeeting(prev => prev ? { ...prev, status: status.status } : null);
-          if (status.status === 'PROCESSED' || status.status === 'FAILED') {
-            await loadMeeting();
-          }
+        if (status.status === 'PROCESSED' || status.status === 'FAILED') {
+          // Fetch full meeting object which will naturally trigger status change and interval cleanup
+          await loadMeeting();
         }
       } catch (error) {
         console.error('[MeetingDetail] Failed to fetch processing status:', error);
