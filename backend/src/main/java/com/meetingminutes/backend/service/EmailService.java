@@ -36,6 +36,7 @@ public class EmailService {
     @Value("${app.email.base-url}")
     private String baseUrl;
 
+    @Async
     public void sendMeetingInvitation(Meeting meeting, String email, String inviteToken, String message) {
         try {
             String subject = "Meeting Invitation: " + meeting.getTitle();
@@ -65,8 +66,8 @@ public class EmailService {
 
     /**
      * Sends an email verification link to a newly registered user.
-     * This is intentionally NOT @Async so registration will fail if the email cannot be sent.
      */
+    @Async
     public void sendVerificationEmail(User user, String token) {
         try {
             String subject = "Verify your email address — Academic Meeting Minutes";
@@ -90,6 +91,7 @@ public class EmailService {
     /**
      * Sends a password reset link to a user.
      */
+    @Async
     public void sendPasswordResetEmail(User user, String token) {
         try {
             String subject = "Reset your password — Academic Meeting Minutes";
@@ -140,6 +142,7 @@ public class EmailService {
         }
     }
 
+    @Async
     public void sendTaskReminder(ActionItem actionItem) {
         if (actionItem.getAssignedToUser() != null) {
             User assignee = actionItem.getAssignedToUser();
@@ -215,6 +218,7 @@ public class EmailService {
     }
 
 
+    @Async
     public void sendMeetingReminder(Meeting meeting, String email) {
         try {
             String subject = "Reminder: Upcoming Meeting - " + meeting.getTitle();
