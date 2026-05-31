@@ -35,7 +35,7 @@ public class AttendeeService {
 
     public List<Attendee> inviteParticipants(UUID meetingId, InviteParticipantRequest request, User inviter) {
         Meeting meeting = meetingRepository.findByIdAndCreatedBy(meetingId, inviter)
-                .orElseThrow(() -> new RuntimeException("Meeting not found or access denied"));
+                .orElseThrow(() -> new com.meetingminutes.backend.exception.EntityNotFoundException("Meeting not found or access denied"));
 
         List<Attendee> invitedAttendees = new ArrayList<>();
 
@@ -141,10 +141,10 @@ public class AttendeeService {
 
     public Attendee updateAttendanceStatus(UUID attendeeId, AttendanceStatus status, User user) {
         Attendee attendee = attendeeRepo.findById(attendeeId)
-                .orElseThrow(() -> new RuntimeException("Attendee not found"));
+                .orElseThrow(() -> new com.meetingminutes.backend.exception.EntityNotFoundException("Attendee not found"));
 
         if (!canUserUpdateAttendee(attendee, user)) {
-            throw new RuntimeException("Access denied to update attendee status");
+            throw new com.meetingminutes.backend.exception.ForbiddenException("Access denied to update attendee status");
         }
 
         attendee.setStatus(status);
@@ -197,7 +197,7 @@ public class AttendeeService {
 
     public Attendee joinMeetingByToken(String inviteToken, User user) {
         Attendee attendee = attendeeRepo.findByInviteToken(inviteToken)
-                .orElseThrow(() -> new RuntimeException("Invalid invitation token"));
+                .orElseThrow(() -> new com.meetingminutes.backend.exception.EntityNotFoundException("Invalid invitation token"));
 
         if(user != null) {
             attendee.setUser(user);
@@ -212,10 +212,10 @@ public class AttendeeService {
 
     public List<Attendee> getMeetingAttendees(UUID meetingId, User user) {
         Meeting meeting = meetingRepository.findById(meetingId)
-                .orElseThrow(() -> new RuntimeException("Meeting not found"));
+                .orElseThrow(() -> new com.meetingminutes.backend.exception.EntityNotFoundException("Meeting not found"));
 
         if(!hasAccessToMeeting(meeting, user)) {
-            throw new RuntimeException("Access denied to meeting attendees");
+            throw new com.meetingminutes.backend.exception.ForbiddenException("Access denied to meeting attendees");
         }
 
         return attendeeRepo.findByMeetingId(meetingId);
@@ -223,17 +223,17 @@ public class AttendeeService {
 
     public void removeAttendee(UUID attendeeId, User user) {
         Attendee attendee = attendeeRepo.findById(attendeeId)
-                .orElseThrow(() -> new RuntimeException("Attendee not found"));
+                .orElseThrow(() -> new com.meetingminutes.backend.exception.EntityNotFoundException("Attendee not found"));
 
         Meeting meeting = attendee.getMeeting();
 
         if((!meeting.getCreatedBy().getId().equals(user.getId())) &&
                 (!(attendee.getUser() != null && attendee.getUser().getId().equals(user.getId())))) {
-            throw new RuntimeException("Access denied to remove attendee");
+            throw new com.meetingminutes.backend.exception.ForbiddenException("Access denied to remove attendee");
         }
 
         if(attendee.getIsOrganizer()) {
-            throw new RuntimeException("Cannot remove organizer");
+            throw new com.meetingminutes.backend.exception.ValidationException("Cannot remove organizer");
         }
 
         attendeeRepo.delete(attendee);

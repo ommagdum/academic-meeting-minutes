@@ -33,12 +33,12 @@ public class MeetingSeriesService {
     // ✅ FIXED: Allow access if user is attendee of any meeting in the series
     public List<Meeting> getMeetingsInSeries(UUID seriesId, User user) {
         MeetingSeries series = meetingSeriesRepo.findById(seriesId)
-                .orElseThrow(() -> new RuntimeException("Meeting series not found"));
+                .orElseThrow(() -> new com.meetingminutes.backend.exception.EntityNotFoundException("Meeting series not found"));
 
         // Check if user is series creator OR attendee of any meeting in the series
         if (!series.getCreatedBy().getId().equals(user.getId()) &&
                 !isUserAttendeeInSeries(seriesId, user)) {
-            throw new RuntimeException("Access denied to this meeting series");
+            throw new com.meetingminutes.backend.exception.ForbiddenException("Access denied to this meeting series");
         }
 
         // ✅ FIXED: Use method that includes meetings user can access
@@ -57,11 +57,11 @@ public class MeetingSeriesService {
     // ✅ FIXED: Only allow deletion if user is the creator
     public void deleteSeries(UUID seriesId, User user) {
         MeetingSeries series = meetingSeriesRepo.findByIdAndCreatedBy(seriesId, user)
-                .orElseThrow(() -> new RuntimeException("Meeting series not found or access denied"));
+                .orElseThrow(() -> new com.meetingminutes.backend.exception.EntityNotFoundException("Meeting series not found or access denied"));
 
         // Check if there are meetings in the series
         if (!series.getMeetings().isEmpty()) {
-            throw new RuntimeException("Cannot delete series with existing meetings");
+            throw new com.meetingminutes.backend.exception.ValidationException("Cannot delete series with existing meetings");
         }
 
         meetingSeriesRepo.delete(series);
@@ -70,7 +70,7 @@ public class MeetingSeriesService {
     // ✅ FIXED: Only allow updates if user is the creator
     public MeetingSeries updateSeries(UUID seriesId, String title, String description, User user) {
         MeetingSeries series = meetingSeriesRepo.findByIdAndCreatedBy(seriesId, user)
-                .orElseThrow(() -> new RuntimeException("Meeting series not found or access denied"));
+                .orElseThrow(() -> new com.meetingminutes.backend.exception.EntityNotFoundException("Meeting series not found or access denied"));
 
         series.setTitle(title);
         series.setDescription(description);
@@ -117,10 +117,10 @@ public class MeetingSeriesService {
         log.info("Fetching previous meeting context for: {}", currentMeetingId);
 
         Meeting currentMeeting = meetingRepository.findById(currentMeetingId)
-                .orElseThrow(() -> new RuntimeException("Current meeting not found"));
+                .orElseThrow(() -> new com.meetingminutes.backend.exception.EntityNotFoundException("Current meeting not found"));
 
         if (!hasAccessToMeeting(currentMeeting, user)) {
-            throw new RuntimeException("Access denied to this meeting");
+            throw new com.meetingminutes.backend.exception.ForbiddenException("Access denied to this meeting");
         }
 
         if (currentMeeting.getSeries() == null) {
