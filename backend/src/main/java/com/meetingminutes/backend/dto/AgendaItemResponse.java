@@ -25,14 +25,15 @@ public class AgendaItemResponse {
     private java.time.LocalDateTime createdAt;
     private java.time.LocalDateTime updatedAt;
 
-
     public static AgendaItemResponse from(AgendaItem agendaItem) {
         return AgendaItemResponse.builder()
                 .id(agendaItem.getId())
                 .title(agendaItem.getTitle())
                 .description(agendaItem.getDescription())
                 .orderIndex(agendaItem.getOrderIndex())
-                .estimatedDuration(Duration.ofMinutes(agendaItem.getEstimatedDuration()))
+                .estimatedDuration(agendaItem.getEstimatedDuration() != null
+                        ? Duration.ofMinutes(agendaItem.getEstimatedDuration())
+                        : null)
                 .meetingId(agendaItem.getMeeting().getId())
                 .createdAt(agendaItem.getCreatedAt())
                 .updatedAt(agendaItem.getUpdatedAt())

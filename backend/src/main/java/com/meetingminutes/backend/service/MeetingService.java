@@ -77,7 +77,7 @@ public class MeetingService {
 
     public Meeting getMeeting(UUID meetingId, User user) {
         Meeting meeting = meetingRepository.findById(meetingId)
-                .orElseThrow(() -> new RuntimeException("Meeting not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Meeting not found"));
 
         if (!hasAccessToMeeting(meeting, user)) {
             throw new ForbiddenException("Access denied to this meeting");
