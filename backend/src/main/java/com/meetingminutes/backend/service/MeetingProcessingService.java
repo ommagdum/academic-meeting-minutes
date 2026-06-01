@@ -16,6 +16,8 @@ import com.meetingminutes.backend.repository.mongo.AIExtractionRepository;
 import com.meetingminutes.backend.repository.mongo.TranscriptRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.context.ApplicationContext;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -47,6 +49,10 @@ public class MeetingProcessingService {
     private final ApplicationContext applicationContext;
 
     @Async
+    @Caching(evict = {
+            @CacheEvict(value = "meetings", allEntries = true),
+            @CacheEvict(value = "analytics", allEntries = true)
+    })
     public CompletableFuture<Void> processMeeting(UUID meetingId, User user) {
         log.info("Starting AI processing pipeline for meeting: {}", meetingId);
 

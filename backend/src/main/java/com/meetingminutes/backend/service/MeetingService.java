@@ -12,6 +12,8 @@ import com.meetingminutes.backend.repository.mongo.AIExtractionRepository;
 import com.meetingminutes.backend.repository.mongo.TranscriptRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -40,6 +42,10 @@ public class MeetingService {
     private final DocumentGenerationService documentGenerationService;
     private final SimpMessagingTemplate messagingTemplate;
 
+    @Caching(evict = {
+            @CacheEvict(value = "meetings", allEntries = true),
+            @CacheEvict(value = "analytics", allEntries = true)
+    })
     public Meeting createMeeting(CreateMeetingRequest request, User user) {
         if (request.getSeriesId() != null && request.getNewSeriesTitle() != null) {
             throw new IllegalArgumentException("Cannot specify both seriesId and newSeriesTitle");
@@ -102,6 +108,10 @@ public class MeetingService {
         return meetingRepository.findBySeriesIdOrderByCreatedAtDesc(seriesId);
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "meetings", allEntries = true),
+            @CacheEvict(value = "analytics", allEntries = true)
+    })
     public void deleteMeeting(UUID meetingId, User user) {
         Meeting meeting = meetingRepository.findByIdAndCreatedBy(meetingId, user)
                 .orElseThrow(() -> new RuntimeException("Meeting not found or access denied"));
@@ -119,6 +129,10 @@ public class MeetingService {
         }
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "meetings", allEntries = true),
+            @CacheEvict(value = "analytics", allEntries = true)
+    })
     public Meeting updateMeetingStatus(UUID meetingId, MeetingStatus status, User user) {
         Meeting meeting = meetingRepository.findByIdAndCreatedBy(meetingId, user)
                 .orElseThrow(() -> new RuntimeException("Meeting not found or access denied"));
@@ -160,6 +174,10 @@ public class MeetingService {
         return meetingRepository.save(meeting);
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "meetings", allEntries = true),
+            @CacheEvict(value = "analytics", allEntries = true)
+    })
     public Meeting updateMeeting(UUID meetingId, UpdateMeetingRequest request, User user) {
         log.info("Updating meeting: {} for user: {}", meetingId, user.getEmail());
 
