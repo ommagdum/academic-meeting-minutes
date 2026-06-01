@@ -267,7 +267,8 @@ const TaskItem: React.FC<TaskItemProps> = ({
             {isEditingDescription && isOrganizer ? (
               <div className="mb-2">
                 <textarea 
-                  className="w-full text-sm border rounded p-2 focus:ring focus:ring-blue-200"
+                  className="w-full text-sm border rounded p-2 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
                   value={editedDescription}
                   onChange={(e) => setEditedDescription(e.target.value)}
                   disabled={isSavingDescription}
@@ -302,7 +303,14 @@ const TaskItem: React.FC<TaskItemProps> = ({
 
             {isEditingDeadline && isOrganizer ? (
               <div className="flex items-center gap-2 mb-2">
-                <input type="date" className="text-sm border rounded p-1" value={editedDeadline} onChange={e => setEditedDeadline(e.target.value)} disabled={isSavingDeadline}/>
+                <input 
+                  type="date" 
+                  className="text-sm border rounded p-1.5 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" 
+                  style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
+                  value={editedDeadline} 
+                  onChange={e => setEditedDeadline(e.target.value)} 
+                  disabled={isSavingDeadline}
+                />
                 <Button size="sm" variant="ghost" onClick={handleUpdateDeadline} disabled={isSavingDeadline}>Save</Button>
                 <Button size="sm" variant="ghost" onClick={() => { setIsEditingDeadline(false); setEditedDeadline(task.deadline ? format(new Date(task.deadline), 'yyyy-MM-dd') : ''); }} disabled={isSavingDeadline}>Cancel</Button>
               </div>
