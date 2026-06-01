@@ -730,6 +730,9 @@ public class MeetingProcessingService {
                 .orElseThrow(() -> new ProcessingException("Meeting not found"));
         Hibernate.initialize(meeting.getAgendaItems());
         Hibernate.initialize(meeting.getAttendees());
+        if (meeting.getAttendees() != null) {
+            meeting.getAttendees().forEach(attendee -> Hibernate.initialize(attendee.getUser()));
+        }
         Hibernate.initialize(meeting.getSeries());
         return meeting;
     }
