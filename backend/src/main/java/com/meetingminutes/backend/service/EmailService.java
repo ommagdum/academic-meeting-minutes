@@ -112,10 +112,21 @@ public class EmailService {
             throw new RuntimeException("Failed to send password reset email. Please try again.", e);
         }
     }
+
+    private String extractNameFromEmail(String email) {
+        if (email == null || !email.contains("@")) return "Participant";
+        String namePart = email.substring(0, email.indexOf("@"));
+        return java.util.Arrays.stream(namePart.split("[._-]"))
+                .map(part -> part.isEmpty() ? "" : Character.toUpperCase(part.charAt(0)) + part.substring(1).toLowerCase())
+                .collect(java.util.stream.Collectors.joining(" "));
+    }
+
     @Async
     public void sendTaskAssignmentNotification(ActionItem actionItem) {
-        if (actionItem.getAssignedToUser() != null) {
-            User assignee = actionItem.getAssignedToUser();
+        if (actionItem.getAssignedToUser() != null || actionItem.getAssignedToEmail() != null) {
+            String assigneeEmail = actionItem.getAssignedToUser() != null ? actionItem.getAssignedToUser().getEmail() : actionItem.getAssignedToEmail();
+            String assigneeName = actionItem.getAssignedToUser() != null ? actionItem.getAssignedToUser().getName() : extractNameFromEmail(actionItem.getAssignedToEmail());
+            boolean isExternal = actionItem.getAssignedToUser() == null;
 
             try {
                 String subject = "New Action Item Assigned: " + actionItem.getDescription();
@@ -127,25 +138,28 @@ public class EmailService {
                         actionItem.getDeadline().format(DateTimeFormatter.ofPattern("MMM dd, yyyy")) : "Not set");
                 variables.put("priority", getPriorityText(actionItem.getPriority()));
                 variables.put("assignerName", actionItem.getMeeting().getCreatedBy().getName());
-                variables.put("assigneeName", actionItem.getAssignedToUser().getName());
+                variables.put("assigneeName", assigneeName);
                 variables.put("meetingId", actionItem.getMeeting().getId());
                 variables.put("baseUrl", baseUrl);
+                variables.put("isExternal", isExternal);
 
                 String htmlContent = renderTemplate("task-assignment", variables);
 
-                sendEmail(assignee.getEmail(), subject, htmlContent);
-                logger.info("Task assignment notification sent to: {}", assignee.getEmail());
+                sendEmail(assigneeEmail, subject, htmlContent);
+                logger.info("Task assignment notification sent to: {}", assigneeEmail);
 
             } catch (Exception e) {
-                logger.error("Failed to send task assignment notification to: {}", assignee.getEmail(), e);
+                logger.error("Failed to send task assignment notification to: {}", assigneeEmail, e);
             }
         }
     }
 
     @Async
     public void sendTaskReminder(ActionItem actionItem) {
-        if (actionItem.getAssignedToUser() != null) {
-            User assignee = actionItem.getAssignedToUser();
+        if (actionItem.getAssignedToUser() != null || actionItem.getAssignedToEmail() != null) {
+            String assigneeEmail = actionItem.getAssignedToUser() != null ? actionItem.getAssignedToUser().getEmail() : actionItem.getAssignedToEmail();
+            String assigneeName = actionItem.getAssignedToUser() != null ? actionItem.getAssignedToUser().getName() : extractNameFromEmail(actionItem.getAssignedToEmail());
+            boolean isExternal = actionItem.getAssignedToUser() == null;
 
             try {
                 String subject = "Reminder: Action Item Due - " + actionItem.getDescription();
@@ -155,16 +169,17 @@ public class EmailService {
                 variables.put("meetingTitle", actionItem.getMeeting().getTitle());
                 variables.put("deadline", actionItem.getDeadline().format(DateTimeFormatter.ofPattern("MMM dd, yyyy")));
                 variables.put("isOverdue", actionItem.getDeadline().isBefore(java.time.LocalDateTime.now()));
-                variables.put("assigneeName", assignee.getName());
+                variables.put("assigneeName", assigneeName);
                 variables.put("taskLink", baseUrl + "/meetings/" + actionItem.getMeeting().getId());
+                variables.put("isExternal", isExternal);
 
                 String htmlContent = renderTemplate("task-reminder", variables);
 
-                sendEmail(assignee.getEmail(), subject, htmlContent);
-                logger.info("Task reminder sent to: {}", assignee.getEmail());
+                sendEmail(assigneeEmail, subject, htmlContent);
+                logger.info("Task reminder sent to: {}", assigneeEmail);
 
             } catch (Exception e) {
-                logger.error("Failed to send task reminder to: {}", assignee.getEmail(), e);
+                logger.error("Failed to send task reminder to: {}", assigneeEmail, e);
             }
         }
     }

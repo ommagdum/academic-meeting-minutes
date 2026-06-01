@@ -116,10 +116,15 @@
             <p><strong>Deadline:</strong> <span th:text="${deadline}">Deadline</span></p>
         </div>
 
-        <p>Please log in to your dashboard to update the task status.</p>
-
-        <div style="text-align: center;">
-            <a th:href="${taskLink}" class="button">View Task</a>
+        <div th:if="${!isExternal}">
+            <p>Please log in to your dashboard to update the task status.</p>
+            <div style="text-align: center;">
+                <a th:href="${taskLink}" class="button">View Task</a>
+            </div>
+        </div>
+        
+        <div th:if="${isExternal}">
+            <p>Please remember to complete this task. If you have any questions or need to update the task status, please reach out to the meeting organizer.</p>
         </div>
     </div>
 

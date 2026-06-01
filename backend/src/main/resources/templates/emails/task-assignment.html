@@ -150,13 +150,17 @@
             </p>
         </div>
 
-        <p>Please log in to your dashboard to view the full details and update the task status.</p>
-
-        <a th:href="${baseUrl + '/meetings/' + meetingId}" class="button">View Task</a>
-
-        <div class="link-fallback">
-            <small>If the button doesn't work, copy and paste this link into your browser:<br>
-                <span th:text="${baseUrl + '/meetings/' + meetingId}">Meeting URL</span></small>
+        <div th:if="${!isExternal}">
+            <p>Please log in to your dashboard to view the full details and update the task status.</p>
+            <a th:href="${baseUrl + '/meetings/' + meetingId}" class="button">View Task</a>
+            <div class="link-fallback">
+                <small>If the button doesn't work, copy and paste this link into your browser:<br>
+                    <span th:text="${baseUrl + '/meetings/' + meetingId}">Meeting URL</span></small>
+            </div>
+        </div>
+        
+        <div th:if="${isExternal}">
+            <p>Please note this task for your records. If you have any questions or need to update the task status, please reach out to the meeting organizer.</p>
         </div>
     </div>
 
