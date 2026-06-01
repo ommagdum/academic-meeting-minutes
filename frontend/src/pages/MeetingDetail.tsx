@@ -7,7 +7,7 @@ import TaskItem from "@/components/meeting/TaskItem";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ProcessingStatusBanner } from "@/components/meeting/ProcessingStatusBanner";
-import { ArrowLeft, Users, FileText, Download, Edit, UserPlus, ChevronDown } from "lucide-react";
+import { ArrowLeft, Users, FileText, Download, Edit, UserPlus, ChevronDown, RefreshCw, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { AxiosError } from "axios";
@@ -38,6 +38,7 @@ const MeetingDetail = () => {
   const [isPublishing, setIsPublishing] = useState(false);
   const [showAddTask, setShowAddTask] = useState(false);
   const [isCreatingTask, setIsCreatingTask] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
   const [newTask, setNewTask] = useState({ description: '', assignedToEmail: '', deadline: '', priority: 1 });
 
   const loadMeeting = useCallback(async () => {
@@ -243,6 +244,21 @@ const MeetingDetail = () => {
     }
   };
 
+  const handleRegenerateDocuments = async () => {
+    if (!meetingId) return;
+    setIsRegenerating(true);
+    try {
+      await meetingService.regenerateDocuments(meetingId);
+      toast({ title: 'Success', description: 'Documents regenerated successfully.' });
+      loadMeeting(); // Reload to clear the outdated flag
+    } catch (error) {
+      const errorMessage = error instanceof AxiosError ? error.response?.data?.message : 'Failed to regenerate documents';
+      toast({ title: 'Regeneration Failed', description: errorMessage, variant: 'destructive' });
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
   const getStatusStyles = (status?: string | null) => {
     if (!status) return { bg: "rgba(255,255,255,0.1)", text: "var(--text-secondary)", border: "rgba(255,255,255,0.2)" };
     switch (status.toUpperCase()) {
@@ -328,25 +344,47 @@ const MeetingDetail = () => {
               </button>
             )}
             {meeting.minutesDocumentUrl && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="btn-accent flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium">
-                    <Download className="w-4 h-4" />
-                    Download Minutes
-                    <ChevronDown className="w-4 h-4 ml-1 opacity-70" />
+              <div className="flex items-center gap-2">
+                {isMeetingOwner && (
+                  <button 
+                    onClick={handleRegenerateDocuments}
+                    disabled={isRegenerating}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                    style={{ background: "var(--surface-raised)", border: "1px solid var(--border-subtle)", color: "var(--text-primary)" }}
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isRegenerating ? "animate-spin" : ""}`} />
+                    {isRegenerating ? "Regenerating..." : "Regenerate Documents"}
                   </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" style={{ background: "var(--surface)", border: "1px solid var(--border-strong)" }}>
-                  <DropdownMenuItem onClick={handleDownloadPDF} className="cursor-pointer hover:bg-white/5">
-                    <FileText className="w-4 h-4 mr-2" />
-                    Download PDF
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleDownloadDOCX} className="cursor-pointer hover:bg-white/5">
-                    <FileText className="w-4 h-4 mr-2" />
-                    Download DOCX
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                )}
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="btn-accent relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium">
+                      <Download className="w-4 h-4" />
+                      Download Minutes
+                      <ChevronDown className="w-4 h-4 ml-1 opacity-70" />
+                      {meeting.hasOutdatedDocuments && (
+                        <span 
+                          className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-amber-500 ring-2 ring-white dark:ring-slate-900" 
+                          title="Live action items or meeting details have been updated since these documents were generated."
+                        >
+                          <AlertCircle className="w-2 h-2 text-white" />
+                        </span>
+                      )}
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" style={{ background: "var(--surface)", border: "1px solid var(--border-strong)" }}>
+                    <DropdownMenuItem onClick={handleDownloadPDF} className="cursor-pointer hover:bg-white/5">
+                      <FileText className="w-4 h-4 mr-2" />
+                      Download PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleDownloadDOCX} className="cursor-pointer hover:bg-white/5">
+                      <FileText className="w-4 h-4 mr-2" />
+                      Download DOCX
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             )}
           </div>
         </div>

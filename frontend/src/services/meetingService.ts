@@ -402,6 +402,10 @@ export const meetingService = {
     await api.delete(`/api/v1/action-items/${taskId}`);
   },
 
+  regenerateDocuments: async (meetingId: string): Promise<void> => {
+    await api.post(`/api/v1/meetings/${meetingId}/documents/regenerate`);
+  },
+
   /**
    * Publish draft action items
    */

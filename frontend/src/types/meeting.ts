@@ -16,6 +16,7 @@ export interface Meeting {
   transcriptId?: string;
   aiExtractionId?: string;
   minutesDocumentUrl?: string;
+  hasOutdatedDocuments?: boolean;
   agendaText?: string;
   usePreviousContext?: boolean;
 }
