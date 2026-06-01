@@ -11,6 +11,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.meetingminutes.backend.dto.ActionItemResponse;
+import com.meetingminutes.backend.dto.request.CreateActionItemRequest;
+import com.meetingminutes.backend.dto.request.UpdateActionItemRequest;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -182,6 +185,116 @@ public class ActionItemService {
 
     public long getUserTaskCountByStatus(User user, TaskStatus status) {
         return actionItemRepo.countByAssignedToUserAndStatus(user.getId(), status);
+    }
+
+    public ActionItemResponse createManualActionItem(UUID meetingId, CreateActionItemRequest request, User user) {
+        Meeting meeting = meetingRepository.findById(meetingId)
+                .orElseThrow(() -> new RuntimeException("Meeting not found"));
+
+        if (!meeting.getCreatedBy().getId().equals(user.getId())) {
+            throw new RuntimeException("Only meeting creator can create manual action items");
+        }
+
+        ActionItem actionItem = new ActionItem();
+        actionItem.setMeeting(meeting);
+        actionItem.setDescription(request.getDescription());
+        actionItem.setDeadline(request.getDeadline());
+        actionItem.setPriority(request.getPriority());
+        actionItem.setNotes(request.getNotes());
+        actionItem.setStatus(TaskStatus.PENDING);
+        actionItem.setAiGenerated(false);
+        actionItem.setPublishedAt(LocalDateTime.now());
+
+        if (request.getAssignedToEmail() != null && !request.getAssignedToEmail().isBlank()) {
+            Optional<User> assignedUser = userRepo.findByEmail(request.getAssignedToEmail());
+            if (assignedUser.isPresent()) {
+                actionItem.setAssignedToUser(assignedUser.get());
+            } else {
+                actionItem.setAssignedToEmail(request.getAssignedToEmail());
+            }
+        }
+
+        ActionItem savedItem = actionItemRepo.save(actionItem);
+        return ActionItemResponse.from(savedItem);
+    }
+
+    public ActionItemResponse updateActionItem(UUID taskId, UpdateActionItemRequest request, User user) {
+        ActionItem task = actionItemRepo.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        Meeting meeting = task.getMeeting();
+        if (!meeting.getCreatedBy().getId().equals(user.getId())) {
+            throw new RuntimeException("Only meeting creator can update task details");
+        }
+
+        if (request.getDescription() != null) {
+            task.setDescription(request.getDescription());
+        }
+        if (request.getDeadline() != null) {
+            task.setDeadline(request.getDeadline());
+        }
+        if (request.getPriority() != null) {
+            task.setPriority(request.getPriority());
+        }
+        if (request.getNotes() != null) {
+            task.setNotes(request.getNotes());
+        }
+        if (request.getAssignedToEmail() != null) {
+            if (request.getAssignedToEmail().isBlank()) {
+                task.setAssignedToUser(null);
+                task.setAssignedToEmail(null);
+            } else {
+                Optional<User> assignedUser = userRepo.findByEmail(request.getAssignedToEmail());
+                if (assignedUser.isPresent()) {
+                    task.setAssignedToUser(assignedUser.get());
+                    task.setAssignedToEmail(null);
+                } else {
+                    task.setAssignedToUser(null);
+                    task.setAssignedToEmail(request.getAssignedToEmail());
+                }
+            }
+        }
+
+        ActionItem savedTask = actionItemRepo.save(task);
+        return ActionItemResponse.from(savedTask);
+    }
+
+    public void deleteActionItem(UUID taskId, User user) {
+        ActionItem task = actionItemRepo.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        Meeting meeting = task.getMeeting();
+        if (!meeting.getCreatedBy().getId().equals(user.getId())) {
+            throw new RuntimeException("Only meeting creator can delete tasks");
+        }
+
+        actionItemRepo.delete(task);
+    }
+
+    public int publishActionItems(UUID meetingId, User user) {
+        Meeting meeting = meetingRepository.findById(meetingId)
+                .orElseThrow(() -> new RuntimeException("Meeting not found"));
+
+        if (!meeting.getCreatedBy().getId().equals(user.getId())) {
+            throw new RuntimeException("Only meeting creator can publish action items");
+        }
+
+        List<ActionItem> actionItems = actionItemRepo.findByMeetingId(meetingId);
+        int publishedCount = 0;
+
+        for (ActionItem task : actionItems) {
+            if (task.getStatus() == TaskStatus.DRAFT) {
+                task.setStatus(TaskStatus.PENDING);
+                task.setPublishedAt(LocalDateTime.now());
+                actionItemRepo.save(task);
+                publishedCount++;
+
+                if (task.getAssignedToUser() != null || (task.getAssignedToEmail() != null && !task.getAssignedToEmail().isBlank())) {
+                    emailService.sendTaskAssignmentNotification(task);
+                }
+            }
+        }
+        return publishedCount;
     }
 
     private boolean canUserUpdateTask(ActionItem task, User user) {

@@ -25,6 +25,9 @@ public class ActionItemResponse {
     private LocalDateTime acknowledgedAt;
     private LocalDateTime completedAt;
     private UUID meetingId;
+    
+    private Boolean isAiGenerated;
+    private LocalDateTime publishedAt;
 
     private String meetingTitle;
 
@@ -46,6 +49,8 @@ public class ActionItemResponse {
                 .acknowledged(actionItem.getAcknowledged())
                 .acknowledgedAt(actionItem.getAcknowledgedAt())
                 .completedAt(actionItem.getCompletedAt())
+                .isAiGenerated(actionItem.isAiGenerated())
+                .publishedAt(actionItem.getPublishedAt())
                 .createdAt(actionItem.getCreatedAt())
                 .meetingId(actionItem.getMeeting() != null ? actionItem.getMeeting().getId() : null)
                 .meetingTitle(actionItem.getMeeting() != null ? actionItem.getMeeting().getTitle() : null)

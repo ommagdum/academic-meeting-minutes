@@ -45,6 +45,12 @@ public class ActionItem extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String completionNotes;
 
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean aiGenerated = false;
+
+    @Column(nullable = true)
+    private LocalDateTime publishedAt;
+
     public ActionItem(Meeting meeting, String description) {
         this.meeting = meeting;
         this.description = description;

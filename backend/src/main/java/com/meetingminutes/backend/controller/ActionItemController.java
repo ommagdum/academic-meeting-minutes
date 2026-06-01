@@ -3,6 +3,7 @@ package com.meetingminutes.backend.controller;
 import com.meetingminutes.backend.dto.ActionItemResponse;
 import com.meetingminutes.backend.dto.ReassignTaskRequest;
 import com.meetingminutes.backend.dto.UpdateTaskRequest;
+import com.meetingminutes.backend.dto.request.UpdateActionItemRequest;
 import com.meetingminutes.backend.entity.ActionItem;
 import com.meetingminutes.backend.entity.TaskStatus;
 import com.meetingminutes.backend.entity.User;
@@ -127,4 +128,28 @@ public class ActionItemController {
         return ActionItemResponse.from(actionItem);
     }
 
+    @PutMapping("/{taskId}")
+    public ResponseEntity<ActionItemResponse> updateActionItem(
+            @PathVariable UUID taskId,
+            @RequestBody UpdateActionItemRequest request,
+            Authentication authentication) {
+
+        String email = authentication.getName();
+        User user = userService.findByEmail(email);
+
+        var actionItemResponse = actionItemService.updateActionItem(taskId, request, user);
+        return ResponseEntity.ok(actionItemResponse);
+    }
+
+    @DeleteMapping("/{taskId}")
+    public ResponseEntity<Void> deleteActionItem(
+            @PathVariable UUID taskId,
+            Authentication authentication) {
+
+        String email = authentication.getName();
+        User user = userService.findByEmail(email);
+
+        actionItemService.deleteActionItem(taskId, user);
+        return ResponseEntity.noContent().build();
+    }
 }

@@ -396,7 +396,8 @@ public class MeetingProcessingService {
 
                 actionItem.setDescription(extractedItem.getDescription());
                 actionItem.setMeeting(meeting);
-                actionItem.setStatus(TaskStatus.PENDING);
+                actionItem.setStatus(TaskStatus.DRAFT);
+                actionItem.setAiGenerated(true);
 
                 // ✅ IMPROVED: Enhanced assignment logic
                 User assignedUser = resolveAssignee(extractedItem.getAssignedTo(), meeting);

@@ -4,6 +4,7 @@ import com.meetingminutes.backend.document.AIExtraction;
 import com.meetingminutes.backend.document.GeneratedDocument;
 import com.meetingminutes.backend.document.Transcript;
 import com.meetingminutes.backend.dto.*;
+import com.meetingminutes.backend.dto.request.CreateActionItemRequest;
 import com.meetingminutes.backend.entity.*;
 import com.meetingminutes.backend.exception.ForbiddenException;
 import com.meetingminutes.backend.exception.EntityNotFoundException;
@@ -587,13 +588,36 @@ public class MeetingController {
             var responses = actionItems.stream()
                     .map(this::convertToActionItemResponse)
                     .toList();
-
             return ResponseEntity.ok(responses);
-
-        } catch (Exception e) {
-            log.error("Failed to fetch action items for meeting: {}", meetingId, e);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (RuntimeException e) {
+            log.error("Failed to fetch meeting action items: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
         }
+    }
+
+    @PostMapping("/{meetingId}/action-items")
+    public ResponseEntity<ActionItemResponse> createActionItem(
+            @PathVariable UUID meetingId,
+            @RequestBody @Valid CreateActionItemRequest request,
+            Authentication authentication) {
+
+        String email = authentication.getName();
+        User user = userService.findByEmail(email);
+
+        var actionItemResponse = actionItemService.createManualActionItem(meetingId, request, user);
+        return ResponseEntity.status(HttpStatus.CREATED).body(actionItemResponse);
+    }
+
+    @PostMapping("/{meetingId}/action-items/publish")
+    public ResponseEntity<java.util.Map<String, Integer>> publishActionItems(
+            @PathVariable UUID meetingId,
+            Authentication authentication) {
+
+        String email = authentication.getName();
+        User user = userService.findByEmail(email);
+
+        int publishedCount = actionItemService.publishActionItems(meetingId, user);
+        return ResponseEntity.ok(java.util.Map.of("published", publishedCount));
     }
 
     @GetMapping("/{meetingId}/documents")
