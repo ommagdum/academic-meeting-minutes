@@ -179,8 +179,8 @@ class ExtractionService:
                     "actionItems": [
                         {{
                         "description": "Clear, actionable task description",
-                        "assignedTo": "Full name of the person who explicitly committed to doing this task at this meeting. Must be someone who said they would do it, not just someone mentioned nearby in the conversation. Use null if no specific person committed.",
-                        "deadline": "Copy the exact words used in the transcript e.g. 'next week', 'tomorrow morning', 'end of month'. Do not convert vague language to specific dates. Use null if no deadline was mentioned.",
+                        "assignedTo": "Full name of the person responsible for this task based on meeting context. Assign using these rules in order: Direct self-assignment: speaker says 'I will do X' or 'I can do X'. Directed assignment: chairperson says 'Tim, please do X' and Tim agrees or does not object. Contextual ownership: a speaker describes an action they themselves are about to take e.g. 'we will be testifying tomorrow' said by Eric means Eric is the assignee. If a task is assigned to a group or committee with no single owner, write the group name e.g. 'Board', 'VPIC team'. Only use null if genuinely no person or group can be identified as responsible from the transcript context.",
+                        "deadline": "Copy the exact words used in the transcript e.g. 'next week', 'tomorrow morning', 'early February', 'end of this month'. CRITICAL: Never convert any time expression into a calendar date or YYYY-MM-DD format unless the speaker explicitly stated a specific calendar date like 'by June 15th' or 'before the 20th of May'. Relative expressions like 'tomorrow', 'next week', 'in a few weeks' must be written exactly as the speaker said them. Use null only if no deadline or timeframe was mentioned at all.",
                         "confidence": "<float between 0.0 and 1.0 based on clarity>"
                         }}
                     ],
