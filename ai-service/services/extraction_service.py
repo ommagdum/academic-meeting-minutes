@@ -34,6 +34,7 @@ class ExtractionService:
         
             # FIX 1: chunk long transcripts and merge results
             chunks = self._chunk_transcript(transcript)
+            response = None  # will hold raw AI response for debugging
             if len(chunks) == 1:
                 prompt = self._build_extraction_prompt(transcript, agenda_items, previous_context)
                 response = self._call_mistral_api(prompt)
@@ -47,6 +48,7 @@ class ExtractionService:
                     chunk_response = self._call_mistral_api(chunk_prompt)
                     chunk_data = self._parse_ai_response(chunk_response)
                     chunk_results.append(chunk_data)
+                    response = chunk_response  # keep last chunk response for debugging
                 extracted_data = self._merge_chunk_results(chunk_results)
             
             processing_time = time.time() - start_time
