@@ -10,6 +10,7 @@ import com.meetingminutes.backend.service.UserService;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -41,6 +42,7 @@ public class DashboardController {
 
     @GetMapping("/stats")
     @RateLimiter(name = "dashboardEndpoints")
+    @Cacheable(value = "analytics", key = "#authentication.name + '_stats'")
     public ResponseEntity<Map<String, Object>> getDashboardStats(Authentication authentication) {
         String email = authentication.getName();
         log.info("Dashboard stats request from user: {}", email);
@@ -57,6 +59,7 @@ public class DashboardController {
 
     @GetMapping("/recent-activity")
     @RateLimiter(name = "dashboardEndpoints")
+    @Cacheable(value = "meetings", key = "#authentication.name + '_recent_' + #limit")
     public ResponseEntity<List<MeetingSummaryResponse>> getRecentActivity(
             @RequestParam(defaultValue = "5") int limit,
             Authentication authentication) {
@@ -84,6 +87,7 @@ public class DashboardController {
 
     @GetMapping("/upcoming-meetings")
     @RateLimiter(name = "dashboardEndpoints")
+    @Cacheable(value = "meetings", key = "#authentication.name + '_upcoming_' + #limit")
     public ResponseEntity<List<MeetingSummaryResponse>> getUpcomingMeetings(
             @RequestParam(defaultValue = "5") int limit,
             Authentication authentication) {
@@ -112,6 +116,7 @@ public class DashboardController {
 
     @GetMapping("/processing-queue")
     @RateLimiter(name = "dashboardEndpoints")
+    @Cacheable(value = "meetings", key = "#authentication.name + '_processing'")
     public ResponseEntity<List<MeetingSummaryResponse>> getProcessingQueue(
             Authentication authentication) {
 

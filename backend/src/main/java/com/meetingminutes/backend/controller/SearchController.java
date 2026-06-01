@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -74,6 +75,7 @@ public class SearchController {
 
     @GetMapping("/meetings/category/{category}")
     @RateLimiter(name = "searchEndpoints")
+    @Cacheable(value = "meetings", key = "#authentication.name + '_category_' + #category + '_' + #page + '_' + #size + '_' + (#sortBy != null ? #sortBy : 'null') + '_' + (#sortDirection != null ? #sortDirection : 'null')")
     public ResponseEntity<SearchResponse> searchByCategory(
             @PathVariable String category,
             @RequestParam(defaultValue = "0") int page,
@@ -126,6 +128,7 @@ public class SearchController {
 
     @GetMapping("/analytics/meetings")
     @RateLimiter(name = "searchEndpoints")
+    @Cacheable(value = "analytics", key = "#authentication.name + '_analytics_' + #period + '_' + #startDate.toString() + '_' + #endDate.toString()")
     public ResponseEntity<Map<String, Long>> getMeetingAnalytics(
             @RequestParam String period,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
