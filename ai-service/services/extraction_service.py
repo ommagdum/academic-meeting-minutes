@@ -32,14 +32,22 @@ class ExtractionService:
             if previous_context is None:
                 previous_context = {}
         
-            # Build extraction prompt
-            prompt = self._build_extraction_prompt(transcript, agenda_items, previous_context)
-            
-            # Call Mistral AI API
-            response = self._call_mistral_api(prompt)
-            
-            # Parse and validate response
-            extracted_data = self._parse_ai_response(response)
+            # FIX 1: chunk long transcripts and merge results
+            chunks = self._chunk_transcript(transcript)
+            if len(chunks) == 1:
+                prompt = self._build_extraction_prompt(transcript, agenda_items, previous_context)
+                response = self._call_mistral_api(prompt)
+                extracted_data = self._parse_ai_response(response)
+            else:
+                logger.info(f"Transcript split into {len(chunks)} chunks for full coverage")
+                chunk_results = []
+                for i, chunk in enumerate(chunks):
+                    logger.info(f"Processing chunk {i + 1}/{len(chunks)}")
+                    chunk_prompt = self._build_extraction_prompt(chunk, agenda_items, previous_context)
+                    chunk_response = self._call_mistral_api(chunk_prompt)
+                    chunk_data = self._parse_ai_response(chunk_response)
+                    chunk_results.append(chunk_data)
+                extracted_data = self._merge_chunk_results(chunk_results)
             
             processing_time = time.time() - start_time
             
@@ -59,6 +67,70 @@ class ExtractionService:
                 "error_message": f"Extraction failed: {str(e)}",
                 "processing_time": round(time.time() - start_time, 2)
             }
+
+    # ── FIX 1: chunking helper ────────────────────────────────────────────────
+    def _chunk_transcript(self, transcript: str, chunk_size: int = 6000, overlap: int = 500) -> List[str]:
+        """Split transcript into overlapping chunks so long meetings are fully processed."""
+        if len(transcript) <= chunk_size:
+            return [transcript]
+
+        chunks = []
+        start = 0
+        while start < len(transcript):
+            end = start + chunk_size
+            chunks.append(transcript[start:end])
+            if end >= len(transcript):
+                break
+            start = end - overlap  # step back by overlap so context carries over
+        return chunks
+
+    def _merge_chunk_results(self, results: List[Dict]) -> Dict:
+        """Merge extraction results from multiple chunks, deduplicating by text similarity."""
+        merged = {
+            "decisions": [],
+            "actionItems": [],
+            "topicsDiscussed": [],
+            "attendees": []
+        }
+
+        def _normalise(text: str) -> str:
+            return text.lower().strip() if text else ""
+
+        def _already_seen(new_text: str, existing: List[Dict], field: str) -> bool:
+            norm = _normalise(new_text)
+            for item in existing:
+                existing_norm = _normalise(item.get(field, ""))
+                # simple overlap check: if 60 %+ of shorter string is in longer, treat as duplicate
+                shorter, longer = (norm, existing_norm) if len(norm) <= len(existing_norm) else (existing_norm, norm)
+                if shorter and shorter in longer:
+                    return True
+                # word overlap ratio
+                words_new = set(norm.split())
+                words_old = set(existing_norm.split())
+                if words_new and words_old:
+                    overlap_ratio = len(words_new & words_old) / len(words_new | words_old)
+                    if overlap_ratio >= 0.6:
+                        return True
+            return False
+
+        for result in results:
+            for item in result.get("decisions", []):
+                if not _already_seen(item.get("decision", ""), merged["decisions"], "decision"):
+                    merged["decisions"].append(item)
+
+            for item in result.get("actionItems", []):
+                if not _already_seen(item.get("description", ""), merged["actionItems"], "description"):
+                    merged["actionItems"].append(item)
+
+            for item in result.get("topicsDiscussed", []):
+                if not _already_seen(item.get("summary", ""), merged["topicsDiscussed"], "summary"):
+                    merged["topicsDiscussed"].append(item)
+
+            for item in result.get("attendees", []):
+                if not _already_seen(item.get("name", ""), merged["attendees"], "name"):
+                    merged["attendees"].append(item)
+
+        return merged
     
     def _build_extraction_prompt(self, 
                                transcript: str, 
@@ -82,14 +154,14 @@ class ExtractionService:
             if previous_context.get('action_items'):
                 context_text += f"Pending Actions: {json.dumps(previous_context['action_items'], indent=2)}\n"
         
-        prompt = f"""You are an expert academic meeting analyst. Extract structured information from this meeting transcript and return ONLY valid JSON.
+        prompt = f"""You are an expert meeting analyst. Extract structured information from this meeting transcript and return ONLY valid JSON.
 
                     {agenda_text}
 
                     {context_text}
 
                     MEETING TRANSCRIPT:
-                    {transcript[:6000]}
+                    {transcript}
 
                     Extract the following information and respond ONLY with valid JSON in this exact structure:
 
@@ -99,40 +171,39 @@ class ExtractionService:
                         "topic": "Brief topic description",
                         "decision": "Clear decision made",
                         "context": "Background context for decision",
-                        "confidence": 0.95
+                        "confidence": "<float between 0.0 and 1.0 based on clarity>"
                         }}
                     ],
                     "actionItems": [
                         {{
                         "description": "Clear, actionable task description",
-                        "assignedTo": "Name or email mentioned",
-                        "deadline": "YYYY-MM-DD or null if not specified",
-                        "confidence": 0.95
+                        "assignedTo": "Full name of the person who explicitly committed to doing this task at this meeting. Must be someone who said they would do it, not just someone mentioned nearby in the conversation. Use null if no specific person committed.",
+                        "deadline": "Copy the exact words used in the transcript e.g. 'next week', 'tomorrow morning', 'end of month'. Do not convert vague language to specific dates. Use null if no deadline was mentioned.",
+                        "confidence": "<float between 0.0 and 1.0 based on clarity>"
                         }}
                     ],
                     "topicsDiscussed": [
                         {{
                         "agendaItem": "Matching agenda item title",
                         "summary": "Concise summary of discussion (2-3 sentences)",
-                        "confidence": 0.95
+                        "confidence": "<float between 0.0 and 1.0 based on clarity>"
                         }}
                     ],
                     "attendees": [
                         {{
                         "name": "Full name mentioned",
                         "email": "Email if mentioned, else null",
-                        "confidence": 0.95
+                        "confidence": "<float between 0.0 and 1.0 based on clarity>"
                         }}
                     ]
                     }}
 
                     IMPORTANT RULES:
                     1. Return ONLY valid JSON - no explanations, no markdown, no extra text
-                    2. Only extract information explicitly mentioned in the transcript
+                    2. Only extract action items where a specific person made an explicit verbal commitment to complete a task at THIS meeting. Process descriptions, background context, ongoing work already in progress, and future planned steps described by a speaker are NOT action items unless someone was explicitly assigned to them during this meeting.
                     3. Match topics to agenda items when possible
                     4. Use null for missing information (deadlines, emails)
-                    5. Format dates as YYYY-MM-DD if mentioned
-                    6. Use consistent confidence scores based on clarity of mention"""
+                    5. Use consistent confidence scores based on clarity of mention"""
 
         return prompt
     
