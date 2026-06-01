@@ -472,7 +472,7 @@ public class MeetingSearchService {
     }
 
     // Analytics and reporting - ✅ FIXED: Use userOrAttendee methods
-    @Cacheable(value = "analytics", key = "#user.email + '_analytics_' + #period + '_' + #startDate.toString() + '_' + #endDate.toString()")
+    @Cacheable(value = "analytics", key = "#user.email + '_analytics_' + #period + '_' + #startDate.truncatedTo(T(java.time.temporal.ChronoUnit).MINUTES).toString() + '_' + #endDate.truncatedTo(T(java.time.temporal.ChronoUnit).MINUTES).toString()")
     public Map<String, Long> getMeetingAnalytics(User user, String period, LocalDateTime startDate, LocalDateTime endDate) {
         try {
             // ✅ FIXED: Get meetings user created OR is attending
