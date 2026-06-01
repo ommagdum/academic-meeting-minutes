@@ -2,6 +2,7 @@ package com.meetingminutes.backend.dto;
 
 import com.meetingminutes.backend.entity.MeetingStatus;
 import jakarta.validation.constraints.Size;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -11,6 +12,7 @@ import java.util.UUID;
 
 @Getter
 @Setter
+@EqualsAndHashCode
 public class SearchRequest {
 
     @Size(max = 100,message = "Search query cannot exceed 100 characters")

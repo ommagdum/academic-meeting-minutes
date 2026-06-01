@@ -35,7 +35,7 @@ public class MeetingSearchService {
     private final TranscriptRepository transcriptRepository;
     private final MongoTemplate mongoTemplate;
 
-    @Cacheable(value = "meetings", key = "#user.email + '_search_' + #request.category + '_' + #request.page + '_' + #request.size + '_' + (#request.sortBy != null ? #request.sortBy : 'null') + '_' + (#request.sortDirection != null ? #request.sortDirection : 'null')")
+    @Cacheable(value = "meetings", key = "{#user.email, #request}")
     public SearchResponse searchMeetings(SearchRequest request, User user) {
         log.info("Executing comprehensive search for user: {} with filters: {}", user.getEmail(), request);
 
