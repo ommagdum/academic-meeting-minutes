@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Size;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -13,6 +14,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @EqualsAndHashCode
+@ToString
 public class SearchRequest {
 
     @Size(max = 100,message = "Search query cannot exceed 100 characters")
