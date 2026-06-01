@@ -18,6 +18,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.TextCriteria;
 import org.springframework.data.mongodb.core.query.TextQuery;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.time.*;
@@ -34,6 +35,7 @@ public class MeetingSearchService {
     private final TranscriptRepository transcriptRepository;
     private final MongoTemplate mongoTemplate;
 
+    @Cacheable(value = "meetings", key = "#user.email + '_search_' + #request.category + '_' + #request.page + '_' + #request.size + '_' + (#request.sortBy != null ? #request.sortBy : 'null') + '_' + (#request.sortDirection != null ? #request.sortDirection : 'null')")
     public SearchResponse searchMeetings(SearchRequest request, User user) {
         log.info("Executing comprehensive search for user: {} with filters: {}", user.getEmail(), request);
 
@@ -470,6 +472,7 @@ public class MeetingSearchService {
     }
 
     // Analytics and reporting - ✅ FIXED: Use userOrAttendee methods
+    @Cacheable(value = "analytics", key = "#user.email + '_analytics_' + #period + '_' + #startDate.toString() + '_' + #endDate.toString()")
     public Map<String, Long> getMeetingAnalytics(User user, String period, LocalDateTime startDate, LocalDateTime endDate) {
         try {
             // ✅ FIXED: Get meetings user created OR is attending
