@@ -295,6 +295,42 @@ public class MeetingController {
         }
     }
 
+    @PostMapping("/{id}/documents/regenerate")
+    public ResponseEntity<ApiResponse<Void>> regenerateDocuments(
+            @PathVariable UUID id,
+            Authentication authentication) {
+        try {
+            Meeting meeting = meetingRepository.findById(id)
+                    .orElseThrow(() -> new EntityNotFoundException("Meeting not found with ID: " + id));
+
+            String email = authentication.getName();
+            User currentUser = userService.findByEmail(email);
+
+            if (!meeting.getCreatedBy().getId().equals(currentUser.getId())) {
+                throw new ForbiddenException("Only the meeting organizer can regenerate documents.");
+            }
+
+            AIExtraction extraction = aiExtractionRepository.findByMeetingId(id).orElse(null);
+            
+            documentGenerationService.generateMinutesPDF(meeting, extraction, currentUser);
+            documentGenerationService.generateMinutesDOCX(meeting, extraction, currentUser);
+
+            ApiResponse<Void> response = ApiResponse.<Void>builder()
+                    .success(true)
+                    .message("Documents regenerated successfully")
+                    .build();
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Failed to regenerate documents for meeting: {}", id, e);
+            ApiResponse<Void> response = ApiResponse.<Void>builder()
+                    .success(false)
+                    .message("Failed to regenerate documents: " + e.getMessage())
+                    .build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
     private MeetingDetailResponse convertToDetailResponse(
             Meeting meeting,
             List<AgendaItem> agendaItems,
@@ -303,6 +339,29 @@ public class MeetingController {
             Transcript transcript,
             AIExtraction aiExtraction,
             String minutesDocumentUrl) {
+
+        boolean hasOutdatedDocuments = false;
+        List<GeneratedDocument> docs = documentGenerationService.getMeetingDocuments(meeting.getId());
+        if (docs != null && !docs.isEmpty()) {
+            LocalDateTime latestDocTime = docs.stream()
+                    .map(GeneratedDocument::getGeneratedAt)
+                    .filter(Objects::nonNull)
+                    .max(LocalDateTime::compareTo)
+                    .orElse(null);
+            
+            if (latestDocTime != null) {
+                if (meeting.getUpdatedAt() != null && meeting.getUpdatedAt().isAfter(latestDocTime)) {
+                    hasOutdatedDocuments = true;
+                } else if (actionItems != null) {
+                    for (ActionItem item : actionItems) {
+                        if (item.getUpdatedAt() != null && item.getUpdatedAt().isAfter(latestDocTime)) {
+                            hasOutdatedDocuments = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
 
         return MeetingDetailResponse.builder()
                 .id(meeting.getId())
@@ -333,6 +392,7 @@ public class MeetingController {
                 .transcriptId(transcript != null ? transcript.getId() : null)
                 .aiExtractionId(aiExtraction != null ? aiExtraction.getId() : null)
                 .minutesDocumentUrl(minutesDocumentUrl)
+                .hasOutdatedDocuments(hasOutdatedDocuments)
 
                 .createdAt(meeting.getCreatedAt())
                 .updatedAt(meeting.getUpdatedAt())
