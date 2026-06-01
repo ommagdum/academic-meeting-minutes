@@ -372,9 +372,12 @@ const TaskItem: React.FC<TaskItemProps> = ({
 
                 {/* Reassign Dropdown */}
                 {showReassignDropdown && (
-                  <div className="absolute right-0 top-full mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg z-10">
-                    <div className="p-2">
-                      <div className="text-xs font-medium text-gray-700 mb-2">
+                  <div 
+                    className="absolute right-0 top-full mt-1 w-64 border rounded-md shadow-lg z-10 p-2"
+                    style={{ background: 'var(--surface-raised)', borderColor: 'var(--border-strong)' }}
+                  >
+                    <div>
+                      <div className="text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
                         Reassign to:
                       </div>
                       <div className="max-h-48 overflow-y-auto">
@@ -382,15 +385,15 @@ const TaskItem: React.FC<TaskItemProps> = ({
                           <button
                             key={`${option.email}-${index}`}
                             onClick={() => handleReassign(option.email)}
-                            className="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full text-left px-2 py-1.5 text-sm rounded focus:outline-none transition-colors hover:bg-black/5 dark:hover:bg-white/5"
                             disabled={isReassigning}
                           >
-                            <div className="font-medium">{option.name}</div>
-                            <div className="text-xs text-gray-500">{option.email}</div>
+                            <div className="font-medium" style={{ color: 'var(--text-primary)' }}>{option.name}</div>
+                            <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{option.email}</div>
                           </button>
                         ))}
                       </div>
-                      <div className="mt-2 pt-2 border-t border-gray-200">
+                      <div className="mt-2 pt-2 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
                         <input
                           type="email"
                           placeholder="Enter custom email..."
@@ -405,22 +408,25 @@ const TaskItem: React.FC<TaskItemProps> = ({
                               handleCustomEmailReassign();
                             }
                           }}
-                          className={`w-full px-2 py-1 text-sm border rounded ${
-                            emailError ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                          }`}
+                          className="w-full px-2 py-1.5 text-sm border rounded bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          style={{ 
+                            borderColor: emailError ? '#FF453A' : 'var(--border-subtle)',
+                            color: 'var(--text-primary)'
+                          }}
                           disabled={isReassigning}
                         />
                         {emailError && (
-                          <div className="text-xs text-red-600 mt-1">{emailError}</div>
+                          <div className="text-xs mt-1" style={{ color: '#FF453A' }}>{emailError}</div>
                         )}
                         <button
                           onClick={handleCustomEmailReassign}
                           disabled={isReassigning || !customEmail.trim()}
-                          className="w-full mt-2 px-2 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                          className="w-full mt-2 px-2 py-1.5 text-sm rounded font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          style={{ background: '#0071E3', color: '#fff' }}
                         >
                           {isReassigning ? (
                             <div className="flex items-center justify-center">
-                              <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                              <Loader2 className="w-3 h-3 animate-spin mr-2" />
                               Assigning...
                             </div>
                           ) : (
