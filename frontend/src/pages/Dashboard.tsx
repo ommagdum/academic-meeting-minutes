@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { searchService } from "@/services/searchService";
-import { MeetingSearchResult } from "@/services/searchService";
+import { searchService, MeetingSearchResult } from "@/services/searchService";
+import { taskService, ActionItemResponse } from "@/services/taskService";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { RecentMeetingsList } from "@/components/dashboard/RecentMeetingsList";
 import { QuickActions } from "@/components/dashboard/QuickActions";
-import { FileText, Clock, CheckCircle, AlertCircle, LogOut, ChevronDown, RefreshCw, User, TrendingUp } from "lucide-react";
+import DashboardAreaChart from "@/components/dashboard/DashboardAreaChart";
+import TaskStatusDonut from "@/components/dashboard/TaskStatusDonut";
+import { UrgentTasksWidget } from "@/components/dashboard/UrgentTasksWidget";
+import { FileText, Clock, CheckCircle, AlertCircle, LogOut, ChevronDown, RefreshCw, User, TrendingUp, CheckSquare } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
-import MiniLineChart from "@/components/dashboard/MiniLineChart";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,12 +25,6 @@ const Dashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  useEffect(() => {
-    if (user) {
-      console.log('[Dashboard] User object:', user);
-    }
-  }, [user]);
-  
   const getUserInitials = (name: string | undefined): string => {
     if (!name) return 'U';
     const parts = name.trim().split(' ');
@@ -39,7 +35,7 @@ const Dashboard = () => {
   };
 
   const [meetings, setMeetings] = useState<MeetingSearchResult[]>([]);
-  const [upcomingMeetings, setUpcomingMeetings] = useState<MeetingSearchResult[]>([]);
+  const [tasks, setTasks] = useState<ActionItemResponse[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [dashboardStats, setDashboardStats] = useState<{
     totalMeetings: number;
@@ -47,7 +43,6 @@ const Dashboard = () => {
     draftMeetings: number;
     processingMeetings: number;
     processingSuccessRate: number;
-    upcomingMeetings: number;
     monthlyTrend: Record<string, number>;
   }>({
     totalMeetings: 0,
@@ -55,9 +50,10 @@ const Dashboard = () => {
     draftMeetings: 0,
     processingMeetings: 0,
     processingSuccessRate: 0,
-    upcomingMeetings: 0,
     monthlyTrend: {},
   });
+  
+  const [taskStats, setTaskStats] = useState({ completed: 0, pending: 0, overdue: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [analyticsData, setAnalyticsData] = useState<Record<string, number>>({});
 
@@ -78,26 +74,21 @@ const Dashboard = () => {
         });
       };
       
-      const [statsResponse, recentMeetingsResponse, upcomingMeetingsResponse, analyticsResponse] = await Promise.all([
+      const [statsResponse, recentMeetingsResponse, analyticsResponse, tasksResponse] = await Promise.all([
         withTimeout(
           searchService.getDashboardStats().catch(err => {
             if (err.response?.status === 400) {
-              return { totalMeetings: 0, processedMeetings: 0, draftMeetings: 0, processingMeetings: 0, processingSuccessRate: 0, upcomingMeetings: 0, monthlyTrend: {} };
+              return { totalMeetings: 0, processedMeetings: 0, draftMeetings: 0, processingMeetings: 0, processingSuccessRate: 0, monthlyTrend: {} };
             }
             throw err;
           }),
           15000,
-          { totalMeetings: 0, processedMeetings: 0, draftMeetings: 0, processingMeetings: 0, processingSuccessRate: 0, upcomingMeetings: 0, monthlyTrend: {} }
+          { totalMeetings: 0, processedMeetings: 0, draftMeetings: 0, processingMeetings: 0, processingSuccessRate: 0, monthlyTrend: {} }
         ),
         withTimeout(
           searchService.searchByCategory('recent', 0, 5).catch(() => ({ results: [], totalResults: 0, totalPages: 0, currentPage: 0 })),
           15000,
           { results: [], totalResults: 0, totalPages: 0, currentPage: 0 }
-        ),
-        withTimeout(
-          searchService.getUpcomingMeetings(5).catch(() => []),
-          15000,
-          []
         ),
         withTimeout(
           searchService.getAnalytics('day',
@@ -107,14 +98,26 @@ const Dashboard = () => {
           15000,
           {}
         ),
+        withTimeout(
+          taskService.getMyTasks().catch(() => []),
+          15000,
+          []
+        )
       ]);
       
-      const stats = statsResponse || { totalMeetings: 0, processedMeetings: 0, draftMeetings: 0, processingMeetings: 0, processingSuccessRate: 0, upcomingMeetings: 0, monthlyTrend: {} };
+      const stats = statsResponse || { totalMeetings: 0, processedMeetings: 0, draftMeetings: 0, processingMeetings: 0, processingSuccessRate: 0, monthlyTrend: {} };
       
-      setDashboardStats({
-        ...stats,
-        upcomingMeetings: upcomingMeetingsResponse?.length || 0
-      });
+      setDashboardStats(stats);
+      setTasks(tasksResponse || []);
+      
+      // Calculate task stats
+      const taskCounts = (tasksResponse || []).reduce((acc, task) => {
+        if (task.status === 'COMPLETED') acc.completed++;
+        else if (task.status === 'OVERDUE') acc.overdue++;
+        else if (task.status !== 'CANCELLED') acc.pending++;
+        return acc;
+      }, { completed: 0, pending: 0, overdue: 0 });
+      setTaskStats(taskCounts);
 
       const mappedMeetings = (recentMeetingsResponse?.results || []).map((meeting) => {
         const meetingId = meeting.meetingId || '';
@@ -135,11 +138,8 @@ const Dashboard = () => {
       });
       
       setMeetings(mappedMeetings);
-      if (upcomingMeetingsResponse) {
-        setUpcomingMeetings(upcomingMeetingsResponse);
-      }
       
-      // Pad analytics with 0s for the last 28 days so the line chart always draws
+      // Pad analytics with 0s for the last 28 days so the area chart always draws a full line
       const paddedAnalytics: Record<string, number> = {};
       for (let i = 27; i >= 0; i--) {
         const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
@@ -195,9 +195,9 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-10 animate-fade-in">
+    <div className="max-w-7xl mx-auto px-6 py-10 animate-fade-in space-y-8">
       {/* ── Header ────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-10">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
         <div>
           <h1 className="display-sm mb-1.5" style={{ color: "var(--text-primary)" }}>
             Welcome back, {user?.name?.split(' ')[0] || 'User'}!
@@ -259,50 +259,52 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* ── Mobile Layout ─────────────────────────────────────── */}
-      <div className="block lg:hidden space-y-6">
-        <QuickActions />
-        <div className="grid grid-cols-2 gap-4">
-          <StatsCard title="Total Meetings" value={isLoading ? 0 : dashboardStats.totalMeetings} description="All time meetings" icon={FileText} />
-          <StatsCard title="Processing" value={isLoading ? 0 : dashboardStats.processingMeetings} description="Currently being processed" icon={Clock} />
-          <StatsCard title="Completed" value={isLoading ? 0 : dashboardStats.processedMeetings} description="Successfully processed" icon={CheckCircle} />
-          <StatsCard title="Upcoming" value={isLoading ? 0 : dashboardStats.upcomingMeetings} description="Meetings scheduled" icon={AlertCircle} />
-        </div>
-        <div className="card-surface p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="w-4 h-4" style={{ color: "#0071E3" }} />
-            <span className="text-sm font-semibold font-display" style={{ color: "var(--text-primary)" }}>Activity — Last 4 Weeks</span>
+      {/* ── Band 1: Top Metrics & Action Items ────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <StatsCard title="Total Meetings" value={isLoading ? 0 : dashboardStats.totalMeetings} description="All time meetings" icon={FileText} />
+            <StatsCard title="Processing" value={isLoading ? 0 : dashboardStats.processingMeetings} description="Currently being processed" icon={Clock} />
+            <StatsCard title="Completed" value={isLoading ? 0 : dashboardStats.processedMeetings} description="Successfully processed" icon={CheckCircle} />
           </div>
-          <MiniLineChart data={analyticsData} height={64} />
-        </div>
-        <RecentMeetingsList meetings={meetings} isLoading={isLoading} />
-      </div>
-
-      {/* ── Desktop Layout ────────────────────────────────────── */}
-      <div className="hidden lg:block space-y-6">
-        <div className="grid grid-cols-4 gap-6">
-          <StatsCard title="Total Meetings" value={isLoading ? 0 : dashboardStats.totalMeetings} description="All time meetings" icon={FileText} />
-          <StatsCard title="Processing" value={isLoading ? 0 : dashboardStats.processingMeetings} description="Currently being processed" icon={Clock} />
-          <StatsCard title="Completed" value={isLoading ? 0 : dashboardStats.processedMeetings} description="Successfully processed" icon={CheckCircle} />
-          <StatsCard title="Upcoming" value={isLoading ? 0 : dashboardStats.upcomingMeetings} description="Meetings scheduled" icon={AlertCircle} />
-        </div>
-
-        <div className="grid grid-cols-3 gap-6">
-          <div className="col-span-2">
-            <RecentMeetingsList meetings={meetings} isLoading={isLoading} />
-          </div>
-          <div className="space-y-5">
-            <div className="card-surface p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <TrendingUp className="w-4 h-4" style={{ color: "#0071E3" }} />
-                <span className="text-sm font-semibold font-display" style={{ color: "var(--text-primary)" }}>Activity — Last 4 Weeks</span>
-              </div>
-              <MiniLineChart data={analyticsData} height={72} />
+          {/* Main Analytics Banner */}
+          <div className="card-surface p-6">
+            <div className="flex items-center gap-2 mb-6">
+              <TrendingUp className="w-5 h-5" style={{ color: "#0071E3" }} />
+              <h2 className="text-lg font-semibold font-display" style={{ color: "var(--text-primary)" }}>Meeting Activity</h2>
             </div>
-            <QuickActions />
+            <DashboardAreaChart data={analyticsData} height={250} />
+          </div>
+        </div>
+        
+        {/* Right column: Urgent Tasks */}
+        <div className="h-full flex flex-col gap-6">
+          <div className="flex-1">
+            <UrgentTasksWidget tasks={tasks} />
           </div>
         </div>
       </div>
+
+      {/* ── Band 2: Secondary Analytics & Task Overview ────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="card-surface p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <CheckSquare className="w-5 h-5" style={{ color: "#34C759" }} />
+            <h2 className="text-lg font-semibold font-display" style={{ color: "var(--text-primary)" }}>Task Overview</h2>
+          </div>
+          <TaskStatusDonut completed={taskStats.completed} pending={taskStats.pending} overdue={taskStats.overdue} height={220} />
+        </div>
+        
+        <div className="lg:col-span-2">
+           <RecentMeetingsList meetings={meetings} isLoading={isLoading} />
+        </div>
+      </div>
+
+      {/* ── Band 3: Quick Actions ────────────────────────────────────────────── */}
+      <div>
+        <QuickActions />
+      </div>
+
     </div>
   );
 };
