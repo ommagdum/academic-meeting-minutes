@@ -177,14 +177,6 @@
         </div>
     </section>
 
-    <!-- TOPICS DISCUSSED SECTION (AI Data) -->
-    <section class="section" th:if="${hasAIExtraction and not #lists.isEmpty(extraction.extractedData.topicsDiscussed)}">
-        <h2>Topics Discussed</h2>
-        <div th:each="topic : ${extraction.extractedData.topicsDiscussed}" class="decision-item" style="border-left-color: #27ae60;">
-            <div class="decision-topic" th:text="${topic.agendaItem}">Topic</div>
-            <div th:text="${topic.summary}">Topic summary</div>
-        </div>
-    </section>
 
     <!-- ACTION ITEMS SECTION -->
     <section class="section" th:if="${not #lists.isEmpty(actionItems)}">
