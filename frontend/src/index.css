@@ -102,15 +102,15 @@
 
   /* ── Light mode overrides ─────────────────────────────────── */
   .light {
-    --bg:             #FAFAFA;
+    --bg:             #F8F9FA;
     --surface:        #FFFFFF;
-    --surface-raised: #F5F5F7;
-    --border-subtle:  rgba(0,0,0,0.08);
-    --border-strong:  rgba(0,0,0,0.15);
+    --surface-raised: #F1F3F5;
+    --border-subtle:  rgba(0,0,0,0.06);
+    --border-strong:  rgba(0,0,0,0.12);
 
-    --text-primary:   #1D1D1F;
-    --text-secondary: #6E6E73;
-    --text-tertiary:  #AEAEB2;
+    --text-primary:   #212529;
+    --text-secondary: #6C757D;
+    --text-tertiary:  #ADB5BD;
 
     /* accent stays the same */
     --accent:         #0071E3;
