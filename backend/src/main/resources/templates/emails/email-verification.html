@@ -6,140 +6,149 @@
     <title>Verify Your Email Address</title>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: hsl(220, 13%, 96%);
-            color: hsl(224, 15%, 15%);
+            background-color: #0F1012;
+            color: #F5F5F7;
+            -webkit-font-smoothing: antialiased;
         }
-
         .container {
             max-width: 600px;
-            margin: 0 auto;
-            background-color: hsl(0, 0%, 100%);
-            border-radius: 8px;
+            margin: 40px auto;
+            background-color: #16181C;
+            border-radius: 14px;
             overflow: hidden;
-            box-shadow: 0 4px 20px -2px hsl(224, 76%, 48%, 0.1);
+            border: 1px solid rgba(255,255,255,0.08);
         }
-
         .header {
-            background: linear-gradient(135deg, hsl(224, 76%, 48%) 0%, hsl(224, 76%, 35%) 100%);
-            color: hsl(0, 0%, 100%);
-            padding: 40px 30px;
+            background-color: #1C1F25;
+            padding: 30px 40px;
             text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
         }
-
-        .header-icon {
-            width: 64px;
-            height: 64px;
-            background-color: hsla(0, 0%, 100%, 0.2);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 20px auto;
-        }
-
         .header h1 {
-            margin: 0 0 10px 0;
-            font-size: 26px;
+            margin: 0;
+            font-size: 24px;
             font-weight: 700;
+            color: #F5F5F7;
+            letter-spacing: -0.02em;
         }
-
         .header p {
-            margin: 0;
-            opacity: 0.9;
+            margin: 8px 0 0;
             font-size: 15px;
+            color: #A1A1AA;
         }
-
         .content {
-            padding: 36px 30px;
-            line-height: 1.7;
+            padding: 40px;
+            line-height: 1.6;
         }
-
-        .content p {
-            margin: 0 0 16px 0;
-            color: hsl(224, 10%, 35%);
+        .greeting {
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: #F5F5F7;
+        }
+        .message, .content p {
             font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 24px;
+            color: #A1A1AA;
         }
-
-        .highlight-box {
-            background-color: hsl(224, 76%, 97%);
-            border-left: 4px solid hsl(224, 76%, 48%);
-            border-radius: 6px;
-            padding: 16px 20px;
-            margin: 24px 0;
-        }
-
-        .highlight-box p {
-            margin: 0;
-            color: hsl(224, 76%, 35%);
-            font-size: 14px;
-        }
-
-        .cta-center {
-            text-align: center;
-            margin: 32px 0 20px;
-        }
-
-        .cta-button {
-            display: inline-block;
-            background: linear-gradient(135deg, hsl(224, 76%, 48%) 0%, hsl(224, 76%, 35%) 100%);
-            color: #ffffff !important;
-            -webkit-text-fill-color: #ffffff !important;
-            text-decoration: none;
-            padding: 16px 40px;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 16px;
-            box-shadow: 0 4px 20px -2px hsl(224, 76%, 48%, 0.35);
-        }
-
-        .link-fallback {
-            background-color: hsl(220, 13%, 96%);
-            border: 1px solid hsl(220, 13%, 91%);
-            border-radius: 6px;
-            padding: 14px 18px;
-            margin-top: 24px;
-        }
-
-        .link-fallback p {
-            margin: 0 0 6px 0;
-            font-size: 12px;
-            color: hsl(224, 10%, 45%);
-        }
-
-        .link-fallback a {
-            font-size: 12px;
-            color: hsl(224, 76%, 48%);
-            word-break: break-all;
-        }
-
-        .expiry-note {
-            font-size: 13px;
-            color: hsl(224, 10%, 55%);
-            text-align: center;
-            margin: 12px 0 0;
-        }
-
-        strong {
-            color: hsl(224, 15%, 15%);
+        .content strong {
+            color: #F5F5F7;
             font-weight: 600;
         }
-
-        .footer {
-            background-color: hsl(220, 13%, 96%);
-            border-top: 1px solid hsl(220, 13%, 91%);
-            padding: 20px;
+        .button-container {
             text-align: center;
+            margin: 32px 0;
+        }
+        .button {
+            display: inline-block;
+            background-color: #0071E3;
+            color: #ffffff !important;
+            padding: 12px 28px;
+            border-radius: 9999px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 15px;
+            transition: background-color 0.2s;
+            text-align: center;
+        }
+        .button:hover {
+            background-color: #0077ED;
+        }
+        .task-details, .meeting-details, .details-box {
+            background-color: #1C1F25;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            padding: 24px;
+            margin: 24px 0;
+        }
+        .task-details h3, .meeting-details h3, .details-box h3 {
+            margin-top: 0;
+            color: #F5F5F7;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .task-details p, .meeting-details p, .details-box p {
+            margin: 8px 0;
+            color: #A1A1AA;
+            font-size: 14px;
+        }
+        .priority-high { color: #FF453A; font-weight: 600; }
+        .priority-medium { color: #FF9F0A; font-weight: 600; }
+        .priority-low { color: #34C759; font-weight: 600; }
+        .warning {
+            font-size: 13px;
+            color: #52525B;
+            line-height: 1.5;
+            margin-bottom: 0;
+        }
+        .link-fallback {
             font-size: 12px;
-            color: hsl(224, 10%, 45%);
+            color: #52525B;
+            word-break: break-all;
+            margin-top: 16px;
+            text-align: center;
         }
-
-        .footer p {
-            margin: 0;
+        .footer {
+            background-color: #1C1F25;
+            padding: 24px 40px;
+            text-align: center;
+            font-size: 13px;
+            color: #52525B;
+            border-top: 1px solid rgba(255,255,255,0.08);
         }
-    </style>
+        .footer p { margin: 0; }
+        .stats-grid {
+            display: table;
+            width: 100%;
+            margin: 20px 0;
+        }
+        .stat-item {
+            display: table-cell;
+            text-align: center;
+            padding: 15px;
+            background-color: #1C1F25;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #0071E3;
+            margin-bottom: 4px;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #A1A1AA;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+</style>
 </head>
 <body>
 <div class="container">
