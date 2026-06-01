@@ -51,7 +51,20 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
       className="min-h-screen relative"
       style={{ background: "var(--bg)", color: "var(--text-primary)" }}
     >
-      <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      {/* ── Dot-grid background ──────────────────────────── */}
+      <div className="absolute inset-0 dot-grid pointer-events-none z-0" aria-hidden="true" />
+
+      {/* ── Radial accent glow ───────────────────────────── */}
+      <div
+        className="absolute inset-0 pointer-events-none z-0"
+        style={{
+          background: "radial-gradient(ellipse 80% 55% at 50% -5%, rgba(0,113,227,0.12), transparent)",
+        }}
+        aria-hidden="true"
+      />
+
+      <div className="relative z-10 min-h-screen">
+        <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
 
       {/* ── Dark/Light toggle — fixed top-right ────────── */}
       <button
@@ -165,6 +178,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
           })}
         </div>
       </nav>
+      </div>
     </div>
   );
 };
