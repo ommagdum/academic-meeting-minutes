@@ -90,10 +90,12 @@ export interface ActionItem {
   assignedToUser?: User | null;
   assignedToEmail?: string | null;
   deadline?: string | null;
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | string;
+  status: 'DRAFT' | 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | string;
   acknowledged: boolean;
   acknowledgedAt?: string | null;
   completedAt?: string | null;
+  isAiGenerated: boolean;
+  publishedAt: string | null;
   meetingId: string;
   meetingTitle?: string;
   createdAt: string;

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { format } from 'date-fns';
-import { User as UserIcon, ArrowUpDown, Loader2 } from 'lucide-react';
+import { User as UserIcon, ArrowUpDown, Loader2, Edit2, Trash2, Check, X } from 'lucide-react';
 
 interface TaskItemProps {
   task: ActionItem;
@@ -17,6 +17,7 @@ interface TaskItemProps {
   currentUser: User | null;
   attendees: Attendee[];
   onTaskUpdate: (updatedTask: ActionItem) => void;
+  onTaskDelete?: (taskId: string) => void;
 }
 
 const TaskItem: React.FC<TaskItemProps> = ({
@@ -25,7 +26,8 @@ const TaskItem: React.FC<TaskItemProps> = ({
   isOrganizer,
   currentUser,
   attendees,
-  onTaskUpdate
+  onTaskUpdate,
+  onTaskDelete
 }) => {
   const { toast } = useToast();
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
@@ -34,6 +36,17 @@ const TaskItem: React.FC<TaskItemProps> = ({
   const [customEmail, setCustomEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const reassignDropdownRef = useRef<HTMLDivElement>(null);
+
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [editedDescription, setEditedDescription] = useState(task.description);
+  const [isSavingDescription, setIsSavingDescription] = useState(false);
+
+  const [isEditingDeadline, setIsEditingDeadline] = useState(false);
+  const [editedDeadline, setEditedDeadline] = useState(task.deadline ? format(new Date(task.deadline), 'yyyy-MM-dd') : '');
+  const [isSavingDeadline, setIsSavingDeadline] = useState(false);
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Check if current user is the assignee
   const isAssignee = task.assignedToUser?.id === currentUser?.id || 
@@ -185,12 +198,100 @@ const TaskItem: React.FC<TaskItemProps> = ({
     handleReassign(customEmail.trim());
   };
 
+  const handleUpdateDescription = async () => {
+    if (editedDescription.trim() === task.description) {
+      setIsEditingDescription(false);
+      return;
+    }
+    setIsSavingDescription(true);
+    try {
+      const updatedTask = await meetingService.updateActionItem(task.id, { description: editedDescription.trim() });
+      onTaskUpdate(updatedTask);
+      setIsEditingDescription(false);
+      toast({ title: "Updated", description: "Task description updated" });
+    } catch (e) {
+      toast({ title: "Error", description: "Failed to update description", variant: "destructive" });
+    } finally {
+      setIsSavingDescription(false);
+    }
+  };
+
+  const handleUpdateDeadline = async () => {
+    setIsSavingDeadline(true);
+    try {
+      const updatedTask = await meetingService.updateActionItem(task.id, { 
+        deadline: editedDeadline ? new Date(editedDeadline).toISOString() : null 
+      });
+      onTaskUpdate(updatedTask);
+      setIsEditingDeadline(false);
+      toast({ title: "Updated", description: "Task deadline updated" });
+    } catch (e) {
+      toast({ title: "Error", description: "Failed to update deadline", variant: "destructive" });
+    } finally {
+      setIsSavingDeadline(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await meetingService.deleteActionItem(task.id);
+      if (onTaskDelete) {
+        onTaskDelete(task.id);
+      }
+      toast({ title: "Deleted", description: "Task deleted successfully" });
+    } catch (e) {
+      toast({ title: "Error", description: "Failed to delete task", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
   return (
     <Card className="mb-4">
       <CardContent className="p-4">
         <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
-          <div className="flex-1 w-full">
-            <div className="font-medium text-sm mb-2">{task.description}</div>
+          <div className="flex-1 w-full pr-4">
+            {isOrganizer && task.isAiGenerated && task.status === 'DRAFT' && (
+              <div className="mb-2">
+                <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200 border-amber-300">AI Draft — Pending Review</Badge>
+              </div>
+            )}
+            {isOrganizer && task.isAiGenerated && task.status !== 'DRAFT' && (
+              <div className="mb-2">
+                <Badge variant="outline" className="text-[10px] text-muted-foreground leading-tight px-1.5 py-0">AI Generated</Badge>
+              </div>
+            )}
+
+            {isEditingDescription && isOrganizer ? (
+              <div className="mb-2">
+                <textarea 
+                  className="w-full text-sm border rounded p-2 focus:ring focus:ring-blue-200"
+                  value={editedDescription}
+                  onChange={(e) => setEditedDescription(e.target.value)}
+                  disabled={isSavingDescription}
+                  rows={2}
+                />
+                <div className="flex gap-2 mt-1">
+                  <Button size="sm" onClick={handleUpdateDescription} disabled={isSavingDescription || !editedDescription.trim()}>
+                    {isSavingDescription ? <Loader2 className="w-3 h-3 animate-spin mr-1"/> : null} Save
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => { setIsEditingDescription(false); setEditedDescription(task.description); }} disabled={isSavingDescription}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="font-medium text-sm mb-2 flex items-start gap-2 group">
+                <span className="flex-1" onClick={() => isOrganizer && setIsEditingDescription(true)}>{task.description}</span>
+                {isOrganizer && (
+                  <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" onClick={() => setIsEditingDescription(true)}>
+                    <Edit2 className="w-3 h-3 text-muted-foreground" />
+                  </Button>
+                )}
+              </div>
+            )}
             
             <div className="flex items-center gap-2 mb-2">
               <UserIcon className="w-4 h-4 text-muted-foreground" />
@@ -199,9 +300,20 @@ const TaskItem: React.FC<TaskItemProps> = ({
               </span>
             </div>
 
-            {task.deadline && (
-              <div className="text-xs text-muted-foreground mb-2">
-                Due: {format(new Date(task.deadline), 'MMM dd, yyyy')}
+            {isEditingDeadline && isOrganizer ? (
+              <div className="flex items-center gap-2 mb-2">
+                <input type="date" className="text-sm border rounded p-1" value={editedDeadline} onChange={e => setEditedDeadline(e.target.value)} disabled={isSavingDeadline}/>
+                <Button size="sm" variant="ghost" onClick={handleUpdateDeadline} disabled={isSavingDeadline}>Save</Button>
+                <Button size="sm" variant="ghost" onClick={() => { setIsEditingDeadline(false); setEditedDeadline(task.deadline ? format(new Date(task.deadline), 'yyyy-MM-dd') : ''); }} disabled={isSavingDeadline}>Cancel</Button>
+              </div>
+            ) : (
+              <div className="text-xs text-muted-foreground mb-2 flex items-center gap-1 group">
+                <span onClick={() => isOrganizer && setIsEditingDeadline(true)}>Due: {task.deadline ? format(new Date(task.deadline), 'MMM dd, yyyy') : 'No deadline'}</span>
+                {isOrganizer && (
+                  <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setIsEditingDeadline(true)}>
+                    <Edit2 className="w-3 h-3" />
+                  </Button>
+                )}
               </div>
             )}
           </div>
@@ -320,6 +432,25 @@ const TaskItem: React.FC<TaskItemProps> = ({
                   </div>
                 )}
               </div>
+            )}
+
+            {/* Delete Button (Organizer Only) */}
+            {isOrganizer && (
+              showDeleteConfirm ? (
+                <div className="flex items-center gap-1 bg-red-50 p-1 rounded border border-red-200">
+                  <span className="text-xs text-red-600 font-medium px-1 hidden sm:inline">Delete?</span>
+                  <Button size="sm" variant="destructive" className="h-8 px-2" onClick={handleDelete} disabled={isDeleting}>
+                    {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-8 px-2 text-gray-500" onClick={() => setShowDeleteConfirm(false)} disabled={isDeleting}>
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => setShowDeleteConfirm(true)}>
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              )
             )}
           </div>
         </div>

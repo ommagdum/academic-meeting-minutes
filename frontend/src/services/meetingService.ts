@@ -3,6 +3,22 @@ import { Meeting, CreateMeetingRequest, MeetingSeries, ProcessingStatus, UploadR
 import { Transcript, ApiResponse } from '@/types/transcript';
 import { AxiosError } from 'axios';
 
+export interface CreateActionItemData {
+  description: string;
+  assignedToEmail?: string | null;
+  deadline?: string | null;
+  priority?: number | null;
+  notes?: string | null;
+}
+
+export interface UpdateActionItemData {
+  description?: string | null;
+  deadline?: string | null;
+  priority?: number | null;
+  notes?: string | null;
+  assignedToEmail?: string | null;
+}
+
 export const meetingService = {
   /**
    * Create a new meeting
@@ -348,6 +364,52 @@ export const meetingService = {
       {
         assignee,
       },
+    );
+    return response.data;
+  },
+  /**
+   * Create a manual action item
+   */
+  createActionItem: async (
+    meetingId: string,
+    data: CreateActionItemData
+  ): Promise<ActionItem> => {
+    const response = await api.post<ActionItem>(
+      `/api/v1/meetings/${meetingId}/action-items`,
+      data
+    );
+    return response.data;
+  },
+
+  /**
+   * Update an action item
+   */
+  updateActionItem: async (
+    taskId: string,
+    data: UpdateActionItemData
+  ): Promise<ActionItem> => {
+    const response = await api.put<ActionItem>(
+      `/api/v1/action-items/${taskId}`,
+      data
+    );
+    return response.data;
+  },
+
+  /**
+   * Delete an action item
+   */
+  deleteActionItem: async (taskId: string): Promise<void> => {
+    await api.delete(`/api/v1/action-items/${taskId}`);
+  },
+
+  /**
+   * Publish draft action items
+   */
+  publishActionItems: async (
+    meetingId: string
+  ): Promise<{ published: number }> => {
+    const response = await api.post<{ published: number }>(
+      `/api/v1/meetings/${meetingId}/action-items/publish`
     );
     return response.data;
   },

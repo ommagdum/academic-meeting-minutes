@@ -34,6 +34,11 @@ const MeetingDetail = () => {
   const [isLoadingAttendees, setIsLoadingAttendees] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [showAddTask, setShowAddTask] = useState(false);
+  const [isCreatingTask, setIsCreatingTask] = useState(false);
+  const [newTask, setNewTask] = useState({ description: '', assignedToEmail: '', deadline: '', priority: 1 });
 
   const loadMeeting = useCallback(async () => {
     if (!meetingId) {
@@ -99,6 +104,47 @@ const MeetingDetail = () => {
   const handleTaskUpdate = useCallback((updatedTask: ActionItem) => {
     setActionItems(prev => prev ? prev.map(task => task.id === updatedTask.id ? updatedTask : task) : null);
   }, []);
+
+  const handleTaskDelete = useCallback((taskId: string) => {
+    setActionItems(prev => prev ? prev.filter(task => task.id !== taskId) : null);
+  }, []);
+
+  const handlePublishTasks = async () => {
+    if (!meetingId) return;
+    setIsPublishing(true);
+    try {
+      await meetingService.publishActionItems(meetingId);
+      toast({ title: "Published", description: "All draft action items have been published." });
+      const items = await meetingService.getActionItems(meetingId);
+      setActionItems(items);
+    } catch (error) {
+      toast({ title: "Failed to Publish", description: "Failed to publish action items.", variant: "destructive" });
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  const handleCreateTask = async () => {
+    if (!meetingId || !newTask.description.trim()) return;
+    setIsCreatingTask(true);
+    try {
+      await meetingService.createActionItem(meetingId, {
+        description: newTask.description,
+        assignedToEmail: newTask.assignedToEmail || null,
+        deadline: newTask.deadline ? new Date(newTask.deadline).toISOString() : null,
+        priority: newTask.priority
+      });
+      toast({ title: "Task Created", description: "New action item has been added." });
+      setShowAddTask(false);
+      setNewTask({ description: '', assignedToEmail: '', deadline: '', priority: 1 });
+      const items = await meetingService.getActionItems(meetingId);
+      setActionItems(items);
+    } catch (error) {
+      toast({ title: "Failed to Create", description: "Failed to create action item.", variant: "destructive" });
+    } finally {
+      setIsCreatingTask(false);
+    }
+  };
 
   const handleEditSuccess = useCallback((updatedMeeting: Meeting) => {
     setMeeting(updatedMeeting);
@@ -391,7 +437,106 @@ const MeetingDetail = () => {
 
         <TabsContent value="tasks">
           <div className="card-surface p-8">
-            <h2 className="text-xl font-semibold mb-6 font-display" style={{ color: "var(--text-primary)" }}>Action Items</h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold font-display" style={{ color: "var(--text-primary)" }}>Action Items</h2>
+              {isMeetingOwner && (
+                <button 
+                  onClick={() => setShowAddTask(!showAddTask)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors btn-accent"
+                >
+                  <FileText className="w-4 h-4" />
+                  Add Task
+                </button>
+              )}
+            </div>
+
+            {isMeetingOwner && actionItems?.some(item => item.status === 'DRAFT') && (
+              <div className="mb-6 bg-amber-50 border border-amber-200 p-4 rounded-lg flex items-center justify-between">
+                <div className="text-sm text-amber-800">
+                  <span className="font-semibold">{actionItems.filter(item => item.status === 'DRAFT').length} action items</span> are AI-generated drafts pending your review. Assignees cannot see these until you publish them.
+                </div>
+                <button 
+                  onClick={handlePublishTasks}
+                  disabled={isPublishing}
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium"
+                >
+                  {isPublishing ? "Publishing..." : "Publish All"}
+                </button>
+              </div>
+            )}
+
+            {showAddTask && isMeetingOwner && (
+              <div className="mb-6 p-4 border rounded-lg" style={{ background: "var(--surface-raised)", borderColor: "var(--border-subtle)" }}>
+                <h3 className="font-semibold mb-4 text-sm" style={{ color: "var(--text-primary)" }}>Add New Action Item</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs font-medium block mb-1" style={{ color: "var(--text-secondary)" }}>Description *</label>
+                    <textarea 
+                      className="w-full text-sm border rounded p-2 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-transparent"
+                      style={{ borderColor: "var(--border-strong)", color: "var(--text-primary)" }}
+                      value={newTask.description}
+                      onChange={e => setNewTask({...newTask, description: e.target.value})}
+                      placeholder="What needs to be done?"
+                      rows={2}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-xs font-medium block mb-1" style={{ color: "var(--text-secondary)" }}>Assign to (Email)</label>
+                      <input 
+                        type="email"
+                        className="w-full text-sm border rounded p-2 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-transparent"
+                        style={{ borderColor: "var(--border-strong)", color: "var(--text-primary)" }}
+                        value={newTask.assignedToEmail}
+                        onChange={e => setNewTask({...newTask, assignedToEmail: e.target.value})}
+                        placeholder="user@example.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium block mb-1" style={{ color: "var(--text-secondary)" }}>Deadline</label>
+                      <input 
+                        type="date"
+                        className="w-full text-sm border rounded p-2 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-transparent"
+                        style={{ borderColor: "var(--border-strong)", color: "var(--text-primary)" }}
+                        value={newTask.deadline}
+                        onChange={e => setNewTask({...newTask, deadline: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium block mb-1" style={{ color: "var(--text-secondary)" }}>Priority</label>
+                      <select 
+                        className="w-full text-sm border rounded p-2 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-transparent"
+                        style={{ borderColor: "var(--border-strong)", color: "var(--text-primary)" }}
+                        value={newTask.priority}
+                        onChange={e => setNewTask({...newTask, priority: Number(e.target.value)})}
+                      >
+                        <option value={1} className="dark:bg-slate-800">Low</option>
+                        <option value={2} className="dark:bg-slate-800">Medium</option>
+                        <option value={3} className="dark:bg-slate-800">High</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 mt-2">
+                    <button 
+                      onClick={() => setShowAddTask(false)}
+                      className="px-4 py-2 text-sm font-medium border rounded transition-colors hover:bg-white/5"
+                      style={{ borderColor: "var(--border-strong)", color: "var(--text-primary)" }}
+                      disabled={isCreatingTask}
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      onClick={handleCreateTask}
+                      disabled={isCreatingTask || !newTask.description.trim()}
+                      className="px-4 py-2 text-sm font-medium rounded btn-accent disabled:opacity-50"
+                    >
+                      {isCreatingTask ? "Saving..." : "Save Task"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {isLoadingActionItems ? (
               <div className="animate-pulse space-y-4">
                 {[1,2,3].map(i => <div key={i} className="h-16 rounded-lg" style={{ background: "var(--surface-raised)" }} />)}
@@ -411,6 +556,7 @@ const MeetingDetail = () => {
                     currentUser={currentUser}
                     attendees={attendees}
                     onTaskUpdate={handleTaskUpdate}
+                    onTaskDelete={handleTaskDelete}
                   />
                 ))}
               </div>
