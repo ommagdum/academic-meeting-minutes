@@ -1,0 +1,4 @@
+
+# JMeter load testing data
+dashboard/
+results*.csv
