@@ -475,15 +475,15 @@ public class MeetingSearchService {
     @Cacheable(value = "analytics", key = "#user.email + '_analytics_' + #period + '_' + #startDate.truncatedTo(T(java.time.temporal.ChronoUnit).MINUTES).toString() + '_' + #endDate.truncatedTo(T(java.time.temporal.ChronoUnit).MINUTES).toString()")
     public Map<String, Long> getMeetingAnalytics(User user, String period, LocalDateTime startDate, LocalDateTime endDate) {
         try {
-            // ✅ FIXED: Get meetings user created OR is attending
-            List<Meeting> meetings = meetingRepository.findByUserOrAttendeeAndScheduledTimeBetween(
+            // ✅ FIXED: Get meetings user created OR is attending, using createdAt to include ad-hoc meetings
+            List<Meeting> meetings = meetingRepository.findByUserOrAttendeeAndCreatedAtBetween(
                     user, startDate, endDate, Pageable.unpaged()).getContent();
 
             // Group by period manually
             return meetings.stream()
                     .collect(Collectors.groupingBy(
                             meeting -> formatDateForAnalytics(
-                                    meeting.getScheduledTime() != null ? meeting.getScheduledTime() : meeting.getCreatedAt(),
+                                    meeting.getCreatedAt(),
                                     period
                             ),
                             Collectors.counting()

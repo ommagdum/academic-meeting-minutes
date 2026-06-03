@@ -91,9 +91,19 @@ const Dashboard = () => {
           { results: [], totalResults: 0, totalPages: 0, currentPage: 0 }
         ),
         withTimeout(
-          searchService.getAnalytics('day',
-            new Date(Date.now() - 27 * 24 * 60 * 60 * 1000).toISOString().slice(0, 19),
-            new Date().toISOString().slice(0, 19)
+          searchService.getAnalytics(
+            'day',
+            (() => {
+              const d = new Date();
+              d.setDate(d.getDate() - 27);
+              d.setHours(0, 0, 0, 0);
+              return d.toISOString().slice(0, 19);
+            })(),
+            (() => {
+              const d = new Date();
+              d.setHours(23, 59, 59, 0);
+              return d.toISOString().slice(0, 19);
+            })()
           ).catch(() => ({})),
           15000,
           {}

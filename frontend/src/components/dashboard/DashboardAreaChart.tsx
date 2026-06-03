@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useId } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface DashboardAreaChartProps {
@@ -8,6 +8,7 @@ interface DashboardAreaChartProps {
 }
 
 const DashboardAreaChart = ({ data, height = 300, color = "#0071E3" }: DashboardAreaChartProps) => {
+  const gradientId = useId().replace(/:/g, '');
   const chartData = useMemo(() => {
     return Object.entries(data)
       .sort(([a], [b]) => a.localeCompare(b))
@@ -52,7 +53,7 @@ const DashboardAreaChart = ({ data, height = 300, color = "#0071E3" }: Dashboard
           margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
         >
           <defs>
-            <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor={color} stopOpacity={0.3}/>
               <stop offset="95%" stopColor={color} stopOpacity={0}/>
             </linearGradient>
@@ -79,7 +80,7 @@ const DashboardAreaChart = ({ data, height = 300, color = "#0071E3" }: Dashboard
             stroke={color} 
             strokeWidth={2}
             fillOpacity={1} 
-            fill="url(#colorCount)" 
+            fill={`url(#${gradientId})`} 
             activeDot={{ r: 6, fill: color, stroke: 'var(--surface)', strokeWidth: 2 }}
           />
         </AreaChart>
