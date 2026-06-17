@@ -1,77 +1,112 @@
+<div align="center">
+  
 # 🎙️ Academic Meeting Minutes Extractor
 
-<!-- Badges -->
-![Phase](https://img.shields.io/badge/Phase-4%20Complete-success)
-![Java](https://img.shields.io/badge/Java-21-orange)
-![React](https://img.shields.io/badge/React-18-blue)
-![Python](https://img.shields.io/badge/Python-3.12-yellow)
-![License](https://img.shields.io/badge/License-MIT-green)
+**An advanced, AI-powered web platform designed to streamline academic and departmental communications.**
 
-An advanced, AI-powered web platform designed to streamline academic and departmental communications. By uploading audio recordings of meetings, the application autonomously generates rich meeting minutes, extracts critical action items, assigns tasks to team members, and archives content for semantic search.
+[![Status](https://img.shields.io/badge/Status-Complete_(Pending_Deployment)-success?style=for-the-badge)]()
+[![Java](https://img.shields.io/badge/Java-21-orange?style=for-the-badge&logo=java)]()
+[![React](https://img.shields.io/badge/React-18-blue?style=for-the-badge&logo=react)]()
+[![Python](https://img.shields.io/badge/Python-3.12-yellow?style=for-the-badge&logo=python)]()
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker)]()
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)]()
 
----
+*Automatically generate rich meeting minutes, extract critical action items, assign tasks to team members, and archive content for semantic search.*
 
-## 🏗️ System Architecture
-
-The project consists of three distinct microservices running in a containerized environment using **Docker Compose**:
-
-```mermaid
-graph TD
-    Client[Frontend: React/Vite] -->|REST/WebSockets| Backend[Backend: Spring Boot]
-    Backend -->|File/JSON via HTTP| AI[AI Service: Flask/Python]
-    Backend --> Postgres[(PostgreSQL)]
-    Backend --> Mongo[(MongoDB)]
-    
-    AI --> Whisper[OpenAI Whisper API]
-    AI --> Mistral[Mistral LLM API]
-    
-    classDef frontend fill:#61dafb,stroke:#333,stroke-width:2px;
-    classDef backend fill:#6db33f,stroke:#333,stroke-width:2px;
-    classDef ai fill:#ffd43b,stroke:#333,stroke-width:2px;
-    
-    class Client frontend;
-    class Backend backend;
-    class AI ai;
-```
-
-### 1. 🖥️ Frontend (React & Vite)
-- **Frameworks:** React 18, Vite, TypeScript
-- **UI/UX Design:** Tailwind CSS & shadcn/ui components
-- **State Management:** React Query (`@tanstack/react-query`)
-- **Key Functionality:** Multi-step wizards for meeting creation, Real-time WebSockets via STOMP, Interactive `Recharts`-based analytics.
-
-### 2. ⚙️ Backend (Spring Boot 3.5.x)
-- **Core:** Java 21, Spring Boot
-- **Security:** Spring Security (OAuth2 client + JWT token validation)
-- **Resilience:** Circuit breaking via `Resilience4j` for fault-tolerant remote AI calls.
-- **Real-Time & Notifications:** WebSockets with STOMP, Spring Mail integrated with Thymeleaf templates for automated task assignments.
-- **Documents:** Automated PDF and Word Doc generation using Apache PDFBox/POI and Flying Saucer.
-
-### 3. 🧠 AI Service (Python & Flask)
-- **Transcription:** OpenAI Whisper framework for high-accuracy speech-to-text.
-- **Extraction:** Mistral LLM API utilized for NLP summarization and intelligent action item tracking.
-- **Resilience:** Fallback rule-based extraction algorithms are instantly invoked if the LLM REST API experiences downtime.
+</div>
 
 ---
 
 ## 🌟 Key Features
 
+The Academic Meeting Minutes Extractor is built to eliminate the administrative burden of documenting meetings. 
+
 | Feature | Description | Status |
 | :--- | :--- | :---: |
-| **Audio Processing** | Automated transcription mapping speaker timings using Whisper. | ✅ |
-| **Action item Parsing**| Extracts tasks, deadlines, and assignees directly from transcripts. | ✅ |
-| **Meeting Series** | Organize ongoing weekly or monthly departmental meetings easily. | ✅ |
-| **Semantic Search** | Search through historical minutes and transcripts from the dashboard. | ✅ |
-| **Task Reminders** | Background chron-jobs send email reminders to users with pending tasks. | ✅ |
-| **Export Options** | Export generated minutes straight to beautifully formatted PDF and Word Document files. | ✅ |
+| 🎙️ **Intelligent Transcription** | Automated, highly accurate transcription using OpenAI's Whisper framework. Maps speaker timings effortlessly. | ✅ |
+| 🧠 **Action Item Extraction**| Leverages Mistral LLM to parse discussions, extracting actionable tasks, deadlines, and direct assignees. | ✅ |
+| 📅 **Meeting Series** | Organize ongoing weekly or monthly departmental meetings with ease. | ✅ |
+| 🔍 **Semantic Search** | Instantly search through historical minutes, past action items, and raw transcripts. | ✅ |
+| 🔔 **Automated Notifications** | Background chron-jobs send email reminders to users with pending tasks and invitations. | ✅ |
+| 📄 **Export Options** | Export generated minutes straight to beautifully formatted PDF and Word Document files. | ✅ |
 
 ---
 
-## 💾 Databases
+## 🏗️ System Architecture
+
+The project is built on a robust, microservices-driven architecture running in a containerized environment via **Docker Compose**:
+
+```mermaid
+graph TD
+    Client[Frontend: React/Vite] -->|REST & WebSockets| Backend[Backend: Spring Boot]
+    Backend -->|File/JSON via HTTP| AI[AI Service: Flask/Python]
+    
+    subgraph Databases
+        Postgres[(PostgreSQL)]
+        Mongo[(MongoDB)]
+        Redis[(Redis Cache)]
+    end
+    
+    Backend --> Postgres
+    Backend --> Mongo
+    Backend --> Redis
+    
+    subgraph AI Models
+        Whisper[OpenAI Whisper API]
+        Mistral[Mistral LLM API]
+    end
+    
+    AI --> Whisper
+    AI --> Mistral
+    
+    classDef frontend fill:#61dafb,stroke:#333,stroke-width:2px,color:#000;
+    classDef backend fill:#6db33f,stroke:#333,stroke-width:2px,color:#fff;
+    classDef ai fill:#ffd43b,stroke:#333,stroke-width:2px,color:#000;
+    classDef db fill:#ff9900,stroke:#333,stroke-width:2px,color:#fff;
+    
+    class Client frontend;
+    class Backend backend;
+    class AI ai;
+    class Postgres,Mongo,Redis db;
+```
+
+### 1. 🖥️ Frontend Client (React & Vite)
+- **Frameworks:** React 18, Vite, TypeScript
+- **UI/UX Design:** Tailwind CSS & shadcn/ui components for a premium aesthetic
+- **State Management:** Redux Toolkit & React Query (`@tanstack/react-query`)
+- **Key Functionality:** Multi-step wizards for meeting creation, Real-time WebSockets via STOMP, Interactive `Recharts`-based analytics.
+
+### 2. ⚙️ Backend Core (Spring Boot)
+- **Core:** Java 21, Spring Boot 3.x
+- **Security:** Spring Security (OAuth2 client + JWT token validation)
+- **Resilience:** Circuit breaking via `Resilience4j` for fault-tolerant remote AI calls.
+- **Documents:** Automated PDF and Word Doc generation using Apache PDFBox/POI and Flying Saucer.
+
+### 3. 🧠 AI Processing Service (Python & Flask)
+- **Transcription:** OpenAI Whisper framework for high-accuracy speech-to-text.
+- **Extraction:** Mistral 7B LLM API utilized for NLP summarization and intelligent action item tracking.
+- **Resilience:** Fallback rule-based extraction algorithms instantly invoked if the LLM REST API experiences downtime.
+
+---
+
+## 💾 Multi-Database Strategy
 
 The application implements a multi-database approach optimized for diverging workloads:
 1. **PostgreSQL (Relational):** Caches and handles rigorous ACID transactions for core domains like `Users`, `Meetings`, `MeetingSeries`, and `ActionItems`. 
 2. **MongoDB (NoSQL Document):** Perfect for massive text buffers including full-text `Transcripts`, `AIExtractions`, and `Historical Documents`.
+3. **Redis (In-Memory):** Speeds up session management, caching, and fast queue-processing.
+
+---
+
+## 🔌 API Overview
+
+The backend exposes a highly optimized REST API with dozens of tested endpoints:
+- **`Auth`:** Secure JWT and OAuth2 flows (`/api/auth/*`)
+- **`Meetings`:** Full CRUD, transcript fetching, processing triggers, and document downloads (`/api/v1/meetings/*`)
+- **`Action Items`:** Task management, acknowledgments, and reassignments (`/api/v1/action-items/*`)
+- **`Dashboard & Search`:** Aggregated stats, upcoming events, and semantic search queries (`/api/v1/dashboard/*`, `/api/v1/search/*`)
+
+*(For a full list of endpoints, refer to the local `endpoints_report.md`)*
 
 ---
 
@@ -100,10 +135,9 @@ docker-compose logs -f
 ```
 
 ### Accessing the Applications
-- **Frontend App:** [http://localhost:5173](http://localhost:5173) (Typical Vite Port)
+- **Frontend App:** [http://localhost:5173](http://localhost:5173) 
 - **Backend API:** [http://localhost:8080](http://localhost:8080)
 - **AI Service:** [http://localhost:5001](http://localhost:5001)
-- **PostgreSQL Database:** `localhost:5432` 
 
 ---
 
@@ -113,10 +147,14 @@ docker-compose logs -f
 - [x] **Phase 2: Database Connectivity** — Hybrid Postgres & Mongo integration alongside JPA/Document interfaces.
 - [x] **Phase 3: Core Application Workflows** — Dashboard, Semantic Search, Automated notifications.
 - [x] **Phase 4: AI Pipeline Processing** — Audio file chunking, Whisper transcription algorithms, and Mistral LLM extractions.
+- [x] **Phase 5: Testing & UI Polish** — Unit/integration test suites, UI revamp and finalization.
+- [ ] **Phase 6: Deployment** — Container orchestration, cloud hosting, and production release (Pending).
 
 ---
 
 ## 📄 License & Contact
 
 Maintained by the **Academic R&D Team**. 
+Distributed under the **MIT License**.
+
 For module-specific queries, please check the local `HELP.md` within the `/backend` and `/frontend` directories.
